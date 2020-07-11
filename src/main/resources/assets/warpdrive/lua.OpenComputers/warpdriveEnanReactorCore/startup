@@ -176,9 +176,9 @@ function reactor_page()
   elseif reactor_outputMode == "unlimited" then
     w.write("manual/unlimited")
   elseif reactor_outputMode == "above" then
-    w.write("surplus above " .. reactor_outputThreshold .. " RF")
+    w.write("surplus above " .. reactor_outputThreshold .. " FE")
   else
-    w.write("rated at " .. reactor_outputThreshold .. " RF")
+    w.write("rated at " .. reactor_outputThreshold .. " FE")
   end
   w.setCursorPos( 1, 12)
   w.setColorNormal()
@@ -323,7 +323,7 @@ function reactor_config()
     
     w.setCursorPos(1, 4)
     w.setColorNormal()
-    w.write("Reactor output rate (" .. w.format_integer(reactor_outputThreshold) .. " RF): ")
+    w.write("Reactor output rate (" .. w.format_integer(reactor_outputThreshold) .. " FE): ")
     reactor_outputThreshold = w.input_readInteger(reactor_outputThreshold)
     reactor_setMode()
     w.setCursorPos(1, 5)

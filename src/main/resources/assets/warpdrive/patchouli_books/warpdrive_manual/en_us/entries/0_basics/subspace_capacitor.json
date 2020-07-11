@@ -28,11 +28,11 @@
 			"type": "image",
 			"border": true,
 			"images": [ "warpdrive:textures/book/subspace_capacitors.png" ],
-			"text": "They accept and provide any standard energy like $(item)FE$(), $(item)RF$() or $(item)EU$()."
+			"text": "They accept and provide any standard energy like $(item)FE$() or $(item)EU$()."
 		},
 		{
 			"type": "text",
-			"text": "Due to their inner nature, $(item)EU$() transfer rates are defined per block while $(item)FE$() & $(item)RF$() transfer rates are defined per face, hence it's usually much faster to use the latest.$(br2)While the original design was greatly improved over time, Subspace energy is still coming with a small loss when converting power to/from subspace form."
+			"text": "Due to their inner nature, $(item)EU$() transfer rates are defined per block while $(item)FE$() transfer rates are defined per face, hence it's usually much faster to use the latest.$(br2)While the original design was greatly improved over time, Subspace energy is still coming with a small loss when converting power to/from subspace form."
 		},
 		{
 			"type": "crafting",

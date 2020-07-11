@@ -56,7 +56,7 @@
 		{
 			"type": "text",
 			"title": "Ice electrolyzer",
-			"text": "$(item)Warp armor$() refills your empty air tanks as long as you have $(item)Ice$() and a $(item)energy storage item$() in your inventory. You'll need 2000 $(item)EU$() or equivalent $(item)FE$() or $(item)RF$() per operation."
+			"text": "$(item)Warp armor$() refills your empty air tanks as long as you have $(item)Ice$() and a $(item)energy storage item$() in your inventory. You'll need 2000 $(item)EU$() or equivalent $(item)FE$() per operation."
 		}
 	],
 	"sortnum": 14

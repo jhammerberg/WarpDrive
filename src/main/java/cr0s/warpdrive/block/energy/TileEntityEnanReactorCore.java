@@ -106,10 +106,10 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 		super.onConstructed();
 		
 		energyStored_max  = WarpDriveConfig.ENAN_REACTOR_MAX_ENERGY_STORED_BY_TIER[enumTier.getIndex()];
-		generation_offset = WarpDriveConfig.ENAN_REACTOR_GENERATION_MIN_RF_BY_TIER[enumTier.getIndex()];
-		generation_range  = WarpDriveConfig.ENAN_REACTOR_GENERATION_MAX_RF_BY_TIER[enumTier.getIndex()] - generation_offset;
+		generation_offset = WarpDriveConfig.ENAN_REACTOR_GENERATION_MIN_FE_BY_TIER[enumTier.getIndex()];
+		generation_range  = WarpDriveConfig.ENAN_REACTOR_GENERATION_MAX_FE_BY_TIER[enumTier.getIndex()] - generation_offset;
 		
-		energy_setParameters(EnergyWrapper.convertRFtoInternal_floor(energyStored_max),
+		energy_setParameters(EnergyWrapper.convertFEtoInternal_floor(energyStored_max),
 		                     262144, 262144,
 		                     "HV", 0, "LuV", 2);
 		
@@ -276,7 +276,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 			return;
 		}
 		
-		final int amount = EnergyWrapper.convertInternalToRF_floor(energy);
+		final int amount = EnergyWrapper.convertInternalToFE_floor(energy);
 		if (amount <= 1) {
 			return;
 		}
@@ -705,24 +705,24 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 		if (enumReactorOutputMode == EnumReactorOutputMode.UNLIMITED) {
 			result = Math.min(Math.max(0, containedEnergy), capacity);
 			if (WarpDriveConfig.LOGGING_ENERGY) {
-				WarpDrive.logger.info(String.format("PotentialOutput Manual %d RF (%d internal) capacity %d",
-				                                    result, EnergyWrapper.convertRFtoInternal_floor(result), capacity));
+				WarpDrive.logger.info(String.format("PotentialOutput Manual %d FE (%d internal) capacity %d",
+				                                    result, EnergyWrapper.convertFEtoInternal_floor(result), capacity));
 			}
 		} else if (enumReactorOutputMode == EnumReactorOutputMode.ABOVE) {
 			result = Math.min(Math.max(0, lastGenerationRate - outputThreshold), capacity);
 			if (WarpDriveConfig.LOGGING_ENERGY) {
-				WarpDrive.logger.info(String.format("PotentialOutput Above %d RF (%d internal) capacity %d",
-				                                    result, EnergyWrapper.convertRFtoInternal_floor(result), capacity));
+				WarpDrive.logger.info(String.format("PotentialOutput Above %d FE (%d internal) capacity %d",
+				                                    result, EnergyWrapper.convertFEtoInternal_floor(result), capacity));
 			}
 		} else if (enumReactorOutputMode == EnumReactorOutputMode.AT_RATE) {
 			final int remainingRate = Math.max(0, outputThreshold - releasedThisTick);
 			result = Math.min(Math.max(0, containedEnergy), Math.min(remainingRate, capacity));
 			if (WarpDriveConfig.LOGGING_ENERGY) {
-				WarpDrive.logger.info(String.format("PotentialOutput Rated %d RF (%d internal) remainingRate %d RF/t capacity %d",
-				                                    result, EnergyWrapper.convertRFtoInternal_floor(result), remainingRate, capacity));
+				WarpDrive.logger.info(String.format("PotentialOutput Rated %d FE (%d internal) remainingRate %d FE/t capacity %d",
+				                                    result, EnergyWrapper.convertFEtoInternal_floor(result), remainingRate, capacity));
 			}
 		}
-		return (int) EnergyWrapper.convertRFtoInternal_floor(result);
+		return (int) EnergyWrapper.convertFEtoInternal_floor(result);
 	}
 	
 	@Override
@@ -738,22 +738,22 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	
 	@Override
 	protected void energy_outputDone(final long energyOutput_internal) {
-		final long energyOutput_RF = EnergyWrapper.convertInternalToRF_ceil(energyOutput_internal);
-		containedEnergy -= energyOutput_RF;
+		final long energyOutput_FE = EnergyWrapper.convertInternalToFE_ceil(energyOutput_internal);
+		containedEnergy -= energyOutput_FE;
 		if (containedEnergy < 0) {
 			containedEnergy = 0;
 		}
-		releasedThisTick += energyOutput_RF;
-		releasedThisCycle += energyOutput_RF;
+		releasedThisTick += energyOutput_FE;
+		releasedThisCycle += energyOutput_FE;
 		if (WarpDriveConfig.LOGGING_ENERGY) {
-			WarpDrive.logger.info(String.format("OutputDone %d (%d RF)",
-			                                    energyOutput_internal, energyOutput_RF));
+			WarpDrive.logger.info(String.format("OutputDone %d (%d FE)",
+			                                    energyOutput_internal, energyOutput_FE));
 		}
 	}
 	
 	@Override
 	public long energy_getEnergyStored() {
-		return Commons.clamp(0L, energy_getMaxStorage(), EnergyWrapper.convertRFtoInternal_floor(containedEnergy));
+		return Commons.clamp(0L, energy_getMaxStorage(), EnergyWrapper.convertFEtoInternal_floor(containedEnergy));
 	}
 	
 	// Forge overrides

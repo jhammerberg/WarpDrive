@@ -139,7 +139,6 @@ public class WarpDriveConfig {
 	 * The variables which store whether or not individual mods are loaded
 	 */
 	public static boolean              isAdvancedRepulsionSystemLoaded = false;
-	public static boolean              isRedstoneFluxLoaded = false;
 	public static boolean              isComputerCraftLoaded = false;
 	public static boolean              isCCTweakedLoaded = false;
 	public static boolean              isEnderIOLoaded = false;
@@ -266,11 +265,10 @@ public class WarpDriveConfig {
 	public static boolean LOGGING_OFFLINE_AVATAR = true;
 	
 	// Energy
-	public static String           ENERGY_DISPLAY_UNITS = "RF";
+	public static String           ENERGY_DISPLAY_UNITS = "FE";
 	public static boolean          ENERGY_ENABLE_IC2_EU = true;
 	public static boolean          ENERGY_ENABLE_FE = true;
 	public static boolean          ENERGY_ENABLE_GTCE_EU = true;
-	public static boolean          ENERGY_ENABLE_RF = true;
 	public static float            ENERGY_OVERVOLTAGE_SHOCK_FACTOR = 1.0F;
 	public static float            ENERGY_OVERVOLTAGE_EXPLOSION_FACTOR = 1.0F;
 	public static int              ENERGY_SCAN_INTERVAL_TICKS = 20;
@@ -540,8 +538,8 @@ public class WarpDriveConfig {
 	public static final int        ENAN_REACTOR_UPDATE_INTERVAL_TICKS = 5; // hardcoded in the equations
 	public static final int        ENAN_REACTOR_FREEZE_INTERVAL_TICKS = 40;
 	public static int[]            ENAN_REACTOR_MAX_LASERS_PER_SECOND = { 64, 6, 12, 24 };
-	public static int[]            ENAN_REACTOR_GENERATION_MIN_RF_BY_TIER = { 4, 4, 4, 4 };
-	public static int[]            ENAN_REACTOR_GENERATION_MAX_RF_BY_TIER = { 64000, 64000, 192000, 576000 };
+	public static int[]            ENAN_REACTOR_GENERATION_MIN_FE_BY_TIER = { 4, 4, 4, 4 };
+	public static int[]            ENAN_REACTOR_GENERATION_MAX_FE_BY_TIER = { 64000, 64000, 192000, 576000 };
 	public static int[]            ENAN_REACTOR_EXPLOSION_MAX_RADIUS_BY_TIER = { 6, 6, 8, 10 };
 	public static double[]         ENAN_REACTOR_EXPLOSION_MAX_REMOVAL_CHANCE_BY_TIER = { 0.1D, 0.1D, 0.1D, 0.1D };
 	public static int[]            ENAN_REACTOR_EXPLOSION_COUNT_BY_TIER = { 3, 3, 3, 3 };
@@ -781,7 +779,6 @@ public class WarpDriveConfig {
 		unpackResourcesToFolder("default", ".schematic", defaultSchematics, "schematics", fileSchematicsDirectory);
 		
 		// read mod dependencies at runtime and for recipes
-		isRedstoneFluxLoaded = Loader.isModLoaded("redstoneflux");
 		isComputerCraftLoaded = Loader.isModLoaded("computercraft");
 		isCCTweakedLoaded = Loader.isModLoaded("cctweaked");
 		isEnderIOLoaded = Loader.isModLoaded("enderio");
@@ -998,10 +995,9 @@ public class WarpDriveConfig {
 		
 		// Energy handling
 		ENERGY_DISPLAY_UNITS = config.get("energy", "display_units", ENERGY_DISPLAY_UNITS, "display units for energy (EU, RF, FE, \u0230I)").getString();
-		ENERGY_ENABLE_FE = config.get("energy", "enable_FE", ENERGY_ENABLE_FE, "Enable Forge energy support, disable it for a pure EU or RF energy support").getBoolean(true);
+		ENERGY_ENABLE_FE = config.get("energy", "enable_FE", ENERGY_ENABLE_FE, "Enable Forge energy support, disable it for a pure EU energy support").getBoolean(true);
 		ENERGY_ENABLE_GTCE_EU = config.get("energy", "enable_GTCE_EU", ENERGY_ENABLE_GTCE_EU, "Enable Gregtech EU energy support when the GregtechCE mod is present, disable otherwise").getBoolean(true);
 		ENERGY_ENABLE_IC2_EU = config.get("energy", "enable_IC2_EU", ENERGY_ENABLE_IC2_EU, "Enable IC2 EU energy support when the IndustrialCraft2 mod is present, disable otherwise").getBoolean(true);
-		ENERGY_ENABLE_RF = config.get("energy", "enable_RF", ENERGY_ENABLE_RF, "Enable RF energy support when the RedstoneFlux mod is present, disable otherwise").getBoolean(true);
 		ENERGY_OVERVOLTAGE_SHOCK_FACTOR = Commons.clamp(0.0F, 10.0F,
 				(float) config.get("energy", "overvoltage_shock_factor", ENERGY_OVERVOLTAGE_SHOCK_FACTOR, "Shock damage factor to entities in case of EU voltage overload, set to 0 to disable completely").getDouble());
 		ENERGY_OVERVOLTAGE_EXPLOSION_FACTOR = Commons.clamp(0.0F, 10.0F,
@@ -1343,12 +1339,12 @@ public class WarpDriveConfig {
 		ENAN_REACTOR_MAX_LASERS_PER_SECOND =
 				config.get("enantiomorphic_reactor", "max_lasers", ENAN_REACTOR_MAX_LASERS_PER_SECOND, "Maximum number of stabilisation laser shots per seconds before loosing efficiency").getIntList();
 		clampByTier(1, Integer.MAX_VALUE, ENAN_REACTOR_MAX_LASERS_PER_SECOND);
-		ENAN_REACTOR_GENERATION_MIN_RF_BY_TIER =
-		        config.get("enantiomorphic_reactor", "min_generation_RF_by_tier", ENAN_REACTOR_GENERATION_MIN_RF_BY_TIER, "Minimum energy added to the core when enabled, measured in RF/t, for a given tier").getIntList();
-		clampByTier(1, Integer.MAX_VALUE, ENAN_REACTOR_GENERATION_MIN_RF_BY_TIER);
-		ENAN_REACTOR_GENERATION_MAX_RF_BY_TIER =
-				config.get("enantiomorphic_reactor", "max_generation_RF_by_tier", ENAN_REACTOR_GENERATION_MAX_RF_BY_TIER, "Maximum energy added to the core when enabled, measured in RF/t, for a given tier").getIntList();
-		clampByTier(1, Integer.MAX_VALUE, ENAN_REACTOR_GENERATION_MAX_RF_BY_TIER);
+		ENAN_REACTOR_GENERATION_MIN_FE_BY_TIER =
+		        config.get("enantiomorphic_reactor", "min_generation_FE_by_tier", ENAN_REACTOR_GENERATION_MIN_FE_BY_TIER, "Minimum energy added to the core when enabled, measured in FE/t, for a given tier").getIntList();
+		clampByTier(1, Integer.MAX_VALUE, ENAN_REACTOR_GENERATION_MIN_FE_BY_TIER);
+		ENAN_REACTOR_GENERATION_MAX_FE_BY_TIER =
+				config.get("enantiomorphic_reactor", "max_generation_FE_by_tier", ENAN_REACTOR_GENERATION_MAX_FE_BY_TIER, "Maximum energy added to the core when enabled, measured in FE/t, for a given tier").getIntList();
+		clampByTier(1, Integer.MAX_VALUE, ENAN_REACTOR_GENERATION_MAX_FE_BY_TIER);
 		
 		// Force field projector
 		FORCE_FIELD_PROJECTOR_MAX_ENERGY_STORED_BY_TIER = config.get("force_field", "projector_max_energy_stored_by_tier", FORCE_FIELD_PROJECTOR_MAX_ENERGY_STORED_BY_TIER, "Maximum energy stored for each projector tier").getIntList();

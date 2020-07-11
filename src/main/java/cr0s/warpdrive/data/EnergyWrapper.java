@@ -27,7 +27,7 @@ public class EnergyWrapper {
 	public static final String TAG_ENERGY = "energy";
 	public static final double EU_PER_INTERNAL = 1.0D;
 	public static final double GT_PER_INTERNAL = 1.0D;
-	public static final double RF_PER_INTERNAL = 1800.0D / 437.5D;
+	public static final double FE_PER_INTERNAL = 1800.0D / 437.5D;
 	// public static final int IC2_sinkTier_max = Integer.MAX_VALUE;
 	// public static final int IC2_sourceTier_max = 20;
 	//                                             0     1     2     3     4     5      6      7      8      9
@@ -43,20 +43,20 @@ public class EnergyWrapper {
 	}
 	
 	// conversion handling
-	public static int convertInternalToRF_ceil(final long energy) {
-		return (int) Math.ceil(energy * RF_PER_INTERNAL);
+	public static int convertInternalToFE_ceil(final long energy) {
+		return (int) Math.ceil(energy * FE_PER_INTERNAL);
 	}
 	
-	public static int convertInternalToRF_floor(final long energy) {
-		return (int) Math.floor(energy * RF_PER_INTERNAL);
+	public static int convertInternalToFE_floor(final long energy) {
+		return (int) Math.floor(energy * FE_PER_INTERNAL);
 	}
 	
-	public static long convertRFtoInternal_ceil(final int energy) {
-		return (long) Math.ceil(energy / RF_PER_INTERNAL);
+	public static long convertFEtoInternal_ceil(final int energy) {
+		return (long) Math.ceil(energy / FE_PER_INTERNAL);
 	}
 	
-	public static long convertRFtoInternal_floor(final int energy) {
-		return (long) Math.floor(energy / RF_PER_INTERNAL);
+	public static long convertFEtoInternal_floor(final int energy) {
+		return (long) Math.floor(energy / FE_PER_INTERNAL);
 	}
 	
 	public static long convertInternalToGT_ceil(final long energy) {
@@ -131,7 +131,7 @@ public class EnergyWrapper {
 		case "FE":
 		case "\u0230I":// micro in ASCII code
 		case "\u00B5I":// micro in UNICODE
-			return (long) EnergyWrapper.convertInternalToRF_floor(energy);
+			return (long) EnergyWrapper.convertInternalToFE_floor(energy);
 		
 		default:
 			return energy;
@@ -188,13 +188,6 @@ public class EnergyWrapper {
 			bResult = GT_isEnergyContainer(itemStack);
 		}
 		
-		// RedstoneFlux
-		if ( !bResult
-		  && WarpDriveConfig.ENERGY_ENABLE_RF
-		  && WarpDriveConfig.isRedstoneFluxLoaded ) {
-			bResult = RF_isEnergyContainer(itemStack);
-		}
-		
 		// Forge Energy
 		if ( !bResult
 		  && WarpDriveConfig.ENERGY_ENABLE_FE ) {
@@ -219,14 +212,6 @@ public class EnergyWrapper {
 		  && WarpDriveConfig.isGregtechLoaded
 		  && GT_isEnergyContainer(itemStack) ) {
 			bResult = GT_canInput(itemStack);
-		}
-		
-		// RedstoneFlux
-		if ( !bResult
-		  && WarpDriveConfig.ENERGY_ENABLE_RF
-		  && WarpDriveConfig.isRedstoneFluxLoaded
-		  && RF_isEnergyContainer(itemStack) ) {
-			bResult = RF_canInput(itemStack);
 		}
 		
 		// Forge Energy
@@ -256,14 +241,6 @@ public class EnergyWrapper {
 			bResult = GT_canOutput(itemStack);
 		}
 		
-		// RedstoneFlux
-		if ( !bResult
-		  && WarpDriveConfig.ENERGY_ENABLE_RF
-		  && WarpDriveConfig.isRedstoneFluxLoaded
-		  && RF_isEnergyContainer(itemStack) ) {
-			bResult = RF_canOutput(itemStack);
-		}
-		
 		// Forge Energy
 		if ( !bResult
 		  && WarpDriveConfig.ENERGY_ENABLE_FE
@@ -291,20 +268,11 @@ public class EnergyWrapper {
 			return convertGTtoInternal_floor(amount_EU);
 		}
 		
-		// RedstoneFlux
-		if ( WarpDriveConfig.ENERGY_ENABLE_RF
-		  && WarpDriveConfig.isRedstoneFluxLoaded
-		  && RF_isEnergyContainer(itemStack) ) {
-			final int amount_RF = Commons.clamp(0, RF_getMaxEnergyStorage(itemStack), RF_getEnergyStored(itemStack));
-			return convertRFtoInternal_floor(amount_RF);
-		}
-		
 		// Forge Energy
 		if ( WarpDriveConfig.ENERGY_ENABLE_FE
-		  && WarpDriveConfig.isRedstoneFluxLoaded
 		  && FE_isEnergyContainer(itemStack) ) {
-			final int amount_RF = Commons.clamp(0, FE_getMaxEnergyStorage(itemStack), FE_getEnergyStored(itemStack));
-			return convertRFtoInternal_floor(amount_RF);
+			final int amount_FE = Commons.clamp(0, FE_getMaxEnergyStorage(itemStack), FE_getEnergyStored(itemStack));
+			return convertFEtoInternal_floor(amount_FE);
 		}
 		
 		return 0;
@@ -327,19 +295,11 @@ public class EnergyWrapper {
 			return convertGTtoInternal_floor(amount_EU);
 		}
 		
-		// RedstoneFlux
-		if ( WarpDriveConfig.ENERGY_ENABLE_RF
-		  && WarpDriveConfig.isRedstoneFluxLoaded
-		  && RF_isEnergyContainer(itemStack) ) {
-			final int amount_RF = RF_getMaxEnergyStorage(itemStack);
-			return convertRFtoInternal_floor(amount_RF);
-		}
-		
 		// Forge Energy
 		if ( WarpDriveConfig.ENERGY_ENABLE_FE
 		  && FE_isEnergyContainer(itemStack) ) {
-			final int amount_RF = FE_getMaxEnergyStorage(itemStack);
-			return convertRFtoInternal_floor(amount_RF);
+			final int amount_FE = FE_getMaxEnergyStorage(itemStack);
+			return convertFEtoInternal_floor(amount_FE);
 		}
 		
 		return 0;
@@ -362,19 +322,11 @@ public class EnergyWrapper {
 			return (int) convertGTtoInternal_floor(GT_consume(itemStack, amount_EU, simulate));
 		}
 		
-		// RedstoneFlux
-		if ( WarpDriveConfig.ENERGY_ENABLE_RF
-		  && WarpDriveConfig.isRedstoneFluxLoaded
-		  && RF_isEnergyContainer(itemStack) ) {
-			final int amount_RF = convertInternalToRF_ceil(amount);
-			return (int) convertRFtoInternal_floor(RF_consume(itemStack, amount_RF, simulate));
-		}
-		
 		// Forge Energy
 		if ( WarpDriveConfig.ENERGY_ENABLE_FE
 		  && FE_isEnergyContainer(itemStack) ) {
-			final int amount_RF = convertInternalToRF_ceil(amount);
-			return (int) convertRFtoInternal_floor(FE_consume(itemStack, amount_RF, simulate));
+			final int amount_FE = convertInternalToFE_ceil(amount);
+			return (int) convertFEtoInternal_floor(FE_consume(itemStack, amount_FE, simulate));
 		}
 		
 		return 0;
@@ -397,19 +349,11 @@ public class EnergyWrapper {
 			return convertEUtoInternal_ceil(GT_charge(itemStack, amount_EU, simulate));
 		}
 		
-		// RedstoneFlux
-		if ( WarpDriveConfig.ENERGY_ENABLE_RF
-		  && WarpDriveConfig.isRedstoneFluxLoaded
-		  && RF_isEnergyContainer(itemStack) ) {
-			final int amount_RF = convertInternalToRF_floor(amount);
-			return convertRFtoInternal_ceil(RF_charge(itemStack, amount_RF, simulate));
-		}
-		
 		// Forge Energy
 		if ( WarpDriveConfig.ENERGY_ENABLE_FE
 		  && FE_isEnergyContainer(itemStack) ) {
-			final int amount_RF = convertInternalToRF_floor(amount);
-			return convertRFtoInternal_ceil(FE_charge(itemStack, amount_RF, simulate));
+			final int amount_FE = convertInternalToFE_floor(amount);
+			return convertFEtoInternal_ceil(FE_charge(itemStack, amount_FE, simulate));
 		}
 		
 		return 0;
@@ -543,43 +487,6 @@ public class EnergyWrapper {
 	}
 	
 	
-	// RedstoneFlux IEnergyContainerItem interface
-	@Optional.Method(modid = "redstoneflux")
-	private static boolean RF_isEnergyContainer(final ItemStack itemStack) {
-		return itemStack.getItem() instanceof IEnergyContainerItem;
-	}
-	
-	@Optional.Method(modid = "redstoneflux")
-	private static boolean RF_canOutput(final ItemStack itemStack) {
-		return ((IEnergyContainerItem) itemStack.getItem()).getEnergyStored(itemStack) > 0;
-	}
-	
-	@Optional.Method(modid = "redstoneflux")
-	private static boolean RF_canInput(final ItemStack itemStack) {
-		return ((IEnergyContainerItem) itemStack.getItem()).getEnergyStored(itemStack) < ((IEnergyContainerItem) itemStack.getItem()).getMaxEnergyStored(itemStack);
-	}
-	
-	@Optional.Method(modid = "redstoneflux")
-	private static int RF_getEnergyStored(final ItemStack itemStack) {
-		return (int) Math.floor( ((IEnergyContainerItem) itemStack.getItem()).getEnergyStored(itemStack) );
-	}
-	
-	@Optional.Method(modid = "redstoneflux")
-	private static int RF_getMaxEnergyStorage(final ItemStack itemStack) {
-		return (int) Math.floor( ((IEnergyContainerItem) itemStack.getItem()).getMaxEnergyStored(itemStack) );
-	}
-	
-	@Optional.Method(modid = "redstoneflux")
-	private static int RF_consume(final ItemStack itemStack, final int amount_RF, final boolean simulate) {
-		return ((IEnergyContainerItem) itemStack.getItem()).extractEnergy(itemStack, amount_RF, simulate);
-	}
-	
-	@Optional.Method(modid = "redstoneflux")
-	private static int RF_charge(final ItemStack itemStack, final int amount_RF, final boolean simulate) {
-		return ((IEnergyContainerItem) itemStack.getItem()).receiveEnergy(itemStack, amount_RF, simulate);
-	}
-	
-	
 	// Forge Energy capability
 	private static boolean FE_isEnergyContainer(final ItemStack itemStack) {
 		return itemStack.hasCapability(CapabilityEnergy.ENERGY, null);
@@ -609,15 +516,15 @@ public class EnergyWrapper {
 		return (int) Math.floor( energyStorage.getMaxEnergyStored() );
 	}
 	
-	private static int FE_consume(final ItemStack itemStack, final int amount_RF, final boolean simulate) {
+	private static int FE_consume(final ItemStack itemStack, final int amount_FE, final boolean simulate) {
 		final IEnergyStorage energyStorage = itemStack.getCapability(CapabilityEnergy.ENERGY, null);
 		assert energyStorage != null;
-		return energyStorage.extractEnergy(amount_RF, simulate);
+		return energyStorage.extractEnergy(amount_FE, simulate);
 	}
 	
-	private static int FE_charge(final ItemStack itemStack, final int amount_RF, final boolean simulate) {
+	private static int FE_charge(final ItemStack itemStack, final int amount_FE, final boolean simulate) {
 		final IEnergyStorage energyStorage = itemStack.getCapability(CapabilityEnergy.ENERGY, null);
 		assert energyStorage != null;
-		return energyStorage.receiveEnergy(amount_RF, simulate);
+		return energyStorage.receiveEnergy(amount_FE, simulate);
 	}
 }

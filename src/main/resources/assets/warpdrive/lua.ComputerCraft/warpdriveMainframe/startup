@@ -1303,9 +1303,9 @@ function reactor_page()
   elseif data.reactor_mode == 1 then
     Write("manual/unlimited")
   elseif data.reactor_mode == 2 then
-    Write("surplus above " .. data.reactor_rate .. " RF")
+    Write("surplus above " .. data.reactor_rate .. " FE")
   else
-    Write("rated at " .. data.reactor_rate .. " RF")
+    Write("rated at " .. data.reactor_rate .. " FE")
   end
   SetColorDefault()
   SetCursorPos( 1, 12)
@@ -1446,7 +1446,7 @@ function reactor_config()
   else
     SetColorDefault()
     SetCursorPos(1, 4)
-    Write("Reactor output rate (" .. data.reactor_rate .. " RF): ")
+    Write("Reactor output rate (" .. data.reactor_rate .. " FE): ")
     data.reactor_rate = readInputNumber(data.reactor_rate)
     reactor_setMode()
     SetCursorPos(1, 5)

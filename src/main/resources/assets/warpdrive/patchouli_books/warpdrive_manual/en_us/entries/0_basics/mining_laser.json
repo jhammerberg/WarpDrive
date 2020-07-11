@@ -23,7 +23,7 @@
 		},
 		{
 			"type": "text",
-			"text": "Each $(l:0_basics/laser_medium)Laser Medium$() needs a power connection in $(item)FE$(), $(item)RF$() or $(item)EU$() form. You'll need to recharge the medium periodically to sustain continuous mining.$(br2)Mined items are stored in the storage containers found next to the $(item)Mining Laser$(). Place a Chest (or equivalent) on any horizontal side, or above the $(item)Mining Laser$()."
+			"text": "Each $(l:0_basics/laser_medium)Laser Medium$() needs a power connection in $(item)FE$() or $(item)EU$() form. You'll need to recharge the medium periodically to sustain continuous mining.$(br2)Mined items are stored in the storage containers found next to the $(item)Mining Laser$(). Place a Chest (or equivalent) on any horizontal side, or above the $(item)Mining Laser$()."
 		},
 		{
 			"type": "text",
