@@ -8,6 +8,7 @@
 build/
 run/*
 output/*
+/out
 
 !run/mods-ref/
 
@@ -24,3 +25,4 @@ classes
 gradle\.properties
 LemADEC\.jks
 LemADEC\.jks\.old
+

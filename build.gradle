@@ -1,3 +1,4 @@
+import net.minecraftforge.gradle.common.task.SignJar
 
 
 buildscript {
@@ -10,14 +11,18 @@ buildscript {
         maven {
             url "https://plugins.gradle.org/m2/"
         }
+        mavenCentral()
     }
     dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
+        classpath group: "net.minecraftforge.gradle", name: "ForgeGradle", version: "3.+", changing: true
         classpath "gradle.plugin.com.matthewprenger:CurseGradle:1.1.2"
         classpath "com.wynprice.cursemaven:CurseMaven:1.2.3"
     }
 }
-apply plugin: "net.minecraftforge.gradle.forge"
+apply plugin: "net.minecraftforge.gradle"
+// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
+apply plugin: "eclipse"
+apply plugin: "maven-publish"
 apply plugin: "com.matthewprenger.cursegradle"
 apply plugin: "com.wynprice.cursemaven"
 
@@ -34,27 +39,84 @@ configFile.withReader {
 group = "cr0s.warpdrive" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 version = "${config.minecraft_version}-${config.mod_version}.${System.getenv("BUILD_NUMBER") ?: 'SNAPSHOT'}"
 archivesBaseName = "WarpDrive"
+config.protocol_version = config.mod_version.substring(0, config.mod_version.lastIndexOf("."))
 
 // Enforce Java version explicitly so eclipse task generates correctly.
 sourceCompatibility = compileJava.sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = compileJava.targetCompatibility = JavaVersion.VERSION_1_8
 
 minecraft {
-    version = config.minecraft_version + "-" + config.forge_version
-    runDir = "run"
-    
     // The mappings can be changed at any time, and must be in the following format.
     // snapshot_YYYYMMDD   Snapshot are built nightly.
     // stable_#            Stables are built at the discretion of the MCP team.
-    // Use non-default mappings at your own risk. they may not allways work.
+    // Use non-default mappings at your own risk. they may not always work.
     // Simply re-run your setup task after changing the mappings to update your workspace.
-    mappings = "${config.mappings_version}"
+    mappings channel: "${config.mappings_channel}", version: "${config.mappings_version}"
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
     
-    // replacing
-    replace "@version@", project.version
-    replaceIn "WarpDrive.java"
-    replaceIn "MyDummyModContainer.java"
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+	
+    // Default run configurations.
+    // These can be tweaked, removed, or duplicated as needed.
+    runs {
+        client {
+            workingDirectory project.file('run')
+            
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            // property 'fml.earlyprogresswindow', 'false'
+            
+            args "-Xmx2048m", "-Xms1024m", "-ea"
+            
+            mods {
+                warpdrive {
+                    source sourceSets.main
+                }
+            }
+        }
+        
+        server {
+            workingDirectory project.file('run')
+            
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+            
+            // property 'fml.earlyprogresswindow', 'false'
+            
+            args "-Xmx2048m", "-Xms1024m", "-ea"
+            
+            mods {
+                warpdrive {
+                    source sourceSets.main
+                }
+            }
+        }
+        
+        data {
+            workingDirectory project.file('run')
+            
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+            
+            args '--mod', 'warpdrive', '--all', '--output', file('src/generated/resources/')
+            
+            mods {
+                warpdrive {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
 }
 
 curseforge {
@@ -126,6 +188,11 @@ repositories {
 }
 
 dependencies {
+    // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
+    // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
+    // The userdev artifact is a special name and will get all sorts of transformations applied to it.
+    minecraft 'net.minecraftforge:forge:1.15.2-31.2.31'
+	
     // You may put jars on which you depend on in ./libs or you may define them like so..
     //compile "some.group:artifact:version:classifier"
     //compile "some.group:artifact:version"
@@ -134,9 +201,18 @@ dependencies {
     //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
     //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
     
+    // The 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
+    // provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+	
+    // These dependencies get remapped to your current MCP mappings
+    // deobf 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+	
     // For more info...
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
+    
+    // take every jar files from the libs folder
+    compile fileTree(dir: 'libs', include: ['*.jar'])
     
     // Using deobfCompile will include in run environment
     provided "blusunrize:ImmersiveEngineering:${config.ImmersiveEngineering_version}:deobf"
@@ -146,36 +222,30 @@ dependencies {
     provided "li.cil.oc:OpenComputers:${config.OpenComputers_version}"
     provided "vazkii.patchouli:Patchouli:${config.Patchouli_version}"
     provided curse.resolve("matteroverdrive", "${config.MatterOverdrive_fileid}") // "${config.MatterOverdrive_version}"
-    
-//  compileOnly "mezz.jei:jei_1.10.2:3.13.+"
-//  compileOnly "mcp.mobius.waila:Waila:1.7.0-B3_1.9.4"
-//  compileOnly "mcjty.theoneprobe:TheOneProbe:1.10-1.0.13-26"
-//  compileOnly "MineTweaker3:MineTweaker3-API:3.0.14.59"
-//  compileOnly "MCMultiPart2:MCMultiPart-exp:2.5.1+"
-//  compileOnly "slimeknights.mantle:Mantle:1.10.2-1.+"
-//  compileOnly "slimeknights:TConstruct:1.10.2-2.5.6.+"
 }
 
 processResources {
     // this will ensure that this task is redone when the versions change.
     inputs.property "version", project.version
-    inputs.property "mcversion", config.minecraft_version
     
     // skip source assets
     exclude '**/*.pdn'
     exclude '**/*.psd'
     
-    // replace stuff in mcmod.info, nothing else
+    // replace stuff in mods.toml, nothing else
     from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
+        include 'META-INF/mods.toml'
         
-        // replace version and mcversion
-        expand 'version':project.version, 'mcversion':config.minecraft_version
+        // replace version strings
+        expand 'version':project.version,
+               'mod_version':config.mod_version,
+               'minecraft_version':config.minecraft_version,
+               'protocol_version':config.protocol_verison
     }
     
-    // copy everything else, that's not the mcmod.info
+    // copy everything else, that's not the mods.toml
     from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+        exclude 'META-INF/mods.toml'
     }
 }
 
@@ -225,16 +295,23 @@ jar {
     
     manifest {
         attributes([
+            "Specification-Title"  : "${archivesBaseName}",
+            "Specification-Vendor" : "LemADEC",
+            "Specification-Version": "1",
+            "Implementation-Title"  : project.name,
+            "Implementation-Version": "${version}",
+            "Implementation-Vendor" : "LemADEC",
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
             "FMLAT": "warpdrive_at.cfg",
             "FMLCorePlugin": "cr0s.warpdrive.core.FMLLoadingPlugin",
-            "FMLCorePluginContainsFMLMod": "true",
+            "FMLCorePluginContainsFMLMod": "true"
         ])
     }
     classifier = ''
     destinationDir = file 'output'
 }
 
-task signJar(type: SignJar, dependsOn: reobfJar) {
+task signJar(type: SignJar, dependsOn: jar) {
     onlyIf { // Skip the task if our secret data isn't available
         project.hasProperty('keyStore')
     }
@@ -251,16 +328,15 @@ task signJar(type: SignJar, dependsOn: reobfJar) {
 
 build.dependsOn signJar
 
-idea {
-    module {
-        inheritOutputDirs = true
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
     }
-}
-
-runClient {
-    jvmArgs "-Xmx2048m", "-Xms1024m", "-ea"
-}
-
-runServer {
-    jvmArgs "-Xmx2048m", "-Xms1024m", "-ea"
+    repositories {
+        maven {
+            url "file:///${project.projectDir}/mcmodsrepo"
+        }
+    }
 }
