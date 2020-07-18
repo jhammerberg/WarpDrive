@@ -49,19 +49,19 @@ public class Loot implements IXmlRepresentableUnit {
 	}
 	
 	@Override
-	public boolean loadFromXmlElement(final Element element) throws InvalidXmlException {
+	public boolean loadFromXmlElement(@Nonnull final Element element) throws InvalidXmlException {
 		
 		// Check there is a block name
 		if (!element.hasAttribute("item")) {
 			throw new InvalidXmlException(String.format("Loot %s is missing an item attribute!",
-			                                            element));
+			                                            element ));
 		}
 		
 		final String nameItem = element.getAttribute("item");
 		item = Item.getByNameOrId(nameItem);
 		if (item == null) {
 			WarpDrive.logger.warn(String.format("Skipping missing item %s",
-			                                    nameItem));
+			                                    nameItem ));
 			return false;
 		}
 		
@@ -73,7 +73,7 @@ public class Loot implements IXmlRepresentableUnit {
 				damage = Integer.parseInt(stringDamage);
 			} catch (final NumberFormatException exception) {
 				throw new InvalidXmlException(String.format("Invalid damage for item %s",
-				                                            nameItem));
+				                                            nameItem ));
 			}
 		}
 		
@@ -86,7 +86,7 @@ public class Loot implements IXmlRepresentableUnit {
 			} catch (final NBTException exception) {
 				WarpDrive.logger.error(exception.getMessage());
 				throw new InvalidXmlException(String.format("Invalid nbt for item %s",
-				                                            nameItem));
+				                                            nameItem ));
 			}
 		}
 		
@@ -98,7 +98,7 @@ public class Loot implements IXmlRepresentableUnit {
 				quantityMin = Integer.parseInt(stringQuantityMin);
 			} catch (final NumberFormatException exception) {
 				throw new InvalidXmlException(String.format("Invalid minQuantity for item %s",
-				                                            nameItem));
+				                                            nameItem ));
 			}
 		}
 		
@@ -110,7 +110,7 @@ public class Loot implements IXmlRepresentableUnit {
 				quantityMax = Integer.parseInt(stringQuantityMax);
 			} catch (final NumberFormatException exception) {
 				throw new InvalidXmlException(String.format("Invalid maxQuantity for item %s",
-				                                            nameItem));
+				                                            nameItem ));
 			}
 		}
 		

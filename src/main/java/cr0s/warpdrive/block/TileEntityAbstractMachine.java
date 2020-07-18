@@ -249,9 +249,8 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	
 	// Common OC/CC methods
 	@Override
-	public String[] name(final Object[] arguments) {
-		if ( arguments != null
-		  && arguments.length == 1
+	public String[] name(@Nonnull final Object[] arguments) {
+		if ( arguments.length == 1
 		  && arguments[0] != null ) {
 			final String namePrevious = name;
 			name = Commons.sanitizeFileName((String) arguments[0]);
@@ -266,9 +265,8 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	}
 	
 	@Override
-	public Object[] enable(final Object[] arguments) {
-		if ( arguments != null
-		  && arguments.length == 1
+	public Object[] enable(@Nonnull final Object[] arguments) {
+		if ( arguments.length == 1
 		  && arguments[0] != null ) {
 			final boolean enableRequest;
 			try {
@@ -338,9 +336,10 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 			
 		case "getAssemblyStatus":
 			return getAssemblyStatus();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

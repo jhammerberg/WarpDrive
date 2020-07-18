@@ -1,10 +1,12 @@
 package cr0s.warpdrive.api.computer;
 
+import javax.annotation.Nonnull;
+
 public interface IMachine extends IInterfaced {
 	
-	String[] name(final Object[] arguments);
+	String[] name(@Nonnull final Object[] arguments);
 	
-	Object[] enable(final Object[] arguments);
+	Object[] enable(@Nonnull final Object[] arguments);
 	
 	Object[] getAssemblyStatus();
 	

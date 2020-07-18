@@ -867,7 +867,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		return new Object[] { status, currentState != STATE_IDLE, energy, totalHarvested, return_indexValuable, return_countValuables };
 	}
 	
-	private Object[] radius(final Object[] arguments) {
+	private Object[] radius(@Nonnull final Object[] arguments) {
 		try {
 			if (arguments.length == 1 && arguments[0] != null) {
 				radiusX_requested = Commons.clamp(1, WarpDriveConfig.TREE_FARM_totalMaxRadius, Commons.toInt(arguments[0]));
@@ -885,7 +885,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		return new Integer[] { radiusX_requested, radiusZ_requested };
 	}
 	
-	private Object[] breakLeaves(final Object[] arguments) {
+	private Object[] breakLeaves(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && arguments[0] != null) {
 			try {
 				breakLeaves = Commons.toBool(arguments[0]);
@@ -897,7 +897,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		return new Object[] { breakLeaves };
 	}
 	
-	private Object[] silktouch(final Object[] arguments) {
+	private Object[] silktouch(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && arguments[0] != null) {
 			try {
 				enableSilktouch = Commons.toBool(arguments[0]);
@@ -909,7 +909,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		return new Object[] { enableSilktouch };
 	}
 	
-	private Object[] tapTrees(final Object[] arguments) {
+	private Object[] tapTrees(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && arguments[0] != null) {
 			try {
 				tapTrees = Commons.toBool(arguments[0]);
@@ -972,9 +972,10 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 			
 		case "tapTrees":
 			return tapTrees(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

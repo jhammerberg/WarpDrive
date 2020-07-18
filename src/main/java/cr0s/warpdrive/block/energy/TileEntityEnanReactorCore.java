@@ -612,7 +612,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	}
 	
 	@Override
-	public Double[] instabilityTarget(final Object[] arguments) {
+	public Double[] instabilityTarget(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && arguments[0] != null) {
 			final double instabilityTargetRequested;
 			try {
@@ -631,7 +631,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	}
 	
 	@Override
-	public Object[] outputMode(final Object[] arguments) {
+	public Object[] outputMode(@Nonnull final Object[] arguments) {
 		if ( arguments.length == 2
 		  && arguments[0] != null ) {
 			final EnumReactorOutputMode enumReactorOutputModeRequested;
@@ -667,7 +667,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	}
 	
 	@Override
-	public Object[] stabilizerEnergy(final Object[] arguments) {
+	public Object[] stabilizerEnergy(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && arguments[0] != null) {
 			final int stabilizerEnergyRequested;
 			try {

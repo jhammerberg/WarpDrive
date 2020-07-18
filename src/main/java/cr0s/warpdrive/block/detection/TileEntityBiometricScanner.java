@@ -235,8 +235,9 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 		switch (methodName) {
 		case "getScanResults":
 			return getScanResults();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

@@ -1656,7 +1656,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	public Object[] state() {
 		final long energy = energy_getEnergyStored();
 		final String status = getStatusHeaderInPureText();
-		final String state = isJammed ? reasonJammed : tickCooldown > 0 ? String.format("Cooling down %d s", Math.round(tickCooldown / 20)) : transporterState.getName();
+		final String state = isJammed ? reasonJammed : tickCooldown > 0 ? String.format("Cooling down %d s", Math.round(tickCooldown / 20.0F)) : transporterState.getName();
 		return new Object[] { status, state, isConnected, isEnabled, isJammed, energy, lockStrengthActual };
 	}
 	
@@ -1823,9 +1823,10 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		
 		case "energize":
 			return energize(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

@@ -77,7 +77,7 @@ public abstract class TileEntityAbstractEnergyBase extends TileEntityAbstractMac
 	
 	// Common OC/CC methods
 	@Override
-	public Object[] energyDisplayUnits(final Object[] arguments) {
+	public Object[] energyDisplayUnits(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1) {
 			final Object value = arguments[0];
 			if (!(value instanceof String)
@@ -120,8 +120,9 @@ public abstract class TileEntityAbstractEnergyBase extends TileEntityAbstractMac
 		
 		case "getEnergyStatus":
 			return getEnergyStatus();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

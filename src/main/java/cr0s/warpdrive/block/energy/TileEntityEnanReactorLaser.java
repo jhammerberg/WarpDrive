@@ -288,7 +288,7 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 	}
 	
 	@Override
-	public Object[] stabilize(final Object[] arguments) {
+	public Object[] stabilize(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1) {
 			final int energy;
 			try {
@@ -336,8 +336,9 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 			
 		case "side":
 			return side();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

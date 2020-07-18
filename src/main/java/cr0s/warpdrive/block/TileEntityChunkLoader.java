@@ -231,8 +231,9 @@ public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
 			
 		case "radius":
 			return radius(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

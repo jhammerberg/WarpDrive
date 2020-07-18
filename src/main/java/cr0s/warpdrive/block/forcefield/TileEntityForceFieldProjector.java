@@ -714,7 +714,7 @@ public class TileEntityForceFieldProjector extends TileEntityAbstractForceField 
 		// standard place sound effect
 		final SoundType soundType = blockStateToPlace.getBlock().getSoundType(blockStateToPlace, world, blockPos, null);
 		world.playSound(null, blockPos, soundType.getPlaceSound(), SoundCategory.BLOCKS,
-				(soundType.getVolume() + 1.0F) / 2.0F, soundType.getPitch() * 0.8F);
+		                (soundType.getVolume() + 1.0F) / 2.0F, soundType.getPitch() * 0.8F );
 		
 		world.setBlockState(blockPos, blockStateToPlace, 3);
 		return false;
@@ -1109,17 +1109,16 @@ public class TileEntityForceFieldProjector extends TileEntityAbstractForceField 
 		return new Object[] { status, isEnabled, isConnected, isActive, getShape().name(), energy };
 	}
 	
-	public Object[] min(final Object[] arguments) {
+	public Object[] min(@Nonnull final Object[] arguments) {
 		return computer_getOrSetVector3(this::getMin, this::setMin, arguments);
 	}
 	
-	public Object[] max(final Object[] arguments) {
+	public Object[] max(@Nonnull final Object[] arguments) {
 		return computer_getOrSetVector3(this::getMax, this::setMax, arguments);
 	}
 	
-	public Object[] rotation(final Object[] arguments) {
-		if ( arguments != null
-		  && arguments.length > 0
+	public Object[] rotation(@Nonnull final Object[] arguments) {
+		if ( arguments.length > 0
 		  && arguments[0] != null ) {
 			try {
 				if (arguments.length == 1) {
@@ -1148,7 +1147,7 @@ public class TileEntityForceFieldProjector extends TileEntityAbstractForceField 
 		return new Float[] { rotationYaw, rotationPitch, rotationRoll };
 	}
 	
-	public Object[] translation(final Object[] arguments) {
+	public Object[] translation(@Nonnull final Object[] arguments) {
 		return computer_getOrSetVector3(this::getTranslation, this::setTranslation, arguments);
 	}
 	
@@ -1203,9 +1202,10 @@ public class TileEntityForceFieldProjector extends TileEntityAbstractForceField 
 		
 		case "translation":
 			return translation(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	private static class ThreadCalculation extends Thread {

@@ -223,18 +223,24 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 		switch (methodName) {
 		case "getAtmosphere":
 			return getAtmosphere();
+			
 		case "getBiome":
 			return getBiome();
+			
 		case "getHumidity":
 			return getHumidity();
+			
 		case "getTemperature":
 			return getTemperature();
+			
 		case "getWeather":
 			return getWeather();
+			
 		case "getWorldTime":
 			return getWorldTime();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

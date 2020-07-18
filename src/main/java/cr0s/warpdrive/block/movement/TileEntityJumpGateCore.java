@@ -176,9 +176,9 @@ public class TileEntityJumpGateCore extends TileEntityAbstractEnergyCoreOrContro
 		return new Object[0];
 	}
 	
-	public Object[] area(final Object[] arguments) {
+	public Object[] area(@Nonnull final Object[] arguments) {
 		try {
-			if (arguments != null && arguments.length == 6) {
+			if (arguments.length == 6) {
 				final int sizeMax = WarpDriveConfig.JUMP_GATE_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()];
 				final int minX_new = Commons.clamp(pos.getX() - sizeMax, pos.getX() + sizeMax, Math.abs(Commons.toInt(arguments[0])));
 				final int minY_new = Commons.clamp(pos.getY() - sizeMax, pos.getY() + sizeMax, Math.abs(Commons.toInt(arguments[1])));

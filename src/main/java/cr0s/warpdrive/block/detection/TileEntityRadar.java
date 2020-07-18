@@ -153,7 +153,7 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 		return new Object[] { true, galaxyName, vec3Position.x, vec3Position.y, vec3Position.z, celestialObject.getDisplayName() };
 	}
 	
-	private Object[] radius(final Object[] arguments) {
+	private Object[] radius(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && !isScanning) {
 			final int newRadius;
 			try {
@@ -232,7 +232,7 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 		return new Integer[] { -1 };
 	}
 	
-	private Object[] getResult(final Object[] arguments) {
+	private Object[] getResult(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && (results != null)) {
 			final int index;
 			try {
@@ -328,9 +328,10 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 			
 		case "getResult":
 			return getResult(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

@@ -74,7 +74,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	private int laserTicks = 0;
 	private int scanTicks = 0;
 	private int deployTicks = 0;
-		
+	
 	private String playerName = "";
 	
 	private JumpShip jumpShip;
@@ -713,8 +713,9 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	}
 	
 	@Nonnull
-	private Object[] deploy(final Object[] arguments) {
-		if (arguments == null || arguments.length != 5) {
+	private Object[] deploy(@Nonnull final Object[] arguments) {
+		assert world != null;
+		if (arguments.length != 5) {
 			return new Object[] { false, "Invalid arguments count, you need <.schematic file name>, <offsetX>, <offsetY>, <offsetZ>, <rotationSteps>!" };
 		}
 		final String fileName;
@@ -785,9 +786,10 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 			
 		case "state":
 			return state();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	private static final int SHIP_TOKEN_UPDATE_PERIOD_TICKS = 20;

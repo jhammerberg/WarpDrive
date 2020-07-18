@@ -1238,7 +1238,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		return new Boolean[] { CelestialObjectManager.isInHyperspace(world, pos.getX(), pos.getZ()) };
 	}
 	
-	// public Object[] shipName(final Object[] arguments);
+	// public Object[] shipName(@Nonnull final Object[] arguments);
 	
 	@Override
 	public Object[] getEnergyRequired() {

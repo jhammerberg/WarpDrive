@@ -160,8 +160,9 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 		switch (methodName) {
 		case "getAttachedPlayers":
 			return getAttachedPlayers();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

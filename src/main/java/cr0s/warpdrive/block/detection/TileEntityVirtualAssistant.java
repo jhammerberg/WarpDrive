@@ -220,10 +220,12 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 		switch (methodName) {
 		case "getLastCommand":
 			return getLastCommand();
+			
 		case "pullLastCommand":
 			return pullLastCommand();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

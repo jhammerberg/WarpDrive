@@ -845,9 +845,10 @@ public class TileEntityLaser extends TileEntityAbstractLaser implements IBeamFre
 			
 		case "getScanResult":
 			return getScanResult();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

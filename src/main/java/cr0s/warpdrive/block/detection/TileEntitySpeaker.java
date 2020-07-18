@@ -74,7 +74,7 @@ public class TileEntitySpeaker extends TileEntityAbstractMachine {
 	}
 	
 	// Common OC/CC methods
-	public Object[] speak(final Object[] arguments) {
+	public Object[] speak(@Nonnull final Object[] arguments) {
 		int size = messagesToSpeak.size();
 		if (arguments.length == 1) {
 			if (size >= WarpDriveConfig.SPEAKER_QUEUE_MAX_MESSAGES) {
@@ -100,9 +100,10 @@ public class TileEntitySpeaker extends TileEntityAbstractMachine {
 		switch (methodName) {
 		case "speak":
 			return speak(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

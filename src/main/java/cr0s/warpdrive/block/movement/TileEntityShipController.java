@@ -185,34 +185,34 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 	}
 	
 	@Override
-	public String[] name(final Object[] arguments) {
+	public String[] name(@Nonnull final Object[] arguments) {
 		final TileEntityShipCore tileEntityShipCore = tileEntityShipCoreWeakReference == null ? null : tileEntityShipCoreWeakReference.get();
 		if (tileEntityShipCore == null) {
-			return super.name(null); // return current local values
+			return super.name(new Object[0]); // return current local values
 		}
 		return tileEntityShipCore.name(arguments);
 	}
 	
 	@Override
-	public Object[] dim_positive(final Object[] arguments) {
+	public Object[] dim_positive(@Nonnull final Object[] arguments) {
 		final TileEntityShipCore tileEntityShipCore = tileEntityShipCoreWeakReference == null ? null : tileEntityShipCoreWeakReference.get();
 		if (tileEntityShipCore == null) {
-			return super.dim_positive(null); // return current local values
+			return super.dim_positive(new Object[0]); // return current local values
 		}
 		return tileEntityShipCore.dim_positive(arguments);
 	}
 	
 	@Override
-	public Object[] dim_negative(final Object[] arguments) {
+	public Object[] dim_negative(@Nonnull final Object[] arguments) {
 		final TileEntityShipCore tileEntityShipCore = tileEntityShipCoreWeakReference == null ? null : tileEntityShipCoreWeakReference.get();
 		if (tileEntityShipCore == null) {
-			return super.dim_negative(null); // return current local values
+			return super.dim_negative(new Object[0]); // return current local values
 		}
 		return tileEntityShipCore.dim_negative(arguments);
 	}
 	
 	@Override
-	public Object[] energyDisplayUnits(final Object[] arguments) {
+	public Object[] energyDisplayUnits(@Nonnull final Object[] arguments) {
 		final TileEntityShipCore tileEntityShipCore = tileEntityShipCoreWeakReference == null ? null : tileEntityShipCoreWeakReference.get();
 		if (tileEntityShipCore == null) {
 			return null;
@@ -230,7 +230,7 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 	}
 	
 	@Override
-	public Object[] command(final Object[] arguments) {
+	public Object[] command(@Nonnull final Object[] arguments) {
 		final TileEntityShipCore tileEntityShipCore = tileEntityShipCoreWeakReference == null ? null : tileEntityShipCoreWeakReference.get();
 		if (tileEntityShipCore == null) {
 			return null;
@@ -248,7 +248,7 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 	}
 	
 	@Override
-	public Object[] movement(final Object[] arguments) {
+	public Object[] movement(@Nonnull final Object[] arguments) {
 		final TileEntityShipCore tileEntityShipCore = tileEntityShipCoreWeakReference == null ? null : tileEntityShipCoreWeakReference.get();
 		if (tileEntityShipCore == null) {
 			return super.movement(arguments); // return current local values
@@ -266,7 +266,7 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 	}
 	
 	@Override
-	public Object[] rotationSteps(final Object[] arguments) {
+	public Object[] rotationSteps(@Nonnull final Object[] arguments) {
 		final TileEntityShipCore tileEntityShipCore = tileEntityShipCoreWeakReference == null ? null : tileEntityShipCoreWeakReference.get();
 		if (tileEntityShipCore == null) {
 			return super.rotationSteps(arguments); // return current local values
@@ -275,7 +275,7 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 	}
 	
 	@Override
-	public Object[] targetName(final Object[] arguments) {
+	public Object[] targetName(@Nonnull final Object[] arguments) {
 		final TileEntityShipCore tileEntityShipCore = tileEntityShipCoreWeakReference == null ? null : tileEntityShipCoreWeakReference.get();
 		if (tileEntityShipCore == null) {
 			return super.targetName(arguments); // return current local values

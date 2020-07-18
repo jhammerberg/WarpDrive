@@ -81,7 +81,7 @@ public class TileEntityMonitor extends TileEntityAbstractMachine implements IVid
 	}
 	
 	// Common OC/CC methods
-	public Object[] videoChannel(final Object[] arguments) {
+	public Object[] videoChannel(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1) {
 			setVideoChannel(Commons.toInt(arguments[0]));
 		}
@@ -102,9 +102,10 @@ public class TileEntityMonitor extends TileEntityAbstractMachine implements IVid
 		switch (methodName) {
 		case "videoChannel":
 			return videoChannel(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

@@ -1141,9 +1141,10 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 		
 		case "state":
 			return state();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	// IGlobalRegionProvider overrides

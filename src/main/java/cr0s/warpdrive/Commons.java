@@ -425,9 +425,9 @@ public class Commons {
 	}
 	
 	@Nonnull
-	public static String format(final Object[] arguments) {
+	public static String format(@Nonnull final Object[] arguments) {
 		final StringBuilder result = new StringBuilder();
-		if (arguments != null && arguments.length > 0) {
+		if (arguments.length > 0) {
 			for (final Object argument : arguments) {
 				if (result.length() > 0) {
 					result.append(", ");

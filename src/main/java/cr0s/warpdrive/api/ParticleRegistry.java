@@ -1,5 +1,8 @@
 package cr0s.warpdrive.api;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
@@ -16,7 +19,7 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 
 public class ParticleRegistry {
 	
-	private static BiMap<String, Particle> particles = HashBiMap.create();
+	private static final BiMap<String, Particle> particles = HashBiMap.create();
 	
 	public static final Particle ION = new Particle("ion") { }.setColor(0xE5FF54).setRarity(EnumRarity.COMMON).setColorIndex(0)
 	                                   .setEntityLifespan(200).setRadiationLevel(2.0F).setExplosionStrength(0.3F);
@@ -40,14 +43,16 @@ public class ParticleRegistry {
 		
 	}
 	
-	public static boolean registerParticle(final Particle particle) {
+	public static boolean registerParticle(@Nonnull final Particle particle) {
 		if (particles.containsKey(particle.getRegistryName())) {
-			FMLLog.getLogger().error(String.format("Mod %s FAILED to register particle %s: it was already registered!", getActiveModId(), particle.getRegistryName()));
+			LogManager.getLogger().error(String.format("Mod %s FAILED to register particle %s: it is already registered!",
+			                                           getActiveModId(), particle.getRegistryName() ));
 			return false;
 		}
 		particles.put(particle.getRegistryName(), particle);
 		
-		FMLLog.getLogger().info(String.format("Mod %s has registered particle %s", getActiveModId(), particle.getRegistryName()));
+		LogManager.getLogger().info(String.format("Mod %s has registered particle %s",
+		                                          getActiveModId(), particle.getRegistryName() ));
 		MinecraftForge.EVENT_BUS.post(new ParticleRegisterEvent(particle.getRegistryName()));
 		return true;
 	}
@@ -65,25 +70,27 @@ public class ParticleRegistry {
 		return particles.containsKey(particleRegistryName);
 	}
 	
-	public static Particle getParticle(final String particleRegistryName) {
+	public static Particle getParticle(@Nonnull final String particleRegistryName) {
 		return particles.get(particleRegistryName);
 	}
 	
-	public static String getParticleName(final Particle particle) {
+	public static String getParticleName(@Nonnull final Particle particle) {
 		return particle.getRegistryName();
 	}
 	
-	public static String getParticleName(final ParticleStack stack) {
+	public static String getParticleName(@Nonnull final ParticleStack stack) {
 		return stack.getParticle().getRegistryName();
 	}
 	
-	public static ParticleStack getParticleStack(final String particleRegistryName, final int amount) {
+	@Nullable
+	public static ParticleStack getParticleStack(@Nonnull final String particleRegistryName, final int amount) {
 		if (!particles.containsKey(particleRegistryName)) {
 			return null;
 		}
 		return new ParticleStack(getParticle(particleRegistryName), amount);
 	}
 	
+	@Nonnull
 	public static Map<String, Particle> getRegisteredParticles()
 	{
 		return ImmutableMap.copyOf(particles);

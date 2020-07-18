@@ -209,13 +209,13 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 				OC_node.load(tagCompound.getCompoundTag("oc:node"));
 			} else if (tagCompound.hasKey("oc:node")) {
 				WarpDrive.logger.error(String.format("%s OC node failed to construct or wrong host, ignoring NBT node data read...",
-				                                     this));
+				                                     this ));
 			}
 			if (OC_fileSystem != null && OC_fileSystem.node() != null) {
 				OC_fileSystem.node().load(tagCompound.getCompoundTag("oc:fs"));
 			} else if (OC_hasResource) {
 				WarpDrive.logger.error(String.format("%s OC filesystem failed to construct or wrong node, ignoring NBT filesystem data read...",
-				                                     this));
+				                                     this ));
 			}
 		}
 	}
@@ -258,6 +258,7 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 	// - block connection when missing the Computer interface upgrade
 	// note: direct API calls remains possible without upgrade, as it's lore dependant
 	@Optional.Method(modid = "opencomputers")
+	@Nonnull
 	protected Object[] OC_convertArgumentsAndLogCall(@Nonnull final Context context, @Nonnull final Arguments args) {
 		final Object[] arguments = new Object[args.count()];
 		int index = 0;
@@ -449,7 +450,7 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 			final Object[] result = CC_callMethod(methodName, arguments);
 			if (WarpDriveConfig.LOGGING_LUA) {
 				WarpDrive.logger.info(String.format("[CC] LUA call is returning %s",
-				                                    Commons.format(result)));
+				                                    Commons.format(result)) );
 			}
 			return result;
 		} catch (final Exception exception) {
@@ -482,9 +483,10 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 			
 		case "getVersion":
 			return getVersion();
+			
+		default:
+			return null;
 		}
-		
-		return null;
 	}
 	
 	@Override

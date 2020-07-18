@@ -143,7 +143,7 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 		final double xMax = pos.getX() + 0.5 + LIFT_GRAB_RADIUS;
 		final double zMin = pos.getZ() + 0.5 - LIFT_GRAB_RADIUS;
 		final double zMax = pos.getZ() + 0.5 + LIFT_GRAB_RADIUS;
-		boolean isTransferDone = false; 
+		boolean isTransferDone = false;
 		
 		// Lift up
 		if (mode == EnumLiftMode.UP) {
@@ -231,7 +231,7 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 	}
 	
 	@Override
-	public Object[] mode(final Object[] arguments) {
+	public Object[] mode(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && arguments[0] instanceof String) {
 			final String stringValue = (String) arguments[0];
 			if (stringValue.equalsIgnoreCase("up")) {
@@ -283,8 +283,9 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 			
 		case "state":
 			return state();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

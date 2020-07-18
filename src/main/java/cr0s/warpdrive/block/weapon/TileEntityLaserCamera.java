@@ -132,9 +132,10 @@ public class TileEntityLaserCamera extends TileEntityLaser implements IVideoChan
 		switch (methodName) {
 		case "videoChannel":
 			return videoChannel(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

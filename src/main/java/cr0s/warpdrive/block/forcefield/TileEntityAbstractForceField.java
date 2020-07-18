@@ -129,9 +129,8 @@ public abstract class TileEntityAbstractForceField extends TileEntityAbstractEne
 	}
 	
 	// Common OC/CC methods
-	public Object[] beamFrequency(final Object[] arguments) {
-		if ( arguments != null
-		  && arguments.length == 1
+	public Object[] beamFrequency(@Nonnull final Object[] arguments) {
+		if ( arguments.length == 1
 		  && arguments[0] != null ) {
 			final int beamFrequencyRequested;
 			try {
@@ -163,9 +162,10 @@ public abstract class TileEntityAbstractForceField extends TileEntityAbstractEne
 		switch (methodName) {
 		case "beamFrequency":
 			return beamFrequency(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

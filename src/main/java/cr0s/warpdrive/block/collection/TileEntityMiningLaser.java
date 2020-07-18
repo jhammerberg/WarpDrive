@@ -591,9 +591,10 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 			
 		case "silktouch":
 			return silktouch(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

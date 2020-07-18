@@ -153,7 +153,7 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 	}
 	
 	@Override
-	public Boolean[] isActive(final Object[] arguments) {
+	public Boolean[] isActive(@Nonnull final Object[] arguments) {
 		return new Boolean[] { isActive };
 	}
 	
@@ -184,9 +184,10 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 		switch (methodName) {
 		case "isActive":
 			return isActive(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	// TileEntityAbstractBase overrides

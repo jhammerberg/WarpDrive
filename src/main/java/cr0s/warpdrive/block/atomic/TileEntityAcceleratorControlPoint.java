@@ -113,9 +113,8 @@ public class TileEntityAcceleratorControlPoint extends TileEntityAbstractMachine
 	}
 	
 	// Common OC/CC methods
-	public Object[] controlChannel(final Object[] arguments) {
-		if ( arguments != null
-		  && arguments.length == 1
+	public Object[] controlChannel(@Nonnull final Object[] arguments) {
+		if ( arguments.length == 1
 		  && arguments[0] != null ) {
 			final int controlChannelRequested;
 			try {
@@ -161,8 +160,9 @@ public class TileEntityAcceleratorControlPoint extends TileEntityAbstractMachine
 			
 		case "state":
 			return state();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

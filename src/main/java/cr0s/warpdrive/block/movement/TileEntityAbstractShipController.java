@@ -254,9 +254,9 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	abstract public Object[] isInHyperspace();
 	
 	@Override
-	public Object[] dim_positive(final Object[] arguments) {
+	public Object[] dim_positive(@Nonnull final Object[] arguments) {
 		try {
-			if (arguments != null && arguments.length == 3) {
+			if (arguments.length == 3) {
 				final int argInt0 = Commons.clamp(0, WarpDriveConfig.SHIP_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()], Math.abs(Commons.toInt(arguments[0])));
 				final int argInt1 = Commons.clamp(0, WarpDriveConfig.SHIP_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()], Math.abs(Commons.toInt(arguments[1])));
 				final int argInt2 = Commons.clamp(0, WarpDriveConfig.SHIP_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()], Math.abs(Commons.toInt(arguments[2])));
@@ -275,9 +275,9 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	}
 	
 	@Override
-	public Object[] dim_negative(final Object[] arguments) {
+	public Object[] dim_negative(@Nonnull final Object[] arguments) {
 		try {
-			if (arguments != null && arguments.length == 3) {
+			if (arguments.length == 3) {
 				final int argInt0 = Commons.clamp(0, WarpDriveConfig.SHIP_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()], Math.abs(Commons.toInt(arguments[0])));
 				final int argInt1 = Commons.clamp(0, WarpDriveConfig.SHIP_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()], Math.abs(Commons.toInt(arguments[1])));
 				final int argInt2 = Commons.clamp(0, WarpDriveConfig.SHIP_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()], Math.abs(Commons.toInt(arguments[2])));
@@ -296,7 +296,7 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	}
 	
 	@Override
-	public Object[] command(final Object[] arguments) {
+	public Object[] command(@Nonnull final Object[] arguments) {
 		try {
 			if ( arguments.length == 2
 			  && arguments[0] != null ) {
@@ -313,7 +313,7 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	abstract public Object[] getShipSize();
 	
 	@Override
-	public Object[] movement(final Object[] arguments) {
+	public Object[] movement(@Nonnull final Object[] arguments) {
 		try {
 			if (arguments.length == 3) {
 				setMovement(Commons.toInt(arguments[0]), Commons.toInt(arguments[1]), Commons.toInt(arguments[2]));
@@ -329,7 +329,7 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	abstract public Object[] getMaxJumpDistance();
 	
 	@Override
-	public Object[] rotationSteps(final Object[] arguments) {
+	public Object[] rotationSteps(@Nonnull final Object[] arguments) {
 		try {
 			if (arguments.length == 1 && arguments[0] != null) {
 				setRotationSteps((byte) Commons.toInt(arguments[0]));
@@ -342,7 +342,7 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	}
 	
 	@Override
-	public Object[] targetName(final Object[] arguments) {
+	public Object[] targetName(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && arguments[0] != null) {
 			this.nameTarget = (String) arguments[0];
 		}
@@ -458,8 +458,9 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 		
 		case "targetName":
 			return targetName(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

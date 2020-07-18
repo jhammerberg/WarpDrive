@@ -260,8 +260,9 @@ public abstract class TileEntityAbstractLaser extends TileEntityAbstractEnergyBa
 			
 		case "laserMediumCount":
 			return laserMediumCount();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }

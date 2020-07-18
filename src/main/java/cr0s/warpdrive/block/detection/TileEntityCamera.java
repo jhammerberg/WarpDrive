@@ -499,9 +499,10 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 			
 		case "getResult":
 			return getResult(arguments);
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override

@@ -46,9 +46,10 @@ public abstract class TileEntityAbstractEnergyConsumer extends TileEntityAbstrac
 		switch (methodName) {
 		case "getEnergyRequired":
 			return getEnergyRequired();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 	
 	@Override
@@ -56,6 +57,6 @@ public abstract class TileEntityAbstractEnergyConsumer extends TileEntityAbstrac
 		return String.format("%s '%s' %s",
 		                     getClass().getSimpleName(),
 		                     name,
-		                     Commons.format(world, pos));
+		                     Commons.format(world, pos) );
 	}
 }

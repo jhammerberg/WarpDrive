@@ -68,10 +68,10 @@ public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCor
 	}
 	
 	@Override
-	public String[] name(final Object[] arguments) {
+	public String[] name(@Nonnull final Object[] arguments) {
 		final TileEntityEnanReactorCore tileEntityEnanReactorCore = tileEntityEnanReactorCoreWeakReference == null ? null : tileEntityEnanReactorCoreWeakReference.get();
 		if (tileEntityEnanReactorCore == null) {
-			return super.name(null); // return current local values
+			return super.name(new Object[0]); // return current local values
 		}
 		return tileEntityEnanReactorCore.name(arguments);
 	}
@@ -87,7 +87,7 @@ public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCor
 	}
 	
 	@Override
-	public Double[] instabilityTarget(final Object[] arguments) {
+	public Double[] instabilityTarget(@Nonnull final Object[] arguments) {
 		final TileEntityEnanReactorCore tileEntityEnanReactorCore = tileEntityEnanReactorCoreWeakReference == null ? null : tileEntityEnanReactorCoreWeakReference.get();
 		if (tileEntityEnanReactorCore == null) {
 			return new Double[] { -1.0D };
@@ -96,7 +96,7 @@ public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCor
 	}
 	
 	@Override
-	public Object[] outputMode(final Object[] arguments) {
+	public Object[] outputMode(@Nonnull final Object[] arguments) {
 		final TileEntityEnanReactorCore tileEntityEnanReactorCore = tileEntityEnanReactorCoreWeakReference == null ? null : tileEntityEnanReactorCoreWeakReference.get();
 		if (tileEntityEnanReactorCore == null) {
 			return new Object[] { "???", -1, "Core not found" };
@@ -105,7 +105,7 @@ public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCor
 	}
 	
 	@Override
-	public Object[] stabilizerEnergy(final Object[] arguments) {
+	public Object[] stabilizerEnergy(@Nonnull final Object[] arguments) {
 		final TileEntityEnanReactorCore tileEntityEnanReactorCore = tileEntityEnanReactorCoreWeakReference == null ? null : tileEntityEnanReactorCoreWeakReference.get();
 		if (tileEntityEnanReactorCore == null) {
 			return new Object[] { -1, "Core not found" };
@@ -123,7 +123,7 @@ public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCor
 	}
 	
 	@Override
-	public Object[] energyDisplayUnits(final Object[] arguments) {
+	public Object[] energyDisplayUnits(@Nonnull final Object[] arguments) {
 		final TileEntityEnanReactorCore tileEntityEnanReactorCore = tileEntityEnanReactorCoreWeakReference == null ? null : tileEntityEnanReactorCoreWeakReference.get();
 		if (tileEntityEnanReactorCore == null) {
 			return null;
@@ -192,8 +192,9 @@ public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCor
 			
 		case "state":
 			return state();
+			
+		default:
+			return super.CC_callMethod(methodName, arguments);
 		}
-		
-		return super.CC_callMethod(methodName, arguments);
 	}
 }
