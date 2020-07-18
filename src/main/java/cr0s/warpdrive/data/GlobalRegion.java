@@ -7,7 +7,8 @@ import cr0s.warpdrive.api.computer.ICoreSignature;
 import javax.annotation.Nonnull;
 import java.util.UUID;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 
@@ -28,7 +29,7 @@ public class GlobalRegion extends GlobalPosition {
 	private AxisAlignedBB cache_aabbArea;
 	
 	private GlobalRegion(
-			final int dimensionId, final BlockPos blockPos,
+			final ResourceLocation dimensionId, final BlockPos blockPos,
 			final EnumGlobalRegionType type, final UUID uuid, final String name,
 			final AxisAlignedBB aabbArea,
 			final int mass, final double isolationRate) {
@@ -104,7 +105,7 @@ public class GlobalRegion extends GlobalPosition {
 		return cache_aabbArea;
 	}
 	
-	public GlobalRegion(final NBTTagCompound tagCompound) {
+	public GlobalRegion(final CompoundNBT tagCompound) {
 		super(tagCompound);
 		type = EnumGlobalRegionType.getByName(tagCompound.getString("type"));
 		name = tagCompound.getString(ICoreSignature.NAME_TAG);
@@ -113,47 +114,47 @@ public class GlobalRegion extends GlobalPosition {
 			uuidLocal = UUID.randomUUID();
 		}
 		uuid = uuidLocal;
-		maxX = tagCompound.getInteger("maxX");
-		maxY = tagCompound.getInteger("maxY");
-		maxZ = tagCompound.getInteger("maxZ");
-		minX = tagCompound.getInteger("minX");
-		minY = tagCompound.getInteger("minY");
-		minZ = tagCompound.getInteger("minZ");
-		mass = tagCompound.getInteger("mass");
+		maxX = tagCompound.getInt("maxX");
+		maxY = tagCompound.getInt("maxY");
+		maxZ = tagCompound.getInt("maxZ");
+		minX = tagCompound.getInt("minX");
+		minY = tagCompound.getInt("minY");
+		minZ = tagCompound.getInt("minZ");
+		mass = tagCompound.getInt("mass");
 		isolationRate = tagCompound.getDouble("isolationRate");
 		
 		cache_aabbArea = null;
 	}
 	
 	@Override
-	public void writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.writeToNBT(tagCompound);
-		tagCompound.setString("type", type.getName());
+	public void write(@Nonnull final CompoundNBT tagCompound) {
+		super.write(tagCompound);
+		tagCompound.putString("type", type.getName());
 		if (name != null && !name.isEmpty()) {
-			tagCompound.setString(ICoreSignature.NAME_TAG, name);
+			tagCompound.putString(ICoreSignature.NAME_TAG, name);
 		}
 		if (uuid != null) {
-			tagCompound.setLong(ICoreSignature.UUID_MOST_TAG, uuid.getMostSignificantBits());
-			tagCompound.setLong(ICoreSignature.UUID_LEAST_TAG, uuid.getLeastSignificantBits());
+			tagCompound.putLong(ICoreSignature.UUID_MOST_TAG, uuid.getMostSignificantBits());
+			tagCompound.putLong(ICoreSignature.UUID_LEAST_TAG, uuid.getLeastSignificantBits());
 		}
-		tagCompound.setInteger("maxX", maxX);
-		tagCompound.setInteger("maxY", maxY);
-		tagCompound.setInteger("maxZ", maxZ);
-		tagCompound.setInteger("minX", minX);
-		tagCompound.setInteger("minY", minY);
-		tagCompound.setInteger("minZ", minZ);
-		tagCompound.setInteger("mass", mass);
-		tagCompound.setDouble("isolationRate", isolationRate);
+		tagCompound.putInt("maxX", maxX);
+		tagCompound.putInt("maxY", maxY);
+		tagCompound.putInt("maxZ", maxZ);
+		tagCompound.putInt("minX", minX);
+		tagCompound.putInt("minY", minY);
+		tagCompound.putInt("minZ", minZ);
+		tagCompound.putInt("mass", mass);
+		tagCompound.putDouble("isolationRate", isolationRate);
 	}
 	
 	public String getFormattedLocation() {
 		final CelestialObject celestialObject = CelestialObjectManager.get(false, dimensionId, x, z);
 		if (celestialObject == null) {
-			return String.format("DIM%d @ (%d %d %d)",
+			return String.format("%s @ (%d %d %d)",
 			                     dimensionId,
 			                     x, y, z);
 		} else {
-			return String.format("%s [DIM%d] @ (%d %d %d)",
+			return String.format("%s [%s] @ (%d %d %d)",
 			                     celestialObject.getDisplayName(),
 			                     dimensionId,
 			                     x, y, z);
@@ -162,12 +163,12 @@ public class GlobalRegion extends GlobalPosition {
 	
 	@Override
 	public int hashCode() {
-		return dimensionId << 24 + (x >> 10) << 12 + y << 10 + (z >> 10);
+		return dimensionId.hashCode() << 24 + (x >> 10) << 12 + y << 10 + (z >> 10);
 	}
 	
 	@Override
 	public String toString() {
-		return String.format("%s '%s' %s @ DIM%d (%d %d %d) (%d %d %d) -> (%d %d %d)",
+		return String.format("%s '%s' %s @ %s (%d %d %d) (%d %d %d) -> (%d %d %d)",
 		                     getClass().getSimpleName(),
 			                 type, uuid,
 			                 dimensionId,

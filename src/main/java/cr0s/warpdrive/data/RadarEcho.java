@@ -32,7 +32,7 @@ public class RadarEcho extends Vector3 {
 	// 	this("entity",
 	// 	     entityLivingBase.world.provider.dimensionId,
 	// 	     globalPosition.getUniversalCoordinates(),
-	// 	     entityLivingBase.width * entityLivingBase.height * 4,
+	// 	     entityLivingBase.getWidth() * entityLivingBase.getHeight() * 4,
 	// 	     entityLivingBase.getName() );
 	// }
 	

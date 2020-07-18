@@ -5,26 +5,29 @@ import cr0s.warpdrive.data.Vector3;
 import javax.annotation.Nonnull;
 
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fml.common.FMLLog;
+import net.minecraft.nbt.CompoundNBT;
+
 import net.minecraft.world.World;
+
+import org.apache.logging.log4j.LogManager;
 
 public class ParticleStack {
 	
 	private final Particle particle;
 	private int amount;
-	private NBTTagCompound tagCompound;
+	private CompoundNBT tagCompound;
 	
 	public ParticleStack(@Nonnull final Particle particle, final int amount) {
 		if (!ParticleRegistry.isParticleRegistered(particle)) {
-			FMLLog.bigWarning("Failed attempt to create a particleStack for an unregistered Particle %s (type %s)", particle.getRegistryName(), particle.getClass().getName());
+			LogManager.getLogger().fatal("Failed attempt to create a particleStack for an unregistered Particle {} (type {})",
+			                             particle.getRegistryName(), particle.getClass().getName() );
 			throw new IllegalArgumentException("Cannot create a particleStack from an unregistered particle");
 		}
 		this.amount = amount;
 		this.particle = particle;
 	}
 	
-	public ParticleStack(final Particle particle, final int amount, final NBTTagCompound nbt) {
+	public ParticleStack(final Particle particle, final int amount, final CompoundNBT nbt) {
 		this(particle, amount);
 		
 		if (nbt != null) {
@@ -39,29 +42,29 @@ public class ParticleStack {
 	/**
 	 * Return null if stack is invalid.
 	 */
-	public static ParticleStack loadFromNBT(final NBTTagCompound tagCompound) {
+	public static ParticleStack loadFromNBT(final CompoundNBT tagCompound) {
 		if (tagCompound == null) {
 			return null;
 		}
 		final String particleName = tagCompound.getString("name");
 		
-		if (particleName == null || ParticleRegistry.getParticle(particleName) == null) {
+		if (particleName.isEmpty() || ParticleRegistry.getParticle(particleName) == null) {
 			return null;
 		}
-		final ParticleStack stack = new ParticleStack(ParticleRegistry.getParticle(particleName), tagCompound.getInteger("amount"));
+		final ParticleStack stack = new ParticleStack(ParticleRegistry.getParticle(particleName), tagCompound.getInt("amount"));
 		
-		if (tagCompound.hasKey("tag")) {
-			stack.tagCompound = tagCompound.getCompoundTag("tag");
+		if (tagCompound.contains("tag")) {
+			stack.tagCompound = tagCompound.getCompound("tag");
 		}
 		return stack;
 	}
 	
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		tagCompound.setString("name", ParticleRegistry.getParticleName(getParticle()));
-		tagCompound.setInteger("amount", amount);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		tagCompound.putString("name", ParticleRegistry.getParticleName(getParticle()));
+		tagCompound.putInt("amount", amount);
 		
 		if (this.tagCompound != null) {
-			tagCompound.setTag("tag", this.tagCompound);
+			tagCompound.put("tag", this.tagCompound);
 		}
 		return tagCompound;
 	}

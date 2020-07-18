@@ -15,13 +15,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.text.ITextComponent;
 
-import net.minecraftforge.fml.common.Optional;
-
 public class TileEntitySpeaker extends TileEntityAbstractMachine {
+	
+	public static TileEntityType<TileEntitySpeaker> TYPE;
 	
 	// persistent properties
 	// (none)
@@ -33,7 +34,7 @@ public class TileEntitySpeaker extends TileEntityAbstractMachine {
 	private final Queue<String> messagesToSpeak = new LinkedList<>();
 	
 	public TileEntitySpeaker() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveSpeaker";
 		addMethods(new String[] {
@@ -43,8 +44,8 @@ public class TileEntitySpeaker extends TileEntityAbstractMachine {
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		
 		final float range = WarpDriveConfig.SPEAKER_RANGE_BLOCKS_BY_TIER[enumTier.getIndex()];
 		aabbRange = new AxisAlignedBB(
@@ -53,8 +54,9 @@ public class TileEntitySpeaker extends TileEntityAbstractMachine {
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
+		assert world != null;
 		
 		rateMessaging = Math.max(0.0F, rateMessaging - rateDecayPerTick);
 		if ( isEnabled
@@ -62,12 +64,12 @@ public class TileEntitySpeaker extends TileEntityAbstractMachine {
 		  && rateMessaging + 1.0F < WarpDriveConfig.SPEAKER_RATE_MAX_MESSAGES ) {
 			final String messageRaw = messagesToSpeak.remove();
 			final ITextComponent messageFormatted = new WarpDriveText(null, messageRaw);
-			final List<EntityPlayerMP> playersInRange = world.getEntitiesWithinAABB(EntityPlayerMP.class, aabbRange,
-			                                                                        entityPlayerMP -> entityPlayerMP != null
-			                                                                                       && entityPlayerMP.isEntityAlive()
-			                                                                                       && !entityPlayerMP.isSpectator() );
-			for (final EntityPlayerMP entityPlayerMP : playersInRange) {
-				Commons.addChatMessage(entityPlayerMP, messageFormatted);
+			final List<ServerPlayerEntity> playersInRange = world.getEntitiesWithinAABB(ServerPlayerEntity.class, aabbRange,
+			                                                                            entityServerPlayer -> entityServerPlayer != null
+			                                                                                               && entityServerPlayer.isAlive()
+			                                                                                               && !entityServerPlayer.isSpectator() );
+			for (final ServerPlayerEntity entityServerPlayer : playersInRange) {
+				Commons.addChatMessage(entityServerPlayer, messageFormatted);
 			}
 			rateMessaging++;
 		}
@@ -88,14 +90,12 @@ public class TileEntitySpeaker extends TileEntityAbstractMachine {
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] speak(final Context context, final Arguments arguments) {
 		return speak(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "speak":

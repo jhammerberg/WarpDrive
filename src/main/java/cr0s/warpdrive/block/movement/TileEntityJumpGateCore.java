@@ -12,17 +12,20 @@ import cr0s.warpdrive.render.EntityFXBoundingBox;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 
-import net.minecraftforge.fml.client.FMLClientHandler;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class TileEntityJumpGateCore extends TileEntityAbstractEnergyCoreOrController implements IGlobalRegionProvider {
+	
+	public static TileEntityType<TileEntityJumpGateCore> TYPE;
 	
 	private static final int BOUNDING_BOX_INTERVAL_TICKS = 60;
 	
@@ -41,14 +44,14 @@ public class TileEntityJumpGateCore extends TileEntityAbstractEnergyCoreOrContro
 	
 	
 	public TileEntityJumpGateCore() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveJumpGate";
 		// addMethods(new String[] {});
 		// CC_scripts = Collections.singletonList("startup");
 	}
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	private void doShowBoundingBox() {
 		ticksBoundingBoxUpdate--;
 		if (ticksBoundingBoxUpdate > 0) {
@@ -59,18 +62,19 @@ public class TileEntityJumpGateCore extends TileEntityAbstractEnergyCoreOrContro
 		final Vector3 vector3 = new Vector3(this);
 		vector3.translate(0.5D);
 		
-		FMLClientHandler.instance().getClient().effectRenderer.addEffect(
+		Minecraft.getInstance().particles.addEffect(
 				new EntityFXBoundingBox(world, vector3,
 				                        new Vector3(minX - 0.0D, minY - 0.0D, minZ - 0.0D),
 				                        new Vector3(maxX + 1.0D, maxY + 1.0D, maxZ + 1.0D),
-				                        1.0F, 0.8F, 0.3F, BOUNDING_BOX_INTERVAL_TICKS + 1) );
+				                        1.0F, 0.8F, 0.3F, BOUNDING_BOX_INTERVAL_TICKS + 1));
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			if (showBoundingBox) {
 				doShowBoundingBox();
 			}
@@ -79,7 +83,7 @@ public class TileEntityJumpGateCore extends TileEntityAbstractEnergyCoreOrContro
 		
 		// scan ship content progressively
 		if (timeLastScanDone <= 0L) {
-			timeLastScanDone = world.getTotalWorldTime();
+			timeLastScanDone = world.getGameTime();
 			jumpGateScanner = new JumpGateScanner(world, minX, minY, minZ, maxX, maxY, maxZ);
 			if (WarpDriveConfig.LOGGING_JUMPBLOCKS) {
 				WarpDrive.logger.info(String.format("%s scanning started",
@@ -112,32 +116,32 @@ public class TileEntityJumpGateCore extends TileEntityAbstractEnergyCoreOrContro
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		minX = tagCompound.getInteger("minX");
-		maxX = tagCompound.getInteger("maxX");
-		minY = tagCompound.getInteger("minY");
-		maxY = tagCompound.getInteger("maxY");
-		minZ = tagCompound.getInteger("minZ");
-		maxZ = tagCompound.getInteger("maxZ");
-		volume = tagCompound.getInteger("volume");
+		minX = tagCompound.getInt("minX");
+		maxX = tagCompound.getInt("maxX");
+		minY = tagCompound.getInt("minY");
+		maxY = tagCompound.getInt("maxY");
+		minZ = tagCompound.getInt("minZ");
+		maxZ = tagCompound.getInt("maxZ");
+		volume = tagCompound.getInt("volume");
 		occupancy = tagCompound.getDouble("occupancy");
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setInteger("minX", minX);
-		tagCompound.setInteger("maxX", maxX);
-		tagCompound.setInteger("minY", minY);
-		tagCompound.setInteger("maxY", maxY);
-		tagCompound.setInteger("minZ", minZ);
-		tagCompound.setInteger("maxZ", maxZ);
-		tagCompound.setInteger("volume", volume);
-		tagCompound.setDouble("occupancy", occupancy);
+		tagCompound.putInt("minX", minX);
+		tagCompound.putInt("maxX", maxX);
+		tagCompound.putInt("minY", minY);
+		tagCompound.putInt("maxY", maxY);
+		tagCompound.putInt("minZ", minZ);
+		tagCompound.putInt("maxZ", maxZ);
+		tagCompound.putInt("volume", volume);
+		tagCompound.putDouble("occupancy", occupancy);
 		
 		return tagCompound;
 	}
@@ -164,7 +168,7 @@ public class TileEntityJumpGateCore extends TileEntityAbstractEnergyCoreOrContro
 	}
 	
 	@Override
-	public boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final IBlockState blockState) {
+	public boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final BlockState blockState) {
 		// no operation
 		return true;
 	}

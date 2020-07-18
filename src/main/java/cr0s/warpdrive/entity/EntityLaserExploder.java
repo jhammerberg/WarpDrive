@@ -7,15 +7,19 @@ import cr0s.warpdrive.config.WarpDriveConfig;
 import javax.annotation.Nonnull;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.Pose;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.IPacket;
+import net.minecraft.network.play.server.SSpawnObjectPacket;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-
 public class EntityLaserExploder extends Entity {
+	
+	public static final EntityType<EntityLaserExploder> TYPE;
 	
 	// persistent properties
 	// (none)
@@ -24,8 +28,17 @@ public class EntityLaserExploder extends Entity {
 	private int lastUpdateTicks = 0;
 	private static final int UPDATE_TICKS_TIMEOUT = 20;
 	
-	public EntityLaserExploder(final World world) {
-		super(world);
+	static {
+		TYPE = EntityType.Builder.<EntityLaserExploder>create(EntityLaserExploder::new, EntityClassification.MISC)
+				       .setTrackingRange(8)
+				       .setUpdateInterval(1000)
+				       .setShouldReceiveVelocityUpdates(false)
+				       .build("entity_laser_exploder");
+		TYPE.setRegistryName(WarpDrive.MODID, "entity_laser_exploder");
+	}
+	
+	public EntityLaserExploder(@Nonnull final EntityType<EntityLaserExploder> entityType, @Nonnull final World world) {
+		super(entityType, world);
 		
 		if (WarpDriveConfig.LOGGING_WEAPON) {
 			WarpDrive.logger.info(String.format("%s created in dimension %s",
@@ -34,80 +47,72 @@ public class EntityLaserExploder extends Entity {
 	}
 	
 	public EntityLaserExploder(final World world, final BlockPos blockPos) {
-		this(world);
+		this(TYPE, world);
 		
 		setPosition(blockPos.getX() + 0.5D, blockPos.getY() + 0.5D, blockPos.getZ() + 0.5D);
 	}
 	
-	// override to skip the block bounding override on client side
-	@SideOnly(Side.CLIENT)
 	@Override
-	public void setPositionAndRotation(final double x, final double y, final double z, final float yaw, final float pitch) {
-	//	super.setPositionAndRotation(x, y, z, yaw, pitch);
-		this.setPosition(x, y, z);
-		this.setRotation(yaw, pitch);
-	}
-	
-	@Override
-	public boolean isEntityInvulnerable(@Nonnull final DamageSource source) {
+	public boolean isInvulnerableTo(@Nonnull final DamageSource source) {
 		return true;
 	}
 	
 	@Override
-	public void onUpdate() {
-		if (world.isRemote) {
+	public void tick() {
+		// do not call super: this is a virtual entity which has no reason to move or change properties
+		
+		if (world.isRemote()) {
 			return;
 		}
 		
 		lastUpdateTicks++;
 		if (lastUpdateTicks > UPDATE_TICKS_TIMEOUT) {
-			setDead();
+			remove(false);
 		}
 	}
 	
 	@Override
-	protected void entityInit() {
+	protected void registerData() {
 		noClip = true;
 	}
 	
 	@Override
-	public float getEyeHeight() {
+	public float getEyeHeight(@Nonnull final Pose pose) {
 		return 2.0F;
 	}
 	
+	@Nonnull
 	@Override
-	public void setDead() {
-		super.setDead();
+	public IPacket<?> createSpawnPacket() {
+		return new SSpawnObjectPacket(this);
+	}
+	
+	@Override
+	public void remove(boolean keepData) {
+		super.remove(keepData);
 		if (WarpDriveConfig.LOGGING_WEAPON) {
 			WarpDrive.logger.info(this + " dead");
 		}
 	}
 	
 	@Override
-	protected void readEntityFromNBT(@Nonnull final NBTTagCompound tagCompound) {
+	protected void readAdditional(@Nonnull final CompoundNBT tagCompound) {
 		// not applicable
 	}
 	
 	@Override
-	protected void writeEntityToNBT(@Nonnull final NBTTagCompound tagCompound) {
+	protected void writeAdditional(@Nonnull final CompoundNBT tagCompound) {
 		// not applicable
-	}
-	
-	@Nonnull
-	@Override
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		return super.writeToNBT(tagCompound);
 	}
 	
 	// prevent saving entity to chunk
 	@Override
-	public boolean writeToNBTAtomically(@Nonnull final NBTTagCompound tagCompound) {
+	public boolean writeUnlessPassenger(@Nonnull final CompoundNBT tagCompound) {
 		return false;
 	}
 	
-	// prevent saving entity to chunk
 	@Override
-	public boolean writeToNBTOptional(@Nonnull final NBTTagCompound tagCompound) {
+	public boolean writeUnlessRemoved(@Nonnull final CompoundNBT tagCompound) {
 		return false;
 	}
 	
@@ -117,6 +122,6 @@ public class EntityLaserExploder extends Entity {
 		return String.format("%s/%d %s",
 		                     getClass().getSimpleName(),
 		                     getEntityId(),
-		                     Commons.format(world, posX, posY, posZ));
+		                     Commons.format(world, getPosX(), getPosY(), getPosZ()));
 	}
 }

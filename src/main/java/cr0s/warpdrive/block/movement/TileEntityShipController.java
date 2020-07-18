@@ -10,11 +10,14 @@ import javax.annotation.Nonnull;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.WorldServer;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.world.server.ServerWorld;
 
 public class TileEntityShipController extends TileEntityAbstractShipController {
+	
+	public static TileEntityType<TileEntityShipController> TYPE;
 	
 	// persistent properties
 	// (none)
@@ -25,7 +28,7 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 	private WeakReference<TileEntityShipCore> tileEntityShipCoreWeakReference = null;
 	
 	public TileEntityShipController() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveShipController";
 		// addMethods(new String[] {});
@@ -33,10 +36,11 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 	}
     
     @Override
-    public void update() {
-		super.update();
-		
-		if (world.isRemote) {
+    public void tick() {
+		super.tick();
+	
+	    assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -56,7 +60,7 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 		// validate existing link
 		TileEntityShipCore tileEntityShipCore = tileEntityShipCoreWeakReference != null ? tileEntityShipCoreWeakReference.get() : null;
 		if ( tileEntityShipCore == null
-		  || tileEntityShipCore.isInvalid()
+		  || tileEntityShipCore.isRemoved()
 		  || uuid == null
 		  || !uuid.equals(tileEntityShipCore.getSignatureUUID()) ) {
 			tileEntityShipCore = null;
@@ -71,14 +75,14 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 				textReason.append(Commons.getStyleWarning(), "warpdrive.core_signature.status_line.unknown_core_signature");
 				return false;
 			}
-			final WorldServer worldServer = globalRegion.getWorldServerIfLoaded();
+			final ServerWorld worldServer = globalRegion.getWorldServerIfLoaded();
 			if (worldServer == null) {
 				textReason.append(Commons.getStyleWarning(), "warpdrive.core_signature.status_line.world_not_loaded");
 				return false;
 			}
 			final TileEntity tileEntity = worldServer.getTileEntity(globalRegion.getBlockPos());
 			if ( !(tileEntity instanceof TileEntityShipCore)
-			  || tileEntity.isInvalid()
+			  || tileEntity.isRemoved()
 			  || uuid == null
 			  || !uuid.equals(((TileEntityShipCore) tileEntity).getSignatureUUID()) ) {
 				textReason.append(Commons.getStyleWarning(), "warpdrive.core_signature.status_line.unknown_core_signature");
@@ -110,20 +114,20 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
 		return tagCompound;
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
 		
 		return tagCompound;

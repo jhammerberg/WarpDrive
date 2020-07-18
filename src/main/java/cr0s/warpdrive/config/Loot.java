@@ -4,17 +4,21 @@ import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IXmlRepresentableUnit;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import org.w3c.dom.Element;
 
 import java.util.Random;
 
-import net.minecraft.init.Items;
+import net.minecraft.item.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.nbt.NBTException;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ResourceLocation;
+
+import net.minecraftforge.registries.ForgeRegistries;
 
 /**
  * Represents a single loot item.
@@ -35,7 +39,7 @@ public class Loot implements IXmlRepresentableUnit {
 	private String name;
 	public Item item;
 	public int damage;
-	public NBTTagCompound tagCompound = null;
+	public CompoundNBT tagCompound = null;
 	public int quantityMin;
 	public int quantityMax;
 	
@@ -58,7 +62,7 @@ public class Loot implements IXmlRepresentableUnit {
 		}
 		
 		final String nameItem = element.getAttribute("item");
-		item = Item.getByNameOrId(nameItem);
+		item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(nameItem));
 		if (item == null) {
 			WarpDrive.logger.warn(String.format("Skipping missing item %s",
 			                                    nameItem ));
@@ -83,7 +87,7 @@ public class Loot implements IXmlRepresentableUnit {
 		if (!stringNBT.isEmpty()) {
 			try {
 				tagCompound = JsonToNBT.getTagFromJson(stringNBT);
-			} catch (final NBTException exception) {
+			} catch (final CommandSyntaxException exception) {
 				WarpDrive.logger.error(exception.getMessage());
 				throw new InvalidXmlException(String.format("Invalid nbt for item %s",
 				                                            nameItem ));
@@ -122,10 +126,11 @@ public class Loot implements IXmlRepresentableUnit {
 	
 	public ItemStack getItemStack(final Random rand) {
 		final int quantity = quantityMin + (quantityMax > quantityMin ? rand.nextInt(quantityMax - quantityMin) : 0);
-		final ItemStack itemStack = new ItemStack(item, quantity, damage);
+		final ItemStack itemStack = new ItemStack(item, quantity);
+		itemStack.setDamage(damage);
 		if (tagCompound != null) {
-			final NBTTagCompound tagCompoundNew = tagCompound.copy();
-			itemStack.setTagCompound(tagCompoundNew);
+			final CompoundNBT tagCompoundNew = tagCompound.copy();
+			itemStack.setTag(tagCompoundNew);
 		}
 		return itemStack;
 	}

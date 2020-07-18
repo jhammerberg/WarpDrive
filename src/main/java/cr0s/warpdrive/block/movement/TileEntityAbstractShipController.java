@@ -16,9 +16,8 @@ import li.cil.oc.api.machine.Context;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.nbt.NBTTagCompound;
-
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 
 public abstract class TileEntityAbstractShipController extends TileEntityAbstractEnergyCoreOrController implements IShipController {
 	
@@ -35,8 +34,8 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	protected EnumShipCommand enumShipCommand = EnumShipCommand.IDLE;
 	protected boolean isCommandConfirmed = false;
 	
-	public TileEntityAbstractShipController() {
-		super();
+	public TileEntityAbstractShipController(@Nonnull TileEntityType<? extends TileEntityAbstractShipController> tileEntityType) {
+		super(tileEntityType);
 		
 		addMethods(new String[] {
 				"getOrientation",
@@ -54,70 +53,70 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		setFront(tagCompound.getInteger("front"));
-		setRight(tagCompound.getInteger("right"));
-		setUp   (tagCompound.getInteger("up"));
-		setBack (tagCompound.getInteger("back"));
-		setLeft (tagCompound.getInteger("left"));
-		setDown (tagCompound.getInteger("down"));
+		setFront(tagCompound.getInt("front"));
+		setRight(tagCompound.getInt("right"));
+		setUp   (tagCompound.getInt("up"));
+		setBack (tagCompound.getInt("back"));
+		setLeft (tagCompound.getInt("left"));
+		setDown (tagCompound.getInt("down"));
 		
 		setMovement(
-				tagCompound.getInteger("moveFront"),
-				tagCompound.getInteger("moveUp"),
-				tagCompound.getInteger("moveRight") );
+				tagCompound.getInt("moveFront"),
+				tagCompound.getInt("moveUp"),
+				tagCompound.getInt("moveRight") );
 		setRotationSteps(tagCompound.getByte("rotationSteps"));
 		nameTarget = tagCompound.getString("nameTarget");
 		
-		final boolean isConfirmed = tagCompound.hasKey("commandConfirmed") && tagCompound.getBoolean("commandConfirmed");
+		final boolean isConfirmed = tagCompound.contains("commandConfirmed") && tagCompound.getBoolean("commandConfirmed");
 		setCommand(tagCompound.getString("commandName"), isConfirmed);
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setInteger("front", getFront());
-		tagCompound.setInteger("right", getRight());
-		tagCompound.setInteger("up", getUp());
-		tagCompound.setInteger("back", getBack());
-		tagCompound.setInteger("left", getLeft());
-		tagCompound.setInteger("down", getDown());
+		tagCompound.putInt("front", getFront());
+		tagCompound.putInt("right", getRight());
+		tagCompound.putInt("up", getUp());
+		tagCompound.putInt("back", getBack());
+		tagCompound.putInt("left", getLeft());
+		tagCompound.putInt("down", getDown());
 		
-		tagCompound.setInteger("moveFront", moveFront);
-		tagCompound.setInteger("moveUp", moveUp);
-		tagCompound.setInteger("moveRight", moveRight);
-		tagCompound.setByte("rotationSteps", rotationSteps);
-		tagCompound.setString("nameTarget", nameTarget);
+		tagCompound.putInt("moveFront", moveFront);
+		tagCompound.putInt("moveUp", moveUp);
+		tagCompound.putInt("moveRight", moveRight);
+		tagCompound.putByte("rotationSteps", rotationSteps);
+		tagCompound.putString("nameTarget", nameTarget);
 		
-		tagCompound.setString("commandName", enumShipCommand.getName());
-		tagCompound.setBoolean("commandConfirmed", isCommandConfirmed);
+		tagCompound.putString("commandName", enumShipCommand.getName());
+		tagCompound.putBoolean("commandConfirmed", isCommandConfirmed);
 		
 		return tagCompound;
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
 		
-		tagCompound.removeTag("front");
-		tagCompound.removeTag("right");
-		tagCompound.removeTag("up");
-		tagCompound.removeTag("back");
-		tagCompound.removeTag("left");
-		tagCompound.removeTag("down");
+		tagCompound.remove("front");
+		tagCompound.remove("right");
+		tagCompound.remove("up");
+		tagCompound.remove("back");
+		tagCompound.remove("left");
+		tagCompound.remove("down");
 		
-		tagCompound.removeTag("moveFront");
-		tagCompound.removeTag("moveUp");
-		tagCompound.removeTag("moveRight");
-		tagCompound.removeTag("rotationSteps");
-		tagCompound.removeTag("nameTarget");
+		tagCompound.remove("moveFront");
+		tagCompound.remove("moveUp");
+		tagCompound.remove("moveRight");
+		tagCompound.remove("rotationSteps");
+		tagCompound.remove("nameTarget");
 		
-		tagCompound.removeTag("commandName");
-		tagCompound.removeTag("commandConfirmed");
+		tagCompound.remove("commandName");
+		tagCompound.remove("commandConfirmed");
 		
 		return tagCompound;
 	}
@@ -137,7 +136,7 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 				this.enumShipCommand = enumShipCommand;
 				this.isCommandConfirmed = isConfirmed;
 				markDirty();
-				if (WarpDriveConfig.LOGGING_LUA && hasWorld() && !world.isRemote) {
+				if (WarpDriveConfig.LOGGING_LUA && world != null && !world.isRemote()) {
 					WarpDrive.logger.info(String.format("%s Command set to %s (%s)",
 					                                    this, this.enumShipCommand, this.isCommandConfirmed));
 				}
@@ -351,79 +350,67 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getOrientation(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getOrientation();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] isInSpace(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return isInSpace();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] isInHyperspace(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return isInHyperspace();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] dim_positive(final Context context, final Arguments arguments) {
 		return dim_positive(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] dim_negative(final Context context, final Arguments arguments) {
 		return dim_negative(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] command(final Context context, final Arguments arguments) {
 		return command(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getShipSize(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getShipSize();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getMaxJumpDistance(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getMaxJumpDistance();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] movement(final Context context, final Arguments arguments) {
 		return movement(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] rotationSteps(final Context context, final Arguments arguments) {
 		return rotationSteps(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] targetName(final Context context, final Arguments arguments) {
 		return targetName(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "getOrientation":

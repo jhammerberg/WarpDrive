@@ -12,7 +12,7 @@ import cr0s.warpdrive.world.WorldGenStructure;
 import javax.annotation.Nonnull;
 import java.util.Random;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -54,20 +54,20 @@ public class SchematicInstance extends AbstractStructureInstance {
 		}
 	}
 	
-	public SchematicInstance(final NBTTagCompound tagCompound) {
+	public SchematicInstance(final CompoundNBT tagCompound) {
 		super(tagCompound);
 		// TODO not implemented
 	}
 	
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		super.write(tagCompound);
 		// TODO not implemented
 		return tagCompound;
 	}
 	
 	@Override
-	public boolean generate(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
+	public boolean place(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
 		if (jumpShip == null) {
 			return false;
 		}

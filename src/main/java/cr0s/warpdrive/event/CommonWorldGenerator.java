@@ -13,15 +13,13 @@ import java.util.Random;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.gen.IChunkGenerator;
-import net.minecraftforge.fml.common.IWorldGenerator;
+import net.minecraft.world.chunk.AbstractChunkProvider;
+import net.minecraft.world.gen.ChunkGenerator;
 
-public class CommonWorldGenerator implements IWorldGenerator {
+public class CommonWorldGenerator {// TODO MC1.15 world generation StructureStart
 	
-	@Override
-	public void generate(final Random random, final int chunkX, final int chunkZ,
-	                     final World world, final IChunkGenerator chunkGenerator, final IChunkProvider chunkProvider) {
+	public void place(final Random random, final int chunkX, final int chunkZ,
+	                  final World world, final ChunkGenerator<?> chunkGenerator, final AbstractChunkProvider chunkProvider) {
 		// chunk data creation
 		ChunkHandler.onGenerated(world, chunkX, chunkZ);
 		
@@ -45,7 +43,7 @@ public class CommonWorldGenerator implements IWorldGenerator {
 			if (structureGroup == null) {
 				return;
 			}
-			structureGroup.generate(world, random, x, y, z);
+			structureGroup.place(world, random, x, y, z);
 			
 		} catch (final Exception exception) {
 			exception.printStackTrace(WarpDrive.printStreamError);
@@ -65,7 +63,7 @@ public class CommonWorldGenerator implements IWorldGenerator {
 		final int ceilRadius = (int) Math.ceil(dRadius);
 		
 		// Pass the cube and check points for sphere equation x^2 + y^2 + z^2 = r^2
-		final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos(xCoord, yCoord, zCoord);
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(xCoord, yCoord, zCoord);
 		for (int x = 0; x <= ceilRadius; x++) {
 			final double dX2 = (x + 0.5D) * (x + 0.5D);
 			for (int y = 0; y <= ceilRadius; y++) {

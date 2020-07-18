@@ -12,7 +12,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 public class CamerasRegistry {
-	private LinkedList<CameraRegistryItem> registry;
+	
+	private final LinkedList<CameraRegistryItem> registry;
 	
 	public CamerasRegistry() {
 		registry = new LinkedList<>();
@@ -25,7 +26,7 @@ public class CamerasRegistry {
 		CameraRegistryItem cam;
 		for (final Iterator<CameraRegistryItem> it = registry.iterator(); it.hasNext();) {
 			cam = it.next();
-			if (cam.videoChannel == videoChannel && cam.dimensionId == world.provider.getDimension()) {
+			if (cam.videoChannel == videoChannel && cam.dimensionType == world.getDimension().getType()) {
 				if (isCamAlive(world, cam)) {
 					return cam;
 				} else {
@@ -48,7 +49,7 @@ public class CamerasRegistry {
 			if ( cam.blockPos.getX() == blockPos.getX()
 			  && cam.blockPos.getY() == blockPos.getY()
 			  && cam.blockPos.getZ() == blockPos.getZ()
-			  && cam.dimensionId == world.provider.getDimension() ) {
+			  && cam.dimensionType == world.getDimension().getType() ) {
 				return cam;
 			}
 		}
@@ -57,13 +58,13 @@ public class CamerasRegistry {
 	}
 	
 	private static boolean isCamAlive(final World world, final CameraRegistryItem cam) {
-		if (world.provider.getDimension() != cam.dimensionId) {
-			WarpDrive.logger.error(String.format("Inconsistent world with camera %s: world %d vs cam %d",
-			                                     cam, world.provider.getDimension(), cam.dimensionId));
+		if (world.getDimension().getType() != cam.dimensionType) {
+			WarpDrive.logger.error(String.format("Inconsistent world with camera %s: world %s vs cam %s",
+			                                     cam, world.getDimension().getType().getRegistryName(), cam.dimensionType.getRegistryName()));
 			return false;
 		}
 		
-		if (!world.getChunk(cam.blockPos).isLoaded()) {
+		if (!world.isAreaLoaded(cam.blockPos, 1)) {
 			if (WarpDriveConfig.LOGGING_VIDEO_CHANNEL) {
 				WarpDrive.logger.info(String.format("Reporting an 'unloaded' camera %s",
 				                                    Commons.format(world, cam.blockPos)));

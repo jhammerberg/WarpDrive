@@ -1,13 +1,13 @@
 package cr0s.warpdrive.render;
 
-import net.minecraft.client.particle.Particle;
+import net.minecraft.client.particle.SpriteTexturedParticle;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-@SideOnly(Side.CLIENT)
-public abstract class AbstractEntityFX extends Particle {
+@OnlyIn(Dist.CLIENT)
+public abstract class AbstractEntityFX extends SpriteTexturedParticle {
 	
 	// particles are no longer entities on 1.10+, so we can't use the entityId as a seed
 	private static int nextSeed;
@@ -20,26 +20,16 @@ public abstract class AbstractEntityFX extends Particle {
 	
 	// extend current life
 	public void refresh() {
-		particleMaxAge = Math.max(particleMaxAge, particleAge + 20);
+		maxAge = Math.max(maxAge, age + 20);
 	}
 	
 	// get seed
 	protected int getSeed() { return seed; }
 	
-	// return private properties
-	public World getWorld() {
-		return world;
-	}
+	// get position
+	public double getX() { return posX; }
 	
-	public double getX() {
-		return posX;
-	}
+	public double getY() { return posY; }
 	
-	public double getY() {
-		return posY;
-	}
-	
-	public double getZ() {
-		return posZ;
-	}
+	public double getZ() { return posZ; }
 }

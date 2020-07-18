@@ -9,28 +9,28 @@ import cr0s.warpdrive.data.CelestialObject;
 import cr0s.warpdrive.data.GlobalRegionManager;
 import cr0s.warpdrive.network.PacketHandler;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.chunk.Chunk;
 
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggedInEvent;
 import net.minecraftforge.common.util.BlockSnapshot;
+import net.minecraftforge.event.TickEvent.Phase;
+import net.minecraftforge.event.TickEvent.ServerTickEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent;
 import net.minecraftforge.event.world.BlockEvent;
-import net.minecraftforge.event.world.ChunkWatchEvent;
 import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
-import net.minecraftforge.fml.common.gameevent.TickEvent.ServerTickEvent;
-import net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.LogicalSide;
 
 /**
 *
@@ -38,43 +38,23 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 */
 public class WorldHandler {
 	
-	//TODO: register as event receiver
-	public void onChunkLoaded(final ChunkWatchEvent event) {
-		final Chunk chunk = event.getChunkInstance();
-		assert chunk != null;
-		
-		// Check chunk for locating in cloaked areas
-		WarpDrive.logger.info(String.format("onChunkLoaded %d %d", chunk.x, chunk.z));
-		WarpDrive.cloaks.onChunkLoaded(event.getPlayer(), chunk.x, chunk.z);
-		
-		/*
-		List<Chunk> list = new ArrayList<Chunk>();
-		list.add(c);
-		
-		// Send obscured chunk
-		WarpDrive.logger.info(String.format("[Cloak] Sending to player %s obscured chunk at (%d %d)",
-		                                    p, chunk.x, chunk.z));
-		((EntityPlayerMP)p).connection.sendPacketToPlayer(new Packet56MapChunks(list));
-		*/
-	}
-	
 	// Server side
 	@SubscribeEvent
-	public void onEntityJoinWorld(final EntityJoinWorldEvent event){
-		if (event.getWorld().isRemote) {
+	public void onEntityJoinWorld(@Nonnull final EntityJoinWorldEvent event){
+		if (event.getWorld().isRemote()) {
 			return;
 		}
-		// WarpDrive.logger.info(String.format("onEntityJoinWorld %s", event.entity));
-		if (event.getEntity() instanceof EntityLivingBase) {
-			final EntityLivingBase entityLivingBase = (EntityLivingBase) event.getEntity();
-			final int x = MathHelper.floor(entityLivingBase.posX);
-			final int y = MathHelper.floor(entityLivingBase.posY);
-			final int z = MathHelper.floor(entityLivingBase.posZ);
+		WarpDrive.logger.info(String.format("onEntityJoinWorld %s", event.getEntity()));
+		if (event.getEntity() instanceof LivingEntity) {
+			final LivingEntity entityLivingBase = (LivingEntity) event.getEntity();
+			final int x = MathHelper.floor(entityLivingBase.getPosX());
+			final int y = MathHelper.floor(entityLivingBase.getPosY());
+			final int z = MathHelper.floor(entityLivingBase.getPosZ());
 			final CelestialObject celestialObject = CelestialObjectManager.get(event.getWorld(), x, z);
 			
-			if (entityLivingBase instanceof EntityPlayerMP) {
-				WarpDrive.cloaks.onPlayerJoinWorld((EntityPlayerMP) entityLivingBase, event.getWorld());
-				PacketHandler.sendClientSync((EntityPlayerMP) entityLivingBase, celestialObject);
+			if (entityLivingBase instanceof ServerPlayerEntity) {
+				WarpDrive.cloaks.onPlayerJoinWorld((ServerPlayerEntity) entityLivingBase, event.getWorld());
+				PacketHandler.sendClientSync((ServerPlayerEntity) entityLivingBase, celestialObject);
 				
 			} else {
 				if (celestialObject == null) {
@@ -91,7 +71,7 @@ public class WorldHandler {
 						event.setCanceled(true);
 					}
 				}
-				if (!celestialObject.isInsideBorder(entityLivingBase.posX, entityLivingBase.posZ)) {
+				if (!celestialObject.isInsideBorder(entityLivingBase.getPosX(), entityLivingBase.getPosZ())) {
 					event.setCanceled(true);
 				}
 			}
@@ -99,31 +79,34 @@ public class WorldHandler {
 	}
 	
 	@SubscribeEvent
-	public void onPlayerChangedDimension(final PlayerChangedDimensionEvent event) {
-		WarpDrive.logger.info(String.format("onPlayerChangedDimension %s %d -> %d (%.1f %.1f %.1f)",
-		                                    event.player.getName(), event.fromDim, event.toDim,
-		                                    event.player.posX, event.player.posY, event.player.posZ ));
-		WarpDrive.cloaks.onPlayerJoinWorld((EntityPlayerMP) event.player, ((EntityPlayerMP) event.player).world);
+	public void onPlayerChangedDimension(@Nonnull final PlayerChangedDimensionEvent event) {
+		WarpDrive.logger.info(String.format("onPlayerChangedDimension %s %s -> %s (%.1f %.1f %.1f)",
+		                                    event.getPlayer().getName(), event.getFrom().getRegistryName(), event.getTo().getRegistryName(),
+		                                    event.getPlayer().getPosX(), event.getPlayer().getPosY(), event.getPlayer().getPosZ() ));
+		WarpDrive.cloaks.onPlayerJoinWorld((ServerPlayerEntity) event.getPlayer(), ((ServerPlayerEntity) event.getPlayer()).world);
 	}
 	
 	// Client side
 	@SubscribeEvent
-	@SideOnly(Side.CLIENT)
-	public void onClientConnectedToServer(final ClientConnectedToServerEvent event) {
-		// WarpDrive.logger.info(String.format("onClientConnectedToServer connectionType %s isLocal %s", event.connectionType, event.isLocal));
+	@OnlyIn(Dist.CLIENT)
+	public void onClientConnectedToServer(@Nonnull final LoggedInEvent event) {
+		WarpDrive.logger.info(String.format("onClientConnectedToServer player %s networkManager %s isLocal %s",
+		                                    event.getPlayer(),
+		                                    event.getNetworkManager(),
+		                                    event.getNetworkManager() == null ? "n/a" : event.getNetworkManager().isLocalChannel() ));
 		WarpDrive.cloaks.onClientChangingDimension();
 	}
 	
 	@SubscribeEvent
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public void onWorldUnload(final WorldEvent.Unload event) {
 		// WarpDrive.logger.info(String.format("onWorldUnload world %s", Commons.format(event.getWorld()));
 		WarpDrive.cloaks.onClientChangingDimension();
 	}
 	
 	@SubscribeEvent
-	public void onServerTick(final ServerTickEvent event) {
-		if (event.side != Side.SERVER || event.phase != Phase.END) {
+	public void onServerTick(@Nonnull final ServerTickEvent event) {
+		if (event.side != LogicalSide.SERVER || event.phase != Phase.END) {
 			return;
 		}
 		
@@ -146,12 +129,12 @@ public class WorldHandler {
 		}
 		
 		final Entity entity;
-		final IBlockState blockStateBefore;
-		final IBlockState blockStatePlaced;
+		final BlockState blockStateBefore;
+		final BlockState blockStatePlaced;
 		if (blockEvent instanceof BlockEvent.EntityPlaceEvent) {
 			final BlockEvent.EntityPlaceEvent entityPlaceEvent = (BlockEvent.EntityPlaceEvent) blockEvent; 
 			entity = entityPlaceEvent.getEntity();
-			if (entity instanceof EntityPlayer) {
+			if (entity instanceof PlayerEntity) {
 				blockStateBefore = entityPlaceEvent.getBlockSnapshot().getReplacedBlock();
 				blockStatePlaced = entityPlaceEvent.getPlacedBlock();
 			} else {
@@ -184,13 +167,10 @@ public class WorldHandler {
 			}
 		}
 		boolean isAllowed = true;
-		if ( blockEvent instanceof BlockEvent.MultiPlaceEvent
-		  || blockEvent instanceof BlockEvent.EntityMultiPlaceEvent ) {
-			final List<BlockSnapshot> listBlockSnapshots = blockEvent instanceof BlockEvent.MultiPlaceEvent
-			                                             ? ((BlockEvent.MultiPlaceEvent) blockEvent).getReplacedBlockSnapshots()
-			                                             : ((BlockEvent.EntityMultiPlaceEvent) blockEvent).getReplacedBlockSnapshots();
+		if (blockEvent instanceof BlockEvent.EntityMultiPlaceEvent) {
+			final List<BlockSnapshot> listBlockSnapshots = ((BlockEvent.EntityMultiPlaceEvent) blockEvent).getReplacedBlockSnapshots();
 			for (final BlockSnapshot blockSnapshot : listBlockSnapshots) {
-				final IBlockState blockStateCurrent = blockSnapshot.getCurrentBlock();
+				final BlockState blockStateCurrent = blockSnapshot.getCurrentBlock();
 				isAllowed = isAllowed && GlobalRegionManager.onBlockUpdating(entity, blockEvent.getWorld(), blockSnapshot.getPos(), blockStateCurrent);
 				if (blockStateCurrent != blockSnapshot.getReplacedBlock()) {
 					isAllowed = isAllowed && GlobalRegionManager.onBlockUpdating(entity, blockEvent.getWorld(), blockSnapshot.getPos(), blockSnapshot.getReplacedBlock());
@@ -214,7 +194,7 @@ public class WorldHandler {
 				}
 			} else {
 				try {
-					blockEvent.getWorld().setBlockToAir(blockEvent.getPos());
+					blockEvent.getWorld().removeBlock(blockEvent.getPos(), false);
 				} catch (final Exception exception) {
 					if (Commons.throttleMe("WorldHandler.onBlockEvent")) {
 						exception.printStackTrace();
@@ -229,11 +209,8 @@ public class WorldHandler {
 			return;
 		}
 		
-		if ( blockEvent instanceof BlockEvent.MultiPlaceEvent
-		  || blockEvent instanceof BlockEvent.EntityMultiPlaceEvent ) {
-			final List<BlockSnapshot> listBlockSnapshots = blockEvent instanceof BlockEvent.MultiPlaceEvent
-			                                             ? ((BlockEvent.MultiPlaceEvent) blockEvent).getReplacedBlockSnapshots()
-			                                             : ((BlockEvent.EntityMultiPlaceEvent) blockEvent).getReplacedBlockSnapshots();
+		if (blockEvent instanceof BlockEvent.EntityMultiPlaceEvent) {
+			final List<BlockSnapshot> listBlockSnapshots = ((BlockEvent.EntityMultiPlaceEvent) blockEvent).getReplacedBlockSnapshots();
 			for (final BlockSnapshot blockSnapshot : listBlockSnapshots) {
 				ChunkHandler.onBlockUpdated(blockEvent.getWorld(), blockSnapshot.getPos());
 			}

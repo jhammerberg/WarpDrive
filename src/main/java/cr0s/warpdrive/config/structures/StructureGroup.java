@@ -25,7 +25,7 @@ public class StructureGroup implements IStringSerializable {
 		return group + ":" + (name == null || name.isEmpty() ? "*" : name);
 	}
 	
-	public void generate(final World world, final Random random, final int x, final int y, final int z) {
+	public void place(final World world, final Random random, final int x, final int y, final int z) {
 		if (group.equals(NONE)) {
 			return;
 		}
@@ -37,7 +37,7 @@ public class StructureGroup implements IStringSerializable {
 			return;
 		}
 		final AbstractStructureInstance abstractStructureInstance = abstractStructure.instantiate(random);
-		abstractStructureInstance.generate(world, random, new BlockPos(x, y, z));
+		abstractStructureInstance.place(world, random, new BlockPos(x, y, z));
 	}
 	
 	public String getGroup() {

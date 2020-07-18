@@ -8,9 +8,9 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.world.World;
 
 public class MovingEntity {
@@ -56,11 +56,11 @@ public class MovingEntity {
 	
 	public boolean isUnlimited() {
 		final Entity entity = getEntity();
-		if (!(entity instanceof EntityPlayer)) {
+		if (!(entity instanceof PlayerEntity)) {
 			return false;
 		}
 		
-		final String playerName = entity.getName();
+		final String playerName = entity.getName().getUnformattedComponentText();
 		for (final String unlimitedName : WarpDriveConfig.SHIP_MASS_UNLIMITED_PLAYER_NAMES) {
 			if (unlimitedName.equals(playerName)) {
 				return true;
@@ -87,8 +87,8 @@ public class MovingEntity {
 			return 0.0F;
 		}
 		
-		final NBTTagCompound tagCompound = new NBTTagCompound();
-		entity.writeToNBT(tagCompound);
+		final CompoundNBT tagCompound = new CompoundNBT();
+		entity.writeWithoutTypeId(tagCompound);
 		int mass;
 		try {
 			final DataOutputLength dataOutputLength = new DataOutputLength();

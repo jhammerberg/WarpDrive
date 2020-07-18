@@ -26,21 +26,25 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.RayTraceResult.Type;
 import net.minecraft.util.math.Vec3d;
 
 import net.minecraftforge.common.util.Constants.NBT;
-import net.minecraftforge.fml.common.Optional;
 
 public class TileEntityCamera extends TileEntityAbstractMachine implements IVideoChannel {
+	
+	public static TileEntityType<TileEntityCamera> TYPE;
 	
 	private int videoChannel = -1;
 
@@ -84,15 +88,13 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 		}
 		
 		Result(@Nonnull final Entity entity) {
-			this(new Vector3(entity.posX,
-			                 entity.posY + entity.getEyeHeight(),
-			                 entity.posZ ),
-			     new Vector3(entity.motionX,
-			                 entity.motionY,
-			                 entity.motionZ ),
+			this(new Vector3(entity.getPosX(),
+			                 entity.getPosY() + entity.getEyeHeight(),
+			                 entity.getPosZ() ),
+			     new Vector3(entity.getMotion()),
 			     Dictionary.getId(entity),
 			     entity.getUniqueID(),
-			     entity.getName() );
+			     entity.getName().getUnformattedComponentText() );
 			// seen it was created from an entity, it's already updated
 			isUpdated = true;
 		}
@@ -103,12 +105,12 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 		
 		void update(@Nonnull final Entity entity) {
 			uniqueId = entity.getUniqueID();
-			position.x = entity.posX;
-			position.y = entity.posY + entity.getEyeHeight();
-			position.z = entity.posZ;
-			motion.x = entity.motionX;
-			motion.y = entity.motionY;
-			motion.z = entity.motionZ;
+			position.x = entity.getPosX();
+			position.y = entity.getPosY() + entity.getEyeHeight();
+			position.z = entity.getPosZ();
+			motion.x = entity.getMotion().x;
+			motion.y = entity.getMotion().y;
+			motion.z = entity.getMotion().z;
 			isUpdated = true;
 		}
 		
@@ -128,7 +130,7 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 				final Entity entity = (Entity) object;
 				// note: getting an entity type is fairly slow, so we do it as late as possible
 				return (uniqueId == null || entity.getUniqueID().equals(uniqueId))
-				       && entity.getName().equals(name)
+				       && entity.getName().getUnformattedComponentText().equals(name)
 				       && Dictionary.getId(entity).equals(type);
 			}
 			if (getClass() != object.getClass()) {
@@ -147,7 +149,7 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 	}
 	
 	public TileEntityCamera() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveCamera";
 		addMethods(new String[] {
@@ -163,11 +165,12 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
+		assert world != null;
 		
 		// Update video channel on clients (recovery mechanism, no need to go too fast)
-		if (!world.isRemote) {
+		if (!world.isRemote()) {
 			packetSendTicks--;
 			if (packetSendTicks <= 0) {
 				packetSendTicks = PACKET_SEND_INTERVAL_TICKS;
@@ -202,17 +205,18 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 				final int countOld = results.size();
 				final List<Entity> entitiesInRange = world.getEntitiesWithinAABB(Entity.class, aabbRange,
 				                                                                 entity -> entity != null
-				                                                                        && entity.isEntityAlive()
+				                                                                        && entity.isAlive()
 				                                                                        && !entity.isInvisible()
-				                                                                        && ( !(entity instanceof EntityPlayer)
-				                                                                          || !((EntityPlayer) entity).isSpectator() ) );
+				                                                                        && ( !(entity instanceof PlayerEntity)
+				                                                                          || !entity.isSpectator() ));
 				for (final Entity entity : entitiesInRange) {
 					// check for line of sight
-					final Vec3d vEntity = new Vec3d(entity.posX,
-					                                entity.posY,
-					                                entity.posZ );
-					final RayTraceResult rayTraceResult = world.rayTraceBlocks(vCamera, vEntity);
-					if (rayTraceResult != null) {
+					final Vec3d vEntity = new Vec3d(entity.getPosX(),
+					                                entity.getPosY(),
+					                                entity.getPosZ() );
+					final RayTraceResult rayTraceResult = world.rayTraceBlocks(
+							new RayTraceContext(vCamera, vEntity, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
+					if (rayTraceResult.getType() != Type.BLOCK) {
 						continue;
 					}
 					
@@ -249,8 +253,9 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 	@Override
 	protected void doUpdateParameters(final boolean isDirty) {
 		super.doUpdateParameters(isDirty);
+		assert world != null;
 		
-		final IBlockState blockState = world.getBlockState(pos);
+		final BlockState blockState = world.getBlockState(pos);
 		updateBlockState(blockState, BlockProperties.ACTIVE, isEnabled);
 		
 		final int range = WarpDriveConfig.CAMERA_RANGE_BASE_BLOCKS
@@ -259,7 +264,7 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 		
 		if ( hasImageRecognition
 		  && blockState.getBlock() instanceof BlockCamera ) {
-			final EnumFacing enumFacing = blockState.getValue(BlockProperties.FACING);
+			final Direction enumFacing = blockState.get(BlockProperties.FACING);
 			final float radius = range / 2.0F;
 			vCamera = new Vec3d(
 					pos.getX() + 0.5F + 0.6F * enumFacing.getXOffset(),
@@ -296,35 +301,35 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 	}
 	
 	@Override
-	public void invalidate() {
+	public void remove() {
 		if (WarpDriveConfig.LOGGING_VIDEO_CHANNEL) {
-			WarpDrive.logger.info(this + " invalidated");
+			WarpDrive.logger.info(this + " removed");
 		}
 		WarpDrive.cameras.removeFromRegistry(world, pos);
-		super.invalidate();
+		super.remove();
 	}
 	
 	@Override
-	public void onChunkUnload() {
+	public void onChunkUnloaded() {
 		if (WarpDriveConfig.LOGGING_VIDEO_CHANNEL) {
-			WarpDrive.logger.info(this + " onChunkUnload");
+			WarpDrive.logger.info(this + " onChunkUnloaded");
 		}
 		WarpDrive.cameras.removeFromRegistry(world, pos);
-		super.onChunkUnload();
+		super.onChunkUnloaded();
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		videoChannel = tagCompound.getInteger("frequency") + tagCompound.getInteger(VIDEO_CHANNEL_TAG);
+		videoChannel = tagCompound.getInt("frequency") + tagCompound.getInt(VIDEO_CHANNEL_TAG);
 		if (WarpDriveConfig.LOGGING_VIDEO_CHANNEL) {
 			WarpDrive.logger.info(this + " readFromNBT");
 		}
 		
-		final NBTTagList tagList = tagCompound.getTagList("results", NBT.TAG_COMPOUND);
-		for (final NBTBase tagResult : tagList) {
-			final NBTTagCompound tagCompoundResult = (NBTTagCompound) tagResult;
+		final ListNBT tagList = tagCompound.getList("results", NBT.TAG_COMPOUND);
+		for (final INBT tagResult : tagList) {
+			final CompoundNBT tagCompoundResult = (CompoundNBT) tagResult;
 			try {
 				final Result result = new Result(
 						new Vector3(tagCompoundResult.getDouble("posX"), tagCompoundResult.getDouble("posY"), tagCompoundResult.getDouble("posZ")),
@@ -343,36 +348,36 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setInteger(VIDEO_CHANNEL_TAG, videoChannel);
+		tagCompound.putInt(VIDEO_CHANNEL_TAG, videoChannel);
 		if (WarpDriveConfig.LOGGING_VIDEO_CHANNEL) {
 			WarpDrive.logger.info(this + " writeToNBT");
 		}
 		
 		if (!results.isEmpty()) {
-			final NBTTagList tagList = new NBTTagList();
+			final ListNBT tagList = new ListNBT();
 			for (final Result result : results) {
-				final NBTTagCompound tagCompoundResult = new NBTTagCompound();
-				tagCompoundResult.setDouble("posX", result.position.x);
-				tagCompoundResult.setDouble("posY", result.position.y);
-				tagCompoundResult.setDouble("posZ", result.position.z);
-				tagCompoundResult.setDouble("motionX", result.motion.x);
-				tagCompoundResult.setDouble("motionY", result.motion.y);
-				tagCompoundResult.setDouble("motionZ", result.motion.z);
-				tagCompoundResult.setString("type", result.type);
+				final CompoundNBT tagCompoundResult = new CompoundNBT();
+				tagCompoundResult.putDouble("posX", result.position.x);
+				tagCompoundResult.putDouble("posY", result.position.y);
+				tagCompoundResult.putDouble("posZ", result.position.z);
+				tagCompoundResult.putDouble("motionX", result.motion.x);
+				tagCompoundResult.putDouble("motionY", result.motion.y);
+				tagCompoundResult.putDouble("motionZ", result.motion.z);
+				tagCompoundResult.putString("type", result.type);
 				if (result.uniqueId != null) {
-					tagCompoundResult.setUniqueId("uniqueId", result.uniqueId);
+					tagCompoundResult.putUniqueId("uniqueId", result.uniqueId);
 				}
 				if (result.name != null) {
-					tagCompoundResult.setString("name", result.name);
+					tagCompoundResult.putString("name", result.name);
 				}
-				tagList.appendTag(tagCompoundResult);
+				tagList.add(tagCompoundResult);
 			}
-			tagCompound.setTag("results", tagList);
+			tagCompound.put("results", tagList);
 		} else {
-			tagCompound.removeTag("results");
+			tagCompound.remove("results");
 		}
 		
 		return tagCompound;
@@ -394,7 +399,7 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 	@Override
 	public WarpDriveText getStatus() {
 		final WarpDriveText textScanStatus = getSensorStatus();
-		if (textScanStatus.getUnformattedText().isEmpty()) {
+		if (textScanStatus.getUnformattedComponentText().isEmpty()) {
 			return super.getStatus();
 		} else {
 			return super.getStatus()
@@ -458,34 +463,29 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] videoChannel(final Context context, final Arguments arguments) {
 		return videoChannel(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getResults(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getResults();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getResultsCount(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getResultsCount();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getResult(final Context context, final Arguments arguments) {
 		return getResult(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "videoChannel":

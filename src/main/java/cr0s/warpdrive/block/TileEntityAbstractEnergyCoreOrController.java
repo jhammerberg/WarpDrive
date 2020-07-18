@@ -14,10 +14,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.UUID;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 
 public abstract class TileEntityAbstractEnergyCoreOrController extends TileEntityAbstractEnergyConsumer implements IMultiBlockCoreOrController, IEnergyConsumer {
 	
@@ -28,8 +26,8 @@ public abstract class TileEntityAbstractEnergyCoreOrController extends TileEntit
 	private boolean isDirtyGlobalRegion = true;
 	private int tickUpdateGlobalRegion = 0;
 	
-	public TileEntityAbstractEnergyCoreOrController() {
-		super();
+	public TileEntityAbstractEnergyCoreOrController(@Nonnull TileEntityType<? extends TileEntityAbstractEnergyCoreOrController> tileEntityType) {
+		super(tileEntityType);
 		
 		// (abstract) peripheralName = "xxx";
 		// addMethods(new String[] {
@@ -37,10 +35,11 @@ public abstract class TileEntityAbstractEnergyCoreOrController extends TileEntit
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if ( world.isRemote
+		assert world != null;
+		if ( world.isRemote()
 		  && !(this instanceof TileEntityShipCore) ) {
 			return;
 		}
@@ -75,13 +74,14 @@ public abstract class TileEntityAbstractEnergyCoreOrController extends TileEntit
 	}
 	
 	@Override
-	public void onBlockBroken(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
-		if ( !world.isRemote
+	public void remove() {
+		assert world != null;
+		if ( !world.isRemote()
 		  && this instanceof IGlobalRegionProvider ) {
 			GlobalRegionManager.removeFromRegistry((IGlobalRegionProvider) this);
 		}
 		
-		super.onBlockBroken(world, blockPos, blockState);
+		super.remove();
 	}
 	
 	@Override
@@ -91,8 +91,8 @@ public abstract class TileEntityAbstractEnergyCoreOrController extends TileEntit
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
 		uuid = new UUID(tagCompound.getLong(ICoreSignature.UUID_MOST_TAG), tagCompound.getLong(ICoreSignature.UUID_LEAST_TAG));
 		if (uuid.getMostSignificantBits() == 0L && uuid.getLeastSignificantBits() == 0L) {
@@ -102,14 +102,14 @@ public abstract class TileEntityAbstractEnergyCoreOrController extends TileEntit
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
 		if ( uuid != null
 		  && uuid.getMostSignificantBits() != 0L
 		  && uuid.getLeastSignificantBits() != 0L ) {
-			tagCompound.setLong(ICoreSignature.UUID_MOST_TAG, uuid.getMostSignificantBits());
-			tagCompound.setLong(ICoreSignature.UUID_LEAST_TAG, uuid.getLeastSignificantBits());
+			tagCompound.putLong(ICoreSignature.UUID_MOST_TAG, uuid.getMostSignificantBits());
+			tagCompound.putLong(ICoreSignature.UUID_LEAST_TAG, uuid.getLeastSignificantBits());
 		}
 		
 		return tagCompound;
@@ -145,7 +145,7 @@ public abstract class TileEntityAbstractEnergyCoreOrController extends TileEntit
 	// OpenComputers callback methods
 	// (none)
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	// (none)
 	
 	@Override

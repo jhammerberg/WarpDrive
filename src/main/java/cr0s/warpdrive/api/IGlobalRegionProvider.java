@@ -5,18 +5,19 @@ import cr0s.warpdrive.data.EnumGlobalRegionType;
 
 import javax.annotation.Nullable;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 
 public interface IGlobalRegionProvider extends ICoreSignature {
 	
 	// providers are TileEntities, so we reuse the base class methods
-	default int getDimension() {
+	default ResourceLocation getDimension() {
 		assert this instanceof TileEntity;
-		return ((TileEntity) this).getWorld().provider.getDimension();
+		return ((TileEntity) this).getWorld().getDimension().getType().getRegistryName();
 	}
 	default BlockPos getBlockPos() {
 		assert this instanceof TileEntity;
@@ -36,5 +37,5 @@ public interface IGlobalRegionProvider extends ICoreSignature {
 	double getIsolationRate();
 	
 	// report an update in the area, return false to cancel it
-	boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final IBlockState blockState);
+	boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final BlockState blockState);
 }

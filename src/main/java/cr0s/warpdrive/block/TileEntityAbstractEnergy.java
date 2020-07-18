@@ -5,37 +5,22 @@ import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.EnergyWrapper;
-import cr0s.warpdrive.data.Vector3;
-import cr0s.warpdrive.network.PacketHandler;
 
-import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IEnergyContainer;
-import gregtech.api.util.GTUtility;
-import ic2.api.energy.event.EnergyTileLoadEvent;
-import ic2.api.energy.event.EnergyTileUnloadEvent;
-import ic2.api.energy.tile.IEnergyAcceptor;
-import ic2.api.energy.tile.IEnergyEmitter;
-import ic2.api.energy.tile.IEnergySink;
-import ic2.api.energy.tile.IEnergySource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import java.util.List;
-
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.math.BlockPos;
 
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.energy.CapabilityEnergy;
+import net.minecraftforge.common.capabilities.CapabilityInject;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.fml.common.Optional;
 
 
 /*
@@ -46,11 +31,13 @@ import net.minecraftforge.fml.common.Optional;
     }
 */
 
-@Optional.InterfaceList({
-	@Optional.Interface(iface = "ic2.api.energy.tile.IEnergySink", modid = "ic2"),
-	@Optional.Interface(iface = "ic2.api.energy.tile.IEnergySource", modid = "ic2")
-})
-public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyBase implements IEnergySink, IEnergySource {
+public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyBase {
+	
+	// static properties
+	@CapabilityInject(IEnergyStorage.class)
+	public static Capability<IEnergyStorage> FE_CAPABILITY_ENERGY = null;
+	@CapabilityInject(IEnergyContainer.class)
+	public static Capability<IEnergyContainer> GT_CAPABILITY_ENERGY_CONTAINER = null;
 	
 	// block parameters constants
 	private long energyMaxStorage;
@@ -68,17 +55,17 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	private long energyStored_internal = 0;
 	
 	// computed properties
-	private final IEnergyStorage[]  FE_energyStorages = new IEnergyStorage[EnumFacing.VALUES.length + 1];
-	private final Object[]          GT_energyContainers = new Object[EnumFacing.VALUES.length + 1];
-	private boolean                 IC2_isAddedToEnergyNet = false;
-	private long                    IC2_timeAddedToEnergyNet = Long.MIN_VALUE;
-	private int scanTickCount = WarpDriveConfig.ENERGY_SCAN_INTERVAL_TICKS;
+	@SuppressWarnings("unchecked")
+	private final LazyOptional<IEnergyStorage>[]    FE_energyStorages = new LazyOptional[Direction.values().length + 1];
+	private final LazyOptional<?>[]                 GT_energyContainers = new LazyOptional[Direction.values().length + 1];
+	private boolean                                 IC2_isAddedToEnergyNet = false;
+	private long                                    IC2_timeAddedToEnergyNet = Long.MIN_VALUE;
+	private int                                     scanTickCount = WarpDriveConfig.ENERGY_SCAN_INTERVAL_TICKS;
 	
-	private final IEnergyStorage[]  FE_energyReceivers = new IEnergyStorage[EnumFacing.VALUES.length + 1];
-	private boolean isOvervoltageLogged = false;
+	private final IEnergyStorage[]                  FE_energyReceivers = new IEnergyStorage[Direction.values().length + 1];
 	
-	public TileEntityAbstractEnergy() {
-		super();
+	public TileEntityAbstractEnergy(@Nonnull TileEntityType<? extends TileEntityAbstractEnergy> tileEntityType) {
+		super(tileEntityType);
 		
 		// at base construction, we disable all input/output and allow infinite storage
 		// we need to know the tier before setting things up, so we do the actual setup in onConstructed()
@@ -104,37 +91,19 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 		GT_amperageOutput = amperageOutput;
 	}
 	
-	@Override
-	public boolean hasCapability(@Nonnull final Capability<?> capability, @Nullable final EnumFacing facing) {
-		if (energy_getMaxStorage() != 0) {
-			if ( WarpDriveConfig.ENERGY_ENABLE_FE
-			  && capability == CapabilityEnergy.ENERGY ) {
-				return true;
-			}
-			
-			if ( WarpDriveConfig.ENERGY_ENABLE_GTCE_EU
-			  && WarpDriveConfig.isGregtechLoaded
-			  && GT_isEnergyContainer(capability) ) {
-				return true;
-			}
-		}
-		return super.hasCapability(capability, facing);
-	}
-	
-	@Optional.Method(modid = "gregtech")
 	private boolean GT_isEnergyContainer(@Nonnull final Capability<?> capability) {
-		return capability == GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER;
+		return capability == GT_CAPABILITY_ENERGY_CONTAINER;
 	}
 	
-	@Nullable
+	@Nonnull
 	@Override
-	public <T> T getCapability(@Nonnull final Capability<T> capability, @Nullable final EnumFacing facing) {
+	public <T> LazyOptional<T> getCapability(@Nonnull final Capability<T> capability, @Nullable final Direction facing) {
 		if (energy_getMaxStorage() != 0) {
 			if ( WarpDriveConfig.ENERGY_ENABLE_FE
-			  && capability == CapabilityEnergy.ENERGY ) {
-				IEnergyStorage energyStorage = FE_energyStorages[Commons.getOrdinal(facing)];
+			  && capability == FE_CAPABILITY_ENERGY ) {
+				LazyOptional<IEnergyStorage> energyStorage = FE_energyStorages[Commons.getOrdinal(facing)];
 				if (energyStorage == null) {
-					energyStorage = new IEnergyStorage() {
+					energyStorage = LazyOptional.of(() -> new IEnergyStorage() {
 						
 						@Override
 						public int receiveEnergy(final int maxReceive, final boolean simulate) {
@@ -165,27 +134,29 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 						public boolean canReceive() {
 							return energy_canInput(facing);
 						}
-					};
+					});
 					if (WarpDriveConfig.LOGGING_ENERGY) {
 						WarpDrive.logger.info(String.format("%s IEnergyStorage(%s) capability created!",
 						                                    this, facing));
 					}
 					FE_energyStorages[Commons.getOrdinal(facing)] = energyStorage;
 				}
-				return CapabilityEnergy.ENERGY.cast(energyStorage);
+				return FE_energyStorages[Commons.getOrdinal(facing)].cast();
 			}
 			
 			if ( WarpDriveConfig.ENERGY_ENABLE_GTCE_EU
 			  && WarpDriveConfig.isGregtechLoaded
 			  && GT_isEnergyContainer(capability) ) {
+				/* TODO MC1.15 enable GT support once it's updated
 				return GT_getEnergyContainer(capability, facing);
+				*/
 			}
 		}
 		return super.getCapability(capability, facing);
 	}
 	
-	@Optional.Method(modid = "gregtech")
-	private <T> T GT_getEnergyContainer(@Nonnull final Capability<T> capability, @Nullable final EnumFacing facing) {
+	/* TODO MC1.15 enable GT support once it's updated
+	private <T> LazyOptional<T> GT_getEnergyContainer(@Nonnull final Capability<T> capability, @Nullable final Direction facing) {
 		assert capability == GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER;
 		
 		IEnergyContainer energyContainer = (IEnergyContainer) GT_energyContainers[Commons.getOrdinal(facing)];
@@ -193,19 +164,18 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 			energyContainer = new IEnergyContainer() {
 				
 				@Override
-				public long acceptEnergyFromNetwork(final EnumFacing side, final long voltage, final long amperage) {
+				public long acceptEnergyFromNetwork(final Direction side, final long voltage, final long amperage) {
 					if (!inputsEnergy(side)) {
 						return 0L;
 					}
 					if (voltage > getInputVoltage()) {
-						if (!isOvervoltageLogged) {
+						if (Commons.throttleMe(toString())) {
 							WarpDrive.logger.info(String.format("Overvoltage detected at %s input side %s: %d > %d",
 							                                    this, side, voltage, getInputVoltage()));
-							isOvervoltageLogged = true;
 						}
 						
 						final int tier = GTUtility.getTierByVoltage(voltage);
-						applyOvervoltageEffects(tier);
+						GT_applyOvervoltageEffects(tier);
 						
 						return Math.min(amperage, getInputAmperage());
 					}
@@ -221,12 +191,12 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 				}
 				
 				@Override
-				public boolean inputsEnergy(final EnumFacing side) {
+				public boolean inputsEnergy(final Direction side) {
 					return energy_canInput(side);
 				}
 				
 				@Override
-				public boolean outputsEnergy(final EnumFacing side) {
+				public boolean outputsEnergy(final Direction side) {
 					return energy_canOutput(side);
 				}
 				
@@ -250,18 +220,6 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 				public long getEnergyCapacity() {
 					return outputsEnergy(facing) || inputsEnergy(facing) ? EnergyWrapper.convertInternalToGT_floor(energy_getMaxStorage()) : 0;
 				}
-						
-						/*
-						@Override
-						public BigInteger getEnergyStoredActual() {
-							return null;
-						}
-						
-						@Override
-						public BigInteger getEnergyCapacityActual() {
-							return null;
-						}
-						/**/
 				
 				@Override
 				public long getOutputAmperage() {
@@ -294,10 +252,11 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 			}
 			GT_energyContainers[Commons.getOrdinal(facing)] = energyContainer;
 		}
-		return GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER.cast(energyContainer);
+		return LazyOptional.of(() -> (T) GT_energyContainers[Commons.getOrdinal(facing)]);
 	}
 	
-	private void applyOvervoltageEffects(final int tier) {
+	private void GT_applyOvervoltageEffects(final int tier) {
+		assert world != null;
 		final int radius = 3;
 		if (WarpDriveConfig.ENERGY_OVERVOLTAGE_SHOCK_FACTOR > 0) {
 			// light up area with particles
@@ -319,15 +278,15 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 			}
 			
 			// attack all entities in range
-			final List<EntityLivingBase> entityLivingBases = world.getEntitiesWithinAABB(
-					EntityLivingBase.class,
+			final List<LivingEntity> entityLivingBases = world.getEntitiesWithinAABB(
+					LivingEntity.class,
 					new AxisAlignedBB(pos.getX() - radius, pos.getY() - radius, pos.getZ() - radius,
 					                  pos.getX() + radius + 1, pos.getY() + radius + 1, pos.getZ() + radius + 1));
-			for (final EntityLivingBase entityLivingBase : entityLivingBases) {
-				if ( entityLivingBase.isDead
+			for (final LivingEntity entityLivingBase : entityLivingBases) {
+				if ( !entityLivingBase.isAlive()
 				  || !entityLivingBase.attackable()
-				  || ( entityLivingBase instanceof EntityPlayer
-				    && ((EntityPlayer) entityLivingBase).capabilities.disableDamage ) ) {
+				  || ( entityLivingBase instanceof PlayerEntity
+				    && ((PlayerEntity) entityLivingBase).abilities.disableDamage ) ) {
 					continue;
 				}
 				
@@ -336,13 +295,14 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 		}
 		
 		if (WarpDriveConfig.ENERGY_OVERVOLTAGE_EXPLOSION_FACTOR > 0) {
-			world.setBlockToAir(pos);
+			world.removeBlock(pos, false);
 			
-			world.newExplosion(
+			world.createExplosion(
 					null, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
-					tier * WarpDriveConfig.ENERGY_OVERVOLTAGE_EXPLOSION_FACTOR, true, true);
+					tier * WarpDriveConfig.ENERGY_OVERVOLTAGE_EXPLOSION_FACTOR, true, Mode.DESTROY );
 		}
 	}
+	*/
 	
 	public long energy_getEnergyStored() {
 		return Commons.clamp(0L, energy_getMaxStorage(), energyStored_internal);
@@ -376,7 +336,7 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	 * Should return true if that direction can receive energy.
 	 */
 	@SuppressWarnings("UnusedParameters")
-	public boolean energy_canInput(final EnumFacing from) {
+	public boolean energy_canInput(final Direction from) {
 		return false;
 	}
 	
@@ -384,7 +344,7 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	 * Should return true if that direction can output energy.
 	 */
 	@SuppressWarnings("UnusedParameters")
-	public boolean energy_canOutput(final EnumFacing to) {
+	public boolean energy_canOutput(final Direction to) {
 		return false;
 	}
 	
@@ -444,10 +404,11 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -458,10 +419,11 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -490,21 +452,21 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	}
 	
 	@Override
-	public void onChunkUnload() {
+	public void onChunkUnloaded() {
 		if (WarpDriveConfig.isIndustrialCraft2Loaded) {
 			IC2_removeFromEnergyNet();
 		}
 		
-		super.onChunkUnload();
+		super.onChunkUnloaded();
 	}
 	
 	@Override
-	public void invalidate() {
+	public void remove() {
 		if (WarpDriveConfig.isIndustrialCraft2Loaded) {
 			IC2_removeFromEnergyNet();
 		}
 		
-		super.invalidate();
+		super.remove();
 	}
 	
 	// EnergyBase override
@@ -517,10 +479,10 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 				units };
 	}
 	
+	/* TODO MC1.15 enable IC2 support once it's updated
 	// IndustrialCraft IEnergyAcceptor interface
 	@Override
-	@Optional.Method(modid = "ic2")
-	public boolean acceptsEnergyFrom(final IEnergyEmitter emitter, final EnumFacing from) {
+	public boolean acceptsEnergyFrom(final IEnergyEmitter emitter, final Direction from) {
 		final boolean accepts = WarpDriveConfig.ENERGY_ENABLE_IC2_EU
 		                     && energy_canInput(from);
 		if (WarpDriveConfig.LOGGING_ENERGY) {
@@ -532,7 +494,6 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	
 	// IndustrialCraft IEnergySink interface
 	@Override
-	@Optional.Method(modid = "ic2")
 	public int getSinkTier() {
 		final int tier = WarpDriveConfig.ENERGY_ENABLE_IC2_EU
 		              && energy_getMaxStorage() > 0
@@ -545,7 +506,6 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
 	public double getDemandedEnergy() {
 		final double demanded_EU = Math.max(0.0D, EnergyWrapper.convertInternalToEU_floor(energy_getMaxStorage() - energy_getEnergyStored()));
 		if (WarpDriveConfig.LOGGING_ENERGY) {
@@ -556,8 +516,7 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
-	public double injectEnergy(final EnumFacing from, final double amount_EU, final double voltage) {
+	public double injectEnergy(final Direction from, final double amount_EU, final double voltage) {
 		double amountLeftOver_EU = amount_EU;
 		if ( WarpDriveConfig.ENERGY_ENABLE_IC2_EU
 		  && energy_canInput(from.getOpposite()) ) {
@@ -580,8 +539,7 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	
 	// IndustrialCraft IEnergyEmitter interface
 	@Override
-	@Optional.Method(modid = "ic2")
-	public boolean emitsEnergyTo(final IEnergyAcceptor receiver, final EnumFacing to) {
+	public boolean emitsEnergyTo(final IEnergyAcceptor receiver, final Direction to) {
 		final boolean emits = WarpDriveConfig.ENERGY_ENABLE_IC2_EU
 		                   && energy_canOutput(to);
 		if (WarpDriveConfig.LOGGING_ENERGY) {
@@ -593,7 +551,6 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	
 	// IndustrialCraft IEnergySource interface
 	@Override
-	@Optional.Method(modid = "ic2")
 	public int getSourceTier() {
 		final int tier = WarpDriveConfig.ENERGY_ENABLE_IC2_EU
 		              && energy_getMaxStorage() > 0
@@ -607,7 +564,6 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
 	public double getOfferedEnergy() {
 		double offered_EU = 0.0D;
 		if (WarpDriveConfig.ENERGY_ENABLE_IC2_EU) {
@@ -621,7 +577,6 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
 	public void drawEnergy(final double amount_EU) {
 		if (WarpDriveConfig.LOGGING_ENERGY) {
 			WarpDrive.logger.info(String.format("%s [IC2]drawEnergy(%.2f EU)",
@@ -629,29 +584,33 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 		}
 		energy_outputDone(EnergyWrapper.convertEUtoInternal_ceil(amount_EU));
 	}
+	*/
 	
 	// IndustrialCraft compatibility methods
-	@Optional.Method(modid = "ic2")
 	private void IC2_addToEnergyNet() {
-		if ( !world.isRemote
+		assert world != null;
+		if ( !world.isRemote()
 		  && !IC2_isAddedToEnergyNet ) {
-			IC2_timeAddedToEnergyNet = world.getTotalWorldTime();
+			IC2_timeAddedToEnergyNet = world.getGameTime();
+			/* TODO MC1.15 enable IC2 support once it's updated
 			MinecraftForge.EVENT_BUS.post(new EnergyTileLoadEvent(this));
+			*/
 			IC2_isAddedToEnergyNet = true;
 		}
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private void IC2_removeFromEnergyNet() {
-		if ( !world.isRemote
+		assert world != null;
+		if ( !world.isRemote()
 		  && IC2_isAddedToEnergyNet ) {
+			/* TODO MC1.15 enable IC2 support once it's updated
 			MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(this));
+			*/
 			IC2_isAddedToEnergyNet = false;
 		}
 	}
 	
-	// RedstoneFlux IEnergyReceiver interface
-	private int FE_receiveEnergy(final EnumFacing from, final int maxReceive_FE, final boolean simulate) {
+	// ForgeEnergy compatibility methods
+	private int FE_receiveEnergy(final Direction from, final int maxReceive_FE, final boolean simulate) {
 		if (WarpDriveConfig.LOGGING_ENERGY) {
 			WarpDrive.logger.info(String.format("%s FE_receiveEnergy(%s, %d, %s)",
 			                                    this, from, maxReceive_FE, simulate));
@@ -681,8 +640,7 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 		return energyToAdd_FE;
 	}
 	
-	// RedstoneFlux IEnergyProvider interface
-	private int FE_extractEnergy(final EnumFacing from, final int maxExtract_FE, final boolean simulate) {
+	private int FE_extractEnergy(final Direction from, final int maxExtract_FE, final boolean simulate) {
 		if (WarpDriveConfig.LOGGING_ENERGY) {
 			WarpDrive.logger.info(String.format("%s FE_extractEnergy(%s, %d, %s)",
 			                                    this, from, maxExtract_FE, simulate));
@@ -699,8 +657,7 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 		return EnergyWrapper.convertInternalToFE_floor(energyExtracted_internal);
 	}
 	
-	// WarpDrive overrides for Forge energy
-	private void FE_outputEnergy(final EnumFacing to, @Nonnull final IEnergyStorage energyStorage) {
+	private void FE_outputEnergy(final Direction to, @Nonnull final IEnergyStorage energyStorage) {
 		if (!energy_canOutput(to)) {
 			return;
 		}
@@ -715,9 +672,8 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 		}
 	}
 	
-	
 	private void FE_outputEnergy() {
-		for (final EnumFacing to : EnumFacing.VALUES) {
+		for (final Direction to : Direction.values()) {
 			final IEnergyStorage energyStorage = FE_energyReceivers[Commons.getOrdinal(to)];
 			if (energyStorage != null) {
 				FE_outputEnergy(to, energyStorage);
@@ -725,43 +681,37 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 		}
 	}
 	
-	
-	private boolean FE_addEnergyReceiver(@Nonnull final EnumFacing to, final TileEntity tileEntity) {
+	private void FE_addEnergyReceiver(@Nonnull final Direction to, final TileEntity tileEntity) {
 		if (tileEntity != null) {
-			final IEnergyStorage energyStorage = tileEntity.getCapability(CapabilityEnergy.ENERGY, to.getOpposite());
-			if (energyStorage != null) {
+			final LazyOptional<IEnergyStorage> optEnergyStorage = tileEntity.getCapability(FE_CAPABILITY_ENERGY, to.getOpposite());
+			optEnergyStorage.ifPresent(energyStorage -> {
 				if (energyStorage.canReceive()) {
 					if (FE_energyReceivers[Commons.getOrdinal(to)] != energyStorage) {
 						FE_energyReceivers[Commons.getOrdinal(to)] = energyStorage;
 					}
-					return true;
+				} else {
+					FE_energyReceivers[Commons.getOrdinal(to)] = null;
 				}
-			}
+			});
 		}
-		FE_energyReceivers[Commons.getOrdinal(to)] = null;
-		return false;
 	}
 	
 	private void FE_scanForEnergyReceivers() {
+		assert WarpDriveConfig.ENERGY_ENABLE_FE;
 		if (WarpDriveConfig.LOGGING_ENERGY) {
 			WarpDrive.logger.info(String.format("%s FE_scanForEnergyReceivers()",
 			                                    this));
 		}
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos(pos);
-		for (final EnumFacing to : EnumFacing.VALUES) {
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(pos);
+		for (final Direction to : Direction.values()) {
 			if (energy_canOutput(to)) {
 				mutableBlockPos.setPos(
 						pos.getX() + to.getXOffset(),
 						pos.getY() + to.getYOffset(),
 						pos.getZ() + to.getZOffset() );
+				assert world != null;
 				final TileEntity tileEntity = world.getTileEntity(mutableBlockPos);
-				
-				if (WarpDriveConfig.ENERGY_ENABLE_FE) {
-					if (FE_addEnergyReceiver(to, tileEntity)) {
-						continue;
-					}
-				}
-				
+				FE_addEnergyReceiver(to, tileEntity);
 			}
 		}
 	}
@@ -769,26 +719,26 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	
 	// Forge overrides
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		energyStored_internal = tagCompound.getLong(EnergyWrapper.TAG_ENERGY);
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setLong(EnergyWrapper.TAG_ENERGY, energyStored_internal);
+		tagCompound.putLong(EnergyWrapper.TAG_ENERGY, energyStored_internal);
 		return tagCompound;
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
 		
 		if (isEnergyLostWhenBroken) {
-			tagCompound.removeTag(EnergyWrapper.TAG_ENERGY);
+			tagCompound.remove(EnergyWrapper.TAG_ENERGY);
 		}
 		return tagCompound;
 	}
@@ -796,9 +746,10 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	// WarpDrive overrides
 	protected void energy_refreshConnections() {
 		if (WarpDriveConfig.isIndustrialCraft2Loaded) {
+			assert world != null;
 			// IC2 EnergyNet throws a block update during the next world tick following its EnergyTileLoadEvent
 			// Ignoring this specific block update prevents us to do a constant refresh of the energy net
-			if (world.getTotalWorldTime() - IC2_timeAddedToEnergyNet > 1) {
+			if (world.getGameTime() - IC2_timeAddedToEnergyNet > 1) {
 				IC2_removeFromEnergyNet();
 			}
 		}

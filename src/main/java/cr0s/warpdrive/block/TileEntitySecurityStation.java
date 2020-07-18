@@ -3,7 +3,6 @@ package cr0s.warpdrive.block;
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.api.computer.ISecurityStation;
-import cr0s.warpdrive.block.TileEntityAbstractMachine;
 
 import li.cil.oc.api.machine.Arguments;
 import li.cil.oc.api.machine.Callback;
@@ -12,22 +11,24 @@ import li.cil.oc.api.machine.Context;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.StringNBT;
+import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.DamageSource;
 
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fml.common.Optional;
 
 public class TileEntitySecurityStation extends TileEntityAbstractMachine implements ISecurityStation {
+	
+	public static TileEntityType<TileEntitySecurityStation> TYPE;
 	
 	// persistent properties
 	public final ArrayList<String> players = new ArrayList<>();
 	
 	public TileEntitySecurityStation() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveSecurityStation";
 		addMethods(new String[] {
@@ -36,37 +37,37 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
 		players.clear();
-		final NBTTagList tagListPlayers = tagCompound.getTagList("players", Constants.NBT.TAG_STRING);
-		for (int index = 0; index < tagListPlayers.tagCount(); index++) {
-			final String namePlayer = tagListPlayers.getStringTagAt(index);
+		final ListNBT tagListPlayers = tagCompound.getList("players", Constants.NBT.TAG_STRING);
+		for (int index = 0; index < tagListPlayers.size(); index++) {
+			final String namePlayer = tagListPlayers.getString(index);
 			players.add(namePlayer);
 		}
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		final NBTTagList tagListPlayers = new NBTTagList();
+		final ListNBT tagListPlayers = new ListNBT();
 		for (final String namePlayer : players) {
-			final NBTTagString tagStringPlayer = new NBTTagString(namePlayer);
-			tagListPlayers.appendTag(tagStringPlayer);
+			final StringNBT tagStringPlayer = StringNBT.valueOf(namePlayer);
+			tagListPlayers.add(tagStringPlayer);
 		}
-		tagCompound.setTag("players", tagListPlayers);
+		tagCompound.put("players", tagListPlayers);
 		
 		return tagCompound;
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
 		
-		tagCompound.removeTag("players");
+		tagCompound.remove("players");
 		
 		return tagCompound;
 	}
@@ -78,13 +79,13 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 		                    getAttachedPlayersList());
 	}
 	
-	public WarpDriveText attachPlayer(final EntityPlayer entityPlayer) {
+	public WarpDriveText attachPlayer(final PlayerEntity entityPlayer) {
 		for (int i = 0; i < players.size(); i++) {
 			final String name = players.get(i);
 			
-			if (entityPlayer.getName().equals(name)) {
+			if (entityPlayer.getName().getUnformattedComponentText().equals(name)) {
 				players.remove(i);
-				WarpDriveText text = Commons.getChatPrefix(getBlockType());
+				WarpDriveText text = Commons.getChatPrefix(getBlockState());
 				text.appendSibling(new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.security_station.guide.player_unregistered",
 				                                     getAttachedPlayersList()));
 				return text;
@@ -92,8 +93,8 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 		}
 		
 		entityPlayer.attackEntityFrom(DamageSource.GENERIC, 1);
-		players.add(entityPlayer.getName());
-		WarpDriveText text = Commons.getChatPrefix(getBlockType());
+		players.add(entityPlayer.getName().getUnformattedComponentText());
+		WarpDriveText text = Commons.getChatPrefix(getBlockState());
 		text.appendSibling(new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.security_station.guide.player_registered",
 		                                     getAttachedPlayersList()));
 		return text;
@@ -120,7 +121,7 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 		}
 		
 		for (final String namePlayer : players) {
-			final EntityPlayer entityPlayer = Commons.getOnlinePlayerByName(namePlayer);
+			final PlayerEntity entityPlayer = Commons.getOnlinePlayerByName(namePlayer);
 			if (entityPlayer != null) {// crew member is online
 				return namePlayer;
 			}
@@ -147,15 +148,13 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getAttachedPlayers(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getAttachedPlayers();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "getAttachedPlayers":

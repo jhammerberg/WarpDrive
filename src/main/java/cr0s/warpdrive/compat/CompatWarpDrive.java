@@ -18,11 +18,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -33,18 +33,18 @@ public class CompatWarpDrive implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
 		return block instanceof BlockAbstractBase
 		    || block instanceof BlockAbstractContainer;
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z,
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
 	                             final Block block, final int blockMeta, final TileEntity tileEntity) {
 		if (block instanceof BlockAirFlow || block instanceof BlockAirSource) {
 			final ChunkData chunkData = ChunkHandler.getChunkData(world, x, y, z);
@@ -56,8 +56,8 @@ public class CompatWarpDrive implements IBlockTransformer {
 			if (dataAir == StateAir.AIR_DEFAULT) {
 				return null;
 			}
-			final NBTTagCompound tagCompound = new NBTTagCompound();
-			tagCompound.setInteger("dataAir", dataAir);
+			final CompoundNBT tagCompound = new CompoundNBT();
+			tagCompound.putInt("dataAir", dataAir);
 			return tagCompound;
 		}
 		return null;
@@ -65,7 +65,7 @@ public class CompatWarpDrive implements IBlockTransformer {
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		if (block instanceof BlockAirFlow || block instanceof BlockAirSource) {
 			final ChunkData chunkData = ChunkHandler.getChunkData(world, x, y, z);
 			if (chunkData == null) {
@@ -103,7 +103,7 @@ public class CompatWarpDrive implements IBlockTransformer {
 	}
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		
 		// Hull slabs
@@ -116,18 +116,18 @@ public class CompatWarpDrive implements IBlockTransformer {
 			case 3:
 				return mrotHullSlab[mrotHullSlab[mrotHullSlab[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		if (nbtTileEntity != null) {
 			// subspace capacitor sides
-			if (nbtTileEntity.hasKey("modeSide")) {
-				nbtTileEntity.setByteArray("modeSide", rotate_byteArray(rotationSteps, nbtTileEntity.getByteArray("modeSide")));
+			if (nbtTileEntity.contains("modeSide")) {
+				nbtTileEntity.putByteArray("modeSide", rotate_byteArray(rotationSteps, nbtTileEntity.getByteArray("modeSide")));
 			}
 			
 			// reactor stabilization laser
-			if ( nbtTileEntity.hasKey("reactorFace")
+			if ( nbtTileEntity.contains("reactorFace")
 			  && rotationSteps != 0 ) {
 				final String reactorFaceOriginal = nbtTileEntity.getString("reactorFace");
 				final Pattern patternFacing = Pattern.compile("(laser\\.[a-z]+\\.)([a-z]+)([+-]*)");
@@ -141,7 +141,7 @@ public class CompatWarpDrive implements IBlockTransformer {
 				final String nameFacing = matcher.group(2);
 				final String suffix = matcher.group(3);
 				
-				EnumFacing enumFacing = EnumFacing.byName(nameFacing);
+				Direction enumFacing = Direction.byName(nameFacing);
 				if (enumFacing == null) {
 					throw new RuntimeException(String.format("Failed to parse reactor facing %s: unrecognized facing %s",
 					                                         reactorFaceOriginal, nameFacing));
@@ -162,13 +162,13 @@ public class CompatWarpDrive implements IBlockTransformer {
 				}
 				
 				final String reactorFaceUpdated = prefix + enumFacing.name().toLowerCase() + suffix; 
-				nbtTileEntity.setString("reactorFace", reactorFaceUpdated);
+				nbtTileEntity.putString("reactorFace", reactorFaceUpdated);
 			}
 		}
 		
 		// Rotating blocks
-		final IBlockState blockState = block.getStateFromMeta(metadata);
-		if (blockState.getProperties().containsKey(BlockProperties.HORIZONTAL_SPINNING)) {
+		final BlockState blockState = block.getStateFromMeta(metadata);
+		if (blockState.getProperties().contains(BlockProperties.HORIZONTAL_SPINNING)) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotHorizontalSpinning[metadata];
@@ -177,12 +177,12 @@ public class CompatWarpDrive implements IBlockTransformer {
 			case 3:
 				return mrotHorizontalSpinning[mrotHorizontalSpinning[mrotHorizontalSpinning[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}			
 		}
 		
-		if ( blockState.getProperties().containsKey(BlockProperties.FACING)
-		  || blockState.getProperties().containsKey(BlockProperties.FACING_HORIZONTAL) ) {
+		if ( blockState.getProperties().contains(BlockProperties.FACING)
+		  || blockState.getProperties().contains(BlockProperties.FACING_HORIZONTAL) ) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotDirection[metadata & 0x7] | (metadata & 0x8);
@@ -191,26 +191,26 @@ public class CompatWarpDrive implements IBlockTransformer {
 			case 3:
 				return mrotDirection[mrotDirection[mrotDirection[metadata & 0x7]]] | (metadata & 0x8);
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		if (nbtBase == null) {
 			return;
 		}
-		if (!(nbtBase instanceof NBTTagCompound)) {
+		if (!(nbtBase instanceof CompoundNBT)) {
 			return;
 		}
-		if (((NBTTagCompound) nbtBase).hasKey("dataAir")) {
+		if (((CompoundNBT) nbtBase).contains("dataAir")) {
 			final byte rotationSteps = transformation.getRotationSteps();
-			final int dataAir = ((NBTTagCompound) nbtBase).getInteger("dataAir");
+			final int dataAir = ((CompoundNBT) nbtBase).getInt("dataAir");
 			final ChunkData chunkData = ChunkHandler.getChunkData(world, blockPos.getX(), blockPos.getY(), blockPos.getZ());
 			if (chunkData == null) {
 				// chunk isn't loaded, skip it

@@ -8,24 +8,27 @@ import cr0s.warpdrive.data.EnumForceFieldUpgrade;
 import cr0s.warpdrive.data.ForceFieldSetup;
 import cr0s.warpdrive.item.ItemForceFieldUpgrade;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.text.Style;
 
 import javax.annotation.Nonnull;
 
 public class TileEntityForceFieldRelay extends TileEntityAbstractForceField implements IForceFieldUpgrade {
+	
+	public static TileEntityType<TileEntityForceFieldRelay> TYPE;
 
 	// persistent properties
 	private EnumForceFieldUpgrade upgrade = EnumForceFieldUpgrade.NONE;
 	
 	public TileEntityForceFieldRelay() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveForceFieldRelay";
 		doRequireUpgradeToInterface();
 	}
 	
-	// onFirstUpdateTick
+	// onFirstTick
 	// update
 	
 	protected EnumForceFieldUpgrade getUpgrade() {
@@ -55,16 +58,16 @@ public class TileEntityForceFieldRelay extends TileEntityAbstractForceField impl
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		setUpgrade(EnumForceFieldUpgrade.get(tagCompound.getByte("upgrade")));
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
-		tagCompound.setByte("upgrade", (byte) getUpgrade().ordinal());
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
+		tagCompound.putByte("upgrade", (byte) getUpgrade().ordinal());
 		return tagCompound;
 	}
 	

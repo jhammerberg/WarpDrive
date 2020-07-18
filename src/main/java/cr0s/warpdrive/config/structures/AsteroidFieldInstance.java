@@ -11,7 +11,7 @@ import cr0s.warpdrive.world.WorldGenStation;
 import javax.annotation.Nonnull;
 import java.util.Random;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -21,14 +21,14 @@ public class AsteroidFieldInstance extends AbstractStructureInstance {
 		super(asteroidField, random);
 	}
 	
-	public AsteroidFieldInstance(final NBTTagCompound tagCompound) {
+	public AsteroidFieldInstance(final CompoundNBT tagCompound) {
 		super(tagCompound);
 		// TODO not implemented
 	}
 	
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		super.write(tagCompound);
 		// TODO not implemented
 		return tagCompound;
 	}
@@ -45,8 +45,8 @@ public class AsteroidFieldInstance extends AbstractStructureInstance {
 	}
 	
 	@Override
-	public boolean generate(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
-		LocalProfiler.start("AsteroidFieldInstance.generate");
+	public boolean place(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
+		LocalProfiler.start("AsteroidFieldInstance.place");
 		// 6.0.1 au = 120 radius with 60 to 140 big + 60 to 140 small + 5 to 13 gas
 		// 45238 blocks surface with 120 to 280 asteroids => 161 to 376 blocks per asteroid (big & small)
 		
@@ -117,7 +117,7 @@ public class AsteroidFieldInstance extends AbstractStructureInstance {
 				WarpDrive.logger.error(String.format("Unable to generate big asteroid %s, probably a bad configuration",
 				                                     Commons.format(world, aX, aY, aZ)));
 			} else {
-				asteroid.generate(world, world.rand, new BlockPos(aX, aY, aZ));
+				asteroid.place(world, world.rand, new BlockPos(aX, aY, aZ));
 			}
 		}
 		
@@ -140,7 +140,7 @@ public class AsteroidFieldInstance extends AbstractStructureInstance {
 					WarpDrive.logger.error(String.format("Unable to generate small asteroid %s, probably a bad configuration",
 					                                     Commons.format(world, aX, aY, aZ)));
 				} else {
-					asteroid.generate(world, world.rand, new BlockPos(aX, aY, aZ));
+					asteroid.place(world, world.rand, new BlockPos(aX, aY, aZ));
 				}
 			} else {
 				if (world.rand.nextInt(20) != 1) {
@@ -170,7 +170,7 @@ public class AsteroidFieldInstance extends AbstractStructureInstance {
 					WarpDrive.logger.error(String.format("Unable to generate gas cloud %s, probably a bad configuration",
 					                                     Commons.format(world, aX, aY, aZ)));
 				} else {
-					gasCloud.generate(world, world.rand, new BlockPos(aX, aY, aZ));
+					gasCloud.place(world, world.rand, new BlockPos(aX, aY, aZ));
 				}
 			}
 		}
@@ -185,7 +185,7 @@ public class AsteroidFieldInstance extends AbstractStructureInstance {
 		final int z2 = z + (((world.rand.nextBoolean()) ? -1 : 1) * world.rand.nextInt(jitter));
 		WarpDrive.logger.info(String.format("Generating small ship %s",
 		                                    Commons.format(world, x2, y2, z2)));
-		new WorldGenSmallShip(world.rand.nextFloat() > 0.2F, false).generate(world, world.rand, new BlockPos(x2, y2, z2));
+		new WorldGenSmallShip(world.rand.nextFloat() > 0.2F, false).place(world, world.rand, new BlockPos(x2, y2, z2));
 	}
 	
 	private static void generateStation(final World world, final int x, final int y, final int z, final int jitter) {
@@ -194,6 +194,6 @@ public class AsteroidFieldInstance extends AbstractStructureInstance {
 		final int z2 = z + (((world.rand.nextBoolean()) ? -1 : 1) * world.rand.nextInt(jitter));
 		WarpDrive.logger.info(String.format("Generating station %s",
 		                                    Commons.format(world, x2, y2, z2)));
-		new WorldGenStation(world.rand.nextBoolean()).generate(world, world.rand, new BlockPos(x2, y2, z2));
+		new WorldGenStation(world.rand.nextBoolean()).place(world, world.rand, new BlockPos(x2, y2, z2));
 	}
 }

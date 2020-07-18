@@ -16,28 +16,27 @@ import javax.annotation.Nonnull;
 import java.util.LinkedList;
 import java.util.List;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 
 // Abstract class to manage laser mediums
 public abstract class TileEntityAbstractLaser extends TileEntityAbstractEnergyBase implements IAbstractLaser {
 	
 	// configuration overridden by derived classes
-	protected EnumFacing[] laserMedium_directionsValid = EnumFacing.values();
+	protected Direction[] laserMedium_directionsValid = Direction.values();
 	protected int laserMedium_maxCount = 0;
 	
 	// computed properties
-	protected EnumFacing laserMedium_direction = null;
+	protected Direction laserMedium_direction = null;
 	protected int cache_laserMedium_count = 0;
 	protected double cache_laserMedium_factor = 1.0D;
 	protected long cache_laserMedium_energyStored = 0L;
 	protected long cache_laserMedium_maxStorage = 0L;
 	
-	public TileEntityAbstractLaser() {
-		super();
+	public TileEntityAbstractLaser(@Nonnull TileEntityType<? extends TileEntityAbstractLaser> tileEntityType) {
+		super(tileEntityType);
 		
 		addMethods(new String[] {
 				"getEnergyRequired",
@@ -50,9 +49,10 @@ public abstract class TileEntityAbstractLaser extends TileEntityAbstractEnergyBa
 	protected boolean doScanAssembly(final boolean isDirty, final WarpDriveText textReason) {
 		final boolean isValid = super.doScanAssembly(isDirty, textReason);
 		
+		assert world != null;
 		assert laserMedium_maxCount != 0;
 		
-		for (final EnumFacing facing : laserMedium_directionsValid) {
+		for (final Direction facing : laserMedium_directionsValid) {
 			TileEntity tileEntity = world.getTileEntity(pos.offset(facing));
 			
 			if (tileEntity instanceof TileEntityLaserMedium) {
@@ -62,7 +62,7 @@ public abstract class TileEntityAbstractLaser extends TileEntityAbstractEnergyBa
 					WarpDrive.logger.error(String.format("Invalid NULL tier for %s, isFirstTick %s",
 					                                     tileEntity, ((TileEntityLaserMedium) tileEntity).isFirstTick() ));
 					WarpDrive.logger.error(String.format("NBT is %s",
-					                                     tileEntity.writeToNBT(new NBTTagCompound()) ));
+					                                     tileEntity.write(new CompoundNBT())));
 				} else {
 					long energyStored = 0;
 					long maxStorage = 0;
@@ -131,6 +131,7 @@ public abstract class TileEntityAbstractLaser extends TileEntityAbstractEnergyBa
 		if (laserMedium_direction == null) {
 			return 0;
 		}
+		assert world != null;
 		
 		// Primary scan of all laser mediums
 		long totalEnergy = 0L;
@@ -227,29 +228,25 @@ public abstract class TileEntityAbstractLaser extends TileEntityAbstractEnergyBa
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getEnergyRequired(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getEnergyRequired();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] laserMediumDirection(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return laserMediumDirection();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] laserMediumCount(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return laserMediumCount();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "getEnergyRequired":

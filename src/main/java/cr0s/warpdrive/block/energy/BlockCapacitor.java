@@ -4,8 +4,6 @@ import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IWarpTool;
 import cr0s.warpdrive.block.BlockAbstractContainer;
-import cr0s.warpdrive.config.WarpDriveConfig;
-import cr0s.warpdrive.data.EnergyWrapper;
 import cr0s.warpdrive.data.EnumDisabledInputOutput;
 import cr0s.warpdrive.data.EnumTier;
 import cr0s.warpdrive.event.ModelBakeEventHandler;
@@ -14,145 +12,76 @@ import cr0s.warpdrive.render.BakedModelCapacitor;
 import ic2.api.energy.tile.IExplosionPowerOverride;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
-import net.minecraft.block.material.Material;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.properties.PropertyEnum;
-import net.minecraft.block.state.BlockStateContainer;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.renderer.model.ModelResourceLocation;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.item.Items;
+import net.minecraft.state.EnumProperty;
+import net.minecraft.state.IProperty;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.NonNullList;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
-import net.minecraftforge.common.property.ExtendedBlockState;
-import net.minecraftforge.common.property.IExtendedBlockState;
-import net.minecraftforge.common.property.IUnlistedProperty;
-import net.minecraftforge.common.property.Properties;
-import net.minecraftforge.fml.common.Optional;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-@Optional.InterfaceList({
-	@Optional.Interface(iface = "ic2.api.energy.tile.IExplosionPowerOverride", modid = "ic2")
-})
 public class BlockCapacitor extends BlockAbstractContainer implements IExplosionPowerOverride {
 	
-	public static final IProperty<EnumDisabledInputOutput> CONFIG = PropertyEnum.create("config", EnumDisabledInputOutput.class);
+	public static final IProperty<EnumDisabledInputOutput> CONFIG = EnumProperty.create("config", EnumDisabledInputOutput.class);
 	
-	public static final IUnlistedProperty<EnumDisabledInputOutput> DOWN  = Properties.toUnlisted(PropertyEnum.create("down", EnumDisabledInputOutput.class));
-	public static final IUnlistedProperty<EnumDisabledInputOutput> UP    = Properties.toUnlisted(PropertyEnum.create("up", EnumDisabledInputOutput.class));
-	public static final IUnlistedProperty<EnumDisabledInputOutput> NORTH = Properties.toUnlisted(PropertyEnum.create("north", EnumDisabledInputOutput.class));
-	public static final IUnlistedProperty<EnumDisabledInputOutput> SOUTH = Properties.toUnlisted(PropertyEnum.create("south", EnumDisabledInputOutput.class));
-	public static final IUnlistedProperty<EnumDisabledInputOutput> WEST  = Properties.toUnlisted(PropertyEnum.create("west", EnumDisabledInputOutput.class));
-	public static final IUnlistedProperty<EnumDisabledInputOutput> EAST  = Properties.toUnlisted(PropertyEnum.create("east", EnumDisabledInputOutput.class));
+	// TODO MC1.15 Capacitor rendering
+	public static final IProperty<EnumDisabledInputOutput> DOWN  = EnumProperty.create("down" , EnumDisabledInputOutput.class);
+	public static final IProperty<EnumDisabledInputOutput> UP    = EnumProperty.create("up"   , EnumDisabledInputOutput.class);
+	public static final IProperty<EnumDisabledInputOutput> NORTH = EnumProperty.create("north", EnumDisabledInputOutput.class);
+	public static final IProperty<EnumDisabledInputOutput> SOUTH = EnumProperty.create("south", EnumDisabledInputOutput.class);
+	public static final IProperty<EnumDisabledInputOutput> WEST  = EnumProperty.create("west" , EnumDisabledInputOutput.class);
+	public static final IProperty<EnumDisabledInputOutput> EAST  = EnumProperty.create("east" , EnumDisabledInputOutput.class);
 	
-	public BlockCapacitor(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier, Material.IRON);
-		
-		setTranslationKey("warpdrive.energy.capacitor." + enumTier.getName());
+	public BlockCapacitor(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(getDefaultProperties(null), registryName, enumTier);
 		
 		setDefaultState(getDefaultState()
-				                .withProperty(CONFIG, EnumDisabledInputOutput.DISABLED)
+				                .with(CONFIG, EnumDisabledInputOutput.DISABLED)
 		               );
 	}
 	
 	@Nonnull
 	@Override
-	protected BlockStateContainer createBlockState() {
-		return new ExtendedBlockState(this,
-		                              new IProperty[] { CONFIG },
-		                              new IUnlistedProperty[] { DOWN, UP, NORTH, SOUTH, WEST, EAST });
-	}
-	
-	@SuppressWarnings("deprecation")
-	@Nonnull
-	@Override
-	public IBlockState getStateFromMeta(final int metadata) {
-		return getDefaultState();
-	}
-	
-	@Override
-	public int getMetaFromState(@Nonnull final IBlockState blockState) {
-		return 0;
-	}
-	
-	@Nonnull
-	@Override
-	public IBlockState getExtendedState(@Nonnull final IBlockState blockState, final IBlockAccess blockAccess, final BlockPos blockPos) {
-		if (!(blockState instanceof IExtendedBlockState)) {
-			WarpDrive.logger.error(String.format("%s Invalid call to getExtendedState() with invalid state %s %s",
-			                                     this, blockState, Commons.format(blockAccess, blockPos)));
-			return blockState;
-		}
-		final TileEntity tileEntity = blockAccess.getTileEntity(blockPos);
+	// TODO MC1.15 Capacitor rendering
+	public BlockState getExtendedState(@Nonnull final BlockState blockState, final IBlockReader worldReader, final BlockPos blockPos) {
+		final TileEntity tileEntity = worldReader.getTileEntity(blockPos);
 		if (!(tileEntity instanceof TileEntityCapacitor)) {
 			WarpDrive.logger.error(String.format("%s Invalid TileEntityCapacitor instance for %s %s: %s",
-			                                     this, blockState, Commons.format(blockAccess, blockPos), tileEntity));
+			                                     this, blockState, Commons.format(worldReader, blockPos), tileEntity));
 			return blockState;
 		}
 		final TileEntityCapacitor tileEntityCapacitor = (TileEntityCapacitor) tileEntity;
-		return ((IExtendedBlockState) blockState)
-				       .withProperty(DOWN , tileEntityCapacitor.getMode(EnumFacing.DOWN ))
-				       .withProperty(UP   , tileEntityCapacitor.getMode(EnumFacing.UP   ))
-				       .withProperty(NORTH, tileEntityCapacitor.getMode(EnumFacing.NORTH))
-				       .withProperty(SOUTH, tileEntityCapacitor.getMode(EnumFacing.SOUTH))
-				       .withProperty(WEST , tileEntityCapacitor.getMode(EnumFacing.WEST ))
-				       .withProperty(EAST , tileEntityCapacitor.getMode(EnumFacing.EAST ));
-	}
-	
-	@SuppressWarnings("deprecation")
-	@Nonnull
-	@Override
-	public IBlockState getActualState(@Nonnull final IBlockState blockState, @Nonnull final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos) {
-		return super.getActualState(blockState, blockAccess, blockPos);
+		return blockState
+				       .with(DOWN , tileEntityCapacitor.getMode(Direction.DOWN))
+				       .with(UP   , tileEntityCapacitor.getMode(Direction.UP))
+				       .with(NORTH, tileEntityCapacitor.getMode(Direction.NORTH))
+				       .with(SOUTH, tileEntityCapacitor.getMode(Direction.SOUTH))
+				       .with(WEST , tileEntityCapacitor.getMode(Direction.WEST))
+				       .with(EAST , tileEntityCapacitor.getMode(Direction.EAST));
 	}
 	
 	@Nonnull
 	@Override
-	public TileEntity createNewTileEntity(@Nonnull final World world, final int metadata) {
+	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
 		return new TileEntityCapacitor();
 	}
 	
-	@Nullable
-	@Override
-	public ItemBlock createItemBlock() {
-		return new ItemBlockCapacitor(this);
-	}
-	
-	@Override
-	public int damageDropped(@Nonnull final IBlockState blockState) {
-		return getMetaFromState(blockState);
-	}
-	
-	@Override
-	@SideOnly(Side.CLIENT)
-	public void getSubBlocks(@Nonnull final CreativeTabs creativeTab, @Nonnull final NonNullList<ItemStack> list) {
-		ItemStack itemStack = new ItemStack(this, 1, 0);
-		list.add(itemStack);
-		if (enumTier != EnumTier.CREATIVE) {
-			itemStack = new ItemStack(this, 1, 0);
-			final NBTTagCompound tagCompound = new NBTTagCompound();
-			tagCompound.setInteger(EnergyWrapper.TAG_ENERGY, WarpDriveConfig.CAPACITOR_MAX_ENERGY_STORED_BY_TIER[enumTier.getIndex()]);
-			itemStack.setTagCompound(tagCompound);
-			list.add(itemStack);
-		}
-	}
-	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	@Override
 	public void modelInitialisation() {
 		super.modelInitialisation();
@@ -178,48 +107,53 @@ public class BlockCapacitor extends BlockAbstractContainer implements IExplosion
 		return defaultPower;
 	}
 	
+	@Nonnull
 	@Override
-	public boolean onBlockActivated(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState,
-	                                @Nonnull final EntityPlayer entityPlayer, @Nonnull final EnumHand enumHand,
-	                                @Nonnull final EnumFacing enumFacing, final float hitX, final float hitY, final float hitZ) {
-		if ( world.isRemote
-		  || enumHand != EnumHand.MAIN_HAND ) {
-			return super.onBlockActivated(world, blockPos, blockState, entityPlayer, enumHand, enumFacing, hitX, hitY, hitZ);
+	public ActionResultType onBlockActivated(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,
+	                                         @Nonnull final PlayerEntity entityPlayer, @Nonnull final Hand enumHand,
+	                                         @Nonnull final BlockRayTraceResult blockRaytraceResult) {
+		if ( world.isRemote()
+		  || enumHand != Hand.MAIN_HAND ) {
+			return super.onBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
 		}
 		
 		// get context
 		final ItemStack itemStackHeld = entityPlayer.getHeldItem(enumHand);
 		final TileEntity tileEntity = world.getTileEntity(blockPos);
 		if (!(tileEntity instanceof TileEntityCapacitor)) {
-			return super.onBlockActivated(world, blockPos, blockState, entityPlayer, enumHand, enumFacing, hitX, hitY, hitZ);
+			return super.onBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
 		}
 		final TileEntityCapacitor tileEntityCapacitor = (TileEntityCapacitor) tileEntity;
+		final Direction directionFace = blockRaytraceResult.getFace();
 		
 		if ( !itemStackHeld.isEmpty()
 		  && itemStackHeld.getItem() instanceof IWarpTool ) {
 			if (entityPlayer.isSneaking()) {
-				tileEntityCapacitor.setMode(enumFacing, tileEntityCapacitor.getMode(enumFacing).getPrevious());
+				tileEntityCapacitor.setMode(directionFace, tileEntityCapacitor.getMode(directionFace).getPrevious());
 			} else {
-				tileEntityCapacitor.setMode(enumFacing, tileEntityCapacitor.getMode(enumFacing).getNext());
+				tileEntityCapacitor.setMode(directionFace, tileEntityCapacitor.getMode(directionFace).getNext());
 			}
-			final ItemStack itemStack = new ItemStack(Item.getItemFromBlock(this), 1, getMetaFromState(blockState));
-			switch (tileEntityCapacitor.getMode(enumFacing)) {
+			final ItemStack itemStack = new ItemStack(Item.BLOCK_TO_ITEM.getOrDefault(this, Items.AIR));
+			switch (tileEntityCapacitor.getMode(directionFace)) {
 			case INPUT:
 				Commons.addChatMessage(entityPlayer, Commons.getChatPrefix(itemStack)
-				                                            .appendSibling(new TextComponentTranslation("warpdrive.energy.side.changed_to_input", enumFacing.name())));
-				return true;
+				                                            .appendSibling(new TranslationTextComponent("warpdrive.energy.side.changed_to_input",
+				                                                                                        directionFace.name() )));
+				return ActionResultType.CONSUME;
 			case OUTPUT:
 				Commons.addChatMessage(entityPlayer, Commons.getChatPrefix(itemStack)
-				                                            .appendSibling(new TextComponentTranslation("warpdrive.energy.side.changed_to_output", enumFacing.name())));
-				return true;
+				                                            .appendSibling(new TranslationTextComponent("warpdrive.energy.side.changed_to_output",
+				                                                                                        directionFace.name() )));
+				return ActionResultType.CONSUME;
 			case DISABLED:
 			default:
 				Commons.addChatMessage(entityPlayer, Commons.getChatPrefix(itemStack)
-				                                            .appendSibling(new TextComponentTranslation("warpdrive.energy.side.changed_to_disabled", enumFacing.name())));
-				return true;
+				                                            .appendSibling(new TranslationTextComponent("warpdrive.energy.side.changed_to_disabled",
+				                                                                                        directionFace.name() )));
+				return ActionResultType.CONSUME;
 			}
 		}
 		
-		return super.onBlockActivated(world, blockPos, blockState, entityPlayer, enumHand, enumFacing, hitX, hitY, hitZ);
+		return super.onBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
 	}
 }

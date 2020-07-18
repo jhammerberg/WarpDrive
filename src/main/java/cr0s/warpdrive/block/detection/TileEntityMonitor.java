@@ -13,11 +13,12 @@ import li.cil.oc.api.machine.Context;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.nbt.NBTTagCompound;
-
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 
 public class TileEntityMonitor extends TileEntityAbstractMachine implements IVideoChannel {
+	
+	public static TileEntityType<TileEntityMonitor> TYPE;
 	
 	private int videoChannel = -1;
 	
@@ -25,7 +26,7 @@ public class TileEntityMonitor extends TileEntityAbstractMachine implements IVid
 	private int packetSendTicks = 10;
 	
 	public TileEntityMonitor() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveMonitor";
 		addMethods(new String[] {
@@ -35,10 +36,11 @@ public class TileEntityMonitor extends TileEntityAbstractMachine implements IVid
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
+		assert world != null;
 		
-		if (!world.isRemote) {
+		if (!world.isRemote()) {
 			packetSendTicks--;
 			if (packetSendTicks <= 0) {
 				packetSendTicks = PACKET_SEND_INTERVAL_TICKS;
@@ -67,16 +69,16 @@ public class TileEntityMonitor extends TileEntityAbstractMachine implements IVid
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
-		videoChannel = tagCompound.getInteger("frequency") + tagCompound.getInteger(VIDEO_CHANNEL_TAG);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
+		videoChannel = tagCompound.getInt("frequency") + tagCompound.getInt(VIDEO_CHANNEL_TAG);
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
-		tagCompound.setInteger(VIDEO_CHANNEL_TAG, videoChannel);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
+		tagCompound.putInt(VIDEO_CHANNEL_TAG, videoChannel);
 		return tagCompound;
 	}
 	
@@ -90,14 +92,12 @@ public class TileEntityMonitor extends TileEntityAbstractMachine implements IVid
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] videoChannel(final Context context, final Arguments arguments) {
 		return videoChannel(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "videoChannel":

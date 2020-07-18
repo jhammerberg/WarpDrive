@@ -3,22 +3,34 @@ package cr0s.warpdrive.world;
 import javax.annotation.Nonnull;
 import java.util.Random;
 
-import net.minecraft.init.Blocks;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.ChestBlock;
+import net.minecraft.block.DispenserBlock;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
-import net.minecraft.world.gen.feature.WorldGenerator;
+import net.minecraft.world.gen.ChunkGenerator;
+import net.minecraft.world.gen.GenerationSettings;
+import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.gen.feature.NoFeatureConfig;
 
-public class WorldGenStation extends WorldGenerator {
+public class WorldGenStation extends Feature<NoFeatureConfig> {
 	private final boolean corrupted;
 
 	public WorldGenStation(final boolean corrupted) {
-		super();
+		super(NoFeatureConfig::deserialize);
 		
 		this.corrupted = corrupted;
 	}
-
+	
 	@Override
-	public boolean generate(@Nonnull final World world, @Nonnull final Random rand, @Nonnull final BlockPos blockPos) {
+	public boolean place(@Nonnull final IWorld worldInterface, @Nonnull final ChunkGenerator<? extends GenerationSettings> generator, @Nonnull final Random rand,
+	                     @Nonnull final BlockPos blockPos, @Nonnull final NoFeatureConfig config) {
+		return place((World) worldInterface, rand, blockPos);
+	}
+	
+	public boolean place(@Nonnull final World world, @Nonnull final Random rand, @Nonnull final BlockPos blockPos) {
 		final WorldGenStructure genStructure = new WorldGenStructure(corrupted, rand);
 		final int x = blockPos.getX();
 		final int y = blockPos.getY();
@@ -144,15 +156,15 @@ public class WorldGenStation extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 3, y + 2, z + 12);
 		genStructure.setHullPlain(world, x + 3, y + 2, z + 13);
 		genStructure.setHullPlain(world, x + 3, y + 3, z + 1);
-		world.setBlockState(new BlockPos(x + 3, y + 3, z + 13), Blocks.CHEST.getStateFromMeta(2), 0);
+		world.setBlockState(new BlockPos(x + 3, y + 3, z + 13), Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.SOUTH), 0);
 		genStructure.setHullPlain(world, x + 3, y + 3, z + 14);
 		genStructure.setHullPlain(world, x + 3, y + 4, z + 1);
 		genStructure.setHullPlain(world, x + 3, y + 4, z + 14);
 		genStructure.setHullPlain(world, x + 3, y + 5, z + 1);
-		world.setBlockState(new BlockPos(x + 3, y + 5, z + 2), Blocks.DISPENSER.getStateFromMeta(3), 0);
+		world.setBlockState(new BlockPos(x + 3, y + 5, z + 2), Blocks.DISPENSER.getDefaultState().with(DispenserBlock.FACING, Direction.SOUTH), 0);
 		genStructure.setHullPlain(world, x + 3, y + 5, z + 14);
 		genStructure.setHullPlain(world, x + 3, y + 6, z + 1);
-		world.setBlockState(new BlockPos(x + 3, y + 6, z + 2), Blocks.PLANKS.getDefaultState());
+		world.setBlockState(new BlockPos(x + 3, y + 6, z + 2), Blocks.OAK_PLANKS.getDefaultState());
 		genStructure.setHullPlain(world, x + 3, y + 6, z + 14);
 		genStructure.setHullPlain(world, x + 3, y + 7, z + 1);
 		world.setBlockState(new BlockPos(x + 3, y + 7, z + 2), Blocks.LAPIS_BLOCK.getDefaultState());
@@ -197,14 +209,14 @@ public class WorldGenStation extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 4, y + 2, z + 12);
 		genStructure.setHullPlain(world, x + 4, y + 2, z + 13);
 		genStructure.setHullPlain(world, x + 4, y + 3, z + 1);
-		world.setBlockState(new BlockPos(x + 4, y + 3, z + 13), Blocks.CHEST.getStateFromMeta(2), 0);
+		world.setBlockState(new BlockPos(x + 4, y + 3, z + 13), Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.SOUTH), 0);
 		genStructure.setHullPlain(world, x + 4, y + 3, z + 14);
 		genStructure.setHullGlass(world, x + 4, y + 4, z + 1);
 		genStructure.setHullGlass(world, x + 4, y + 4, z + 14);
 		genStructure.setHullGlass(world, x + 4, y + 5, z + 1);
 		genStructure.setHullGlass(world, x + 4, y + 5, z + 14);
 		genStructure.setHullPlain(world, x + 4, y + 6, z + 1);
-		world.setBlockState(new BlockPos(x + 4, y + 6, z + 2), Blocks.PLANKS.getDefaultState());
+		world.setBlockState(new BlockPos(x + 4, y + 6, z + 2), Blocks.OAK_PLANKS.getDefaultState());
 		genStructure.setHullPlain(world, x + 4, y + 6, z + 14);
 		genStructure.setHullGlass(world, x + 4, y + 7, z + 1);
 		world.setBlockState(new BlockPos(x + 4, y + 7, z + 2), Blocks.LAPIS_BLOCK.getDefaultState());
@@ -254,7 +266,7 @@ public class WorldGenStation extends WorldGenerator {
 		genStructure.setHullGlass(world, x + 5, y + 5, z + 1);
 		genStructure.setHullGlass(world, x + 5, y + 5, z + 14);
 		genStructure.setHullPlain(world, x + 5, y + 6, z + 1);
-		world.setBlockState(new BlockPos(x + 5, y + 6, z + 2), Blocks.PLANKS.getDefaultState());
+		world.setBlockState(new BlockPos(x + 5, y + 6, z + 2), Blocks.OAK_PLANKS.getDefaultState());
 		genStructure.setHullPlain(world, x + 5, y + 6, z + 14);
 		genStructure.setHullGlass(world, x + 5, y + 7, z + 1);
 		world.setBlockState(new BlockPos(x + 5, y + 7, z + 2), Blocks.LAPIS_BLOCK.getDefaultState());
@@ -296,14 +308,14 @@ public class WorldGenStation extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 6, y + 2, z + 12);
 		genStructure.setHullPlain(world, x + 6, y + 2, z + 13);
 		genStructure.setHullPlain(world, x + 6, y + 3, z + 1);
-		world.setBlockState(new BlockPos(x + 6, y + 3, z + 13), Blocks.CHEST.getStateFromMeta(2), 0);
+		world.setBlockState(new BlockPos(x + 6, y + 3, z + 13), Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.SOUTH), 0);
 		genStructure.setHullPlain(world, x + 6, y + 3, z + 14);
 		genStructure.setHullGlass(world, x + 6, y + 4, z + 1);
 		genStructure.setHullGlass(world, x + 6, y + 4, z + 14);
 		genStructure.setHullGlass(world, x + 6, y + 5, z + 1);
 		genStructure.setHullGlass(world, x + 6, y + 5, z + 14);
 		genStructure.setHullPlain(world, x + 6, y + 6, z + 1);
-		world.setBlockState(new BlockPos(x + 6, y + 6, z + 2), Blocks.PLANKS.getDefaultState());
+		world.setBlockState(new BlockPos(x + 6, y + 6, z + 2), Blocks.OAK_PLANKS.getDefaultState());
 		genStructure.setHullPlain(world, x + 6, y + 6, z + 14);
 		genStructure.setHullGlass(world, x + 6, y + 7, z + 1);
 		world.setBlockState(new BlockPos(x + 6, y + 7, z + 2), Blocks.LAPIS_BLOCK.getDefaultState());
@@ -346,14 +358,14 @@ public class WorldGenStation extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 7, y + 2, z + 12);
 		genStructure.setHullPlain(world, x + 7, y + 2, z + 13);
 		genStructure.setHullPlain(world, x + 7, y + 3, z + 1);
-		world.setBlockState(new BlockPos(x + 7, y + 3, z + 13), Blocks.CHEST.getStateFromMeta(2), 0);
+		world.setBlockState(new BlockPos(x + 7, y + 3, z + 13), Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.SOUTH), 0);
 		genStructure.setHullPlain(world, x + 7, y + 3, z + 14);
 		genStructure.setHullGlass(world, x + 7, y + 4, z + 1);
 		genStructure.setHullGlass(world, x + 7, y + 4, z + 14);
 		genStructure.setHullGlass(world, x + 7, y + 5, z + 1);
 		genStructure.setHullGlass(world, x + 7, y + 5, z + 14);
 		genStructure.setHullPlain(world, x + 7, y + 6, z + 1);
-		world.setBlockState(new BlockPos(x + 7, y + 6, z + 2), Blocks.PLANKS.getDefaultState());
+		world.setBlockState(new BlockPos(x + 7, y + 6, z + 2), Blocks.OAK_PLANKS.getDefaultState());
 		genStructure.setHullPlain(world, x + 7, y + 6, z + 14);
 		genStructure.setHullGlass(world, x + 7, y + 7, z + 1);
 		world.setBlockState(new BlockPos(x + 7, y + 7, z + 2), Blocks.LAPIS_BLOCK.getDefaultState());
@@ -403,7 +415,7 @@ public class WorldGenStation extends WorldGenerator {
 		genStructure.setHullGlass(world, x + 8, y + 5, z + 1);
 		genStructure.setHullGlass(world, x + 8, y + 5, z + 14);
 		genStructure.setHullPlain(world, x + 8, y + 6, z + 1);
-		world.setBlockState(new BlockPos(x + 8, y + 6, z + 2), Blocks.PLANKS.getDefaultState());
+		world.setBlockState(new BlockPos(x + 8, y + 6, z + 2), Blocks.OAK_PLANKS.getDefaultState());
 		genStructure.setHullPlain(world, x + 8, y + 6, z + 14);
 		genStructure.setHullGlass(world, x + 8, y + 7, z + 1);
 		world.setBlockState(new BlockPos(x + 8, y + 7, z + 2), Blocks.LAPIS_BLOCK.getDefaultState());
@@ -447,14 +459,14 @@ public class WorldGenStation extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 9, y + 2, z + 12);
 		genStructure.setHullPlain(world, x + 9, y + 2, z + 13);
 		genStructure.setHullPlain(world, x + 9, y + 3, z + 1);
-		world.setBlockState(new BlockPos(x + 9, y + 3, z + 13), Blocks.CHEST.getStateFromMeta(2), 0);
+		world.setBlockState(new BlockPos(x + 9, y + 3, z + 13), Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.SOUTH), 0);
 		genStructure.setHullPlain(world, x + 9, y + 3, z + 14);
 		genStructure.setHullGlass(world, x + 9, y + 4, z + 1);
 		genStructure.setHullGlass(world, x + 9, y + 4, z + 14);
 		genStructure.setHullGlass(world, x + 9, y + 5, z + 1);
 		genStructure.setHullGlass(world, x + 9, y + 5, z + 14);
 		genStructure.setHullPlain(world, x + 9, y + 6, z + 1);
-		world.setBlockState(new BlockPos(x + 9, y + 6, z + 2), Blocks.PLANKS.getDefaultState());
+		world.setBlockState(new BlockPos(x + 9, y + 6, z + 2), Blocks.OAK_PLANKS.getDefaultState());
 		genStructure.setHullPlain(world, x + 9, y + 6, z + 14);
 		genStructure.setHullGlass(world, x + 9, y + 7, z + 1);
 		world.setBlockState(new BlockPos(x + 9, y + 7, z + 2), Blocks.LAPIS_BLOCK.getDefaultState());
@@ -498,15 +510,15 @@ public class WorldGenStation extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 10, y + 2, z + 12);
 		genStructure.setHullPlain(world, x + 10, y + 2, z + 13);
 		genStructure.setHullPlain(world, x + 10, y + 3, z + 1);
-		world.setBlockState(new BlockPos(x + 10, y + 3, z + 13), Blocks.CHEST.getStateFromMeta(2), 0);
+		world.setBlockState(new BlockPos(x + 10, y + 3, z + 13), Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.SOUTH), 0);
 		genStructure.setHullPlain(world, x + 10, y + 3, z + 14);
 		genStructure.setHullPlain(world, x + 10, y + 4, z + 1);
 		genStructure.setHullPlain(world, x + 10, y + 4, z + 14);
 		genStructure.setHullPlain(world, x + 10, y + 5, z + 1);
-		world.setBlockState(new BlockPos(x + 10, y + 5, z + 2), Blocks.DISPENSER.getStateFromMeta(3), 0);
+		world.setBlockState(new BlockPos(x + 10, y + 5, z + 2), Blocks.DISPENSER.getDefaultState().with(DispenserBlock.FACING, Direction.SOUTH), 0);
 		genStructure.setHullPlain(world, x + 10, y + 5, z + 14);
 		genStructure.setHullPlain(world, x + 10, y + 6, z + 1);
-		world.setBlockState(new BlockPos(x + 10, y + 6, z + 2), Blocks.PLANKS.getDefaultState());
+		world.setBlockState(new BlockPos(x + 10, y + 6, z + 2), Blocks.OAK_PLANKS.getDefaultState());
 		genStructure.setHullPlain(world, x + 10, y + 6, z + 14);
 		genStructure.setHullPlain(world, x + 10, y + 7, z + 1);
 		world.setBlockState(new BlockPos(x + 10, y + 7, z + 2), Blocks.LAPIS_BLOCK.getDefaultState());

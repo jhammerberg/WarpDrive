@@ -14,10 +14,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -46,13 +45,13 @@ public class CompatAppliedEnergistics2 implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classAEBaseBlock.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classAEBaseBlock.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
-		if (classBlockQuantumLinkChamber.isInstance(block)) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
+		if (classBlockQuantumLinkChamber.isInstance(blockState.getBlock())) {
 			if (classTileQuantumBridge.isInstance(tileEntity)) {
 				try {
 					final Object object = methodTileQuantumBridge_getQEFrequency.invoke(tileEntity);
@@ -72,14 +71,15 @@ public class CompatAppliedEnergistics2 implements IBlockTransformer {
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -103,13 +103,13 @@ public class CompatAppliedEnergistics2 implements IBlockTransformer {
 	}
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0) {
-			return metadata;
+			return blockState;
 		}
-		
-		if (classBlockQuartzFixture.isInstance(block)) {
+		/*
+		if (classBlockQuartzFixture.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotQuartzFixture[metadata];
@@ -118,23 +118,23 @@ public class CompatAppliedEnergistics2 implements IBlockTransformer {
 			case 3:
 				return mrotQuartzFixture[mrotQuartzFixture[mrotQuartzFixture[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
-		
-		if (nbtTileEntity.hasKey("orientation_up") && nbtTileEntity.hasKey("orientation_forward")) {
+		*/
+		if (nbtTileEntity.contains("orientation_up") && nbtTileEntity.contains("orientation_forward")) {
 			final String orientation_forward = nbtTileEntity.getString("orientation_forward");
 			final String orientation_up = nbtTileEntity.getString("orientation_up");
 			if (orientation_forward.equals("UP") || orientation_forward.equals("DOWN")) {
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setString("orientation_up", rotSideNames.get(orientation_up));
+					nbtTileEntity.putString("orientation_up", rotSideNames.get(orientation_up));
 					break;
 				case 2:
-					nbtTileEntity.setString("orientation_up", rotSideNames.get(rotSideNames.get(orientation_up)));
+					nbtTileEntity.putString("orientation_up", rotSideNames.get(rotSideNames.get(orientation_up)));
 					break;
 				case 3:
-					nbtTileEntity.setString("orientation_up", rotSideNames.get(rotSideNames.get(rotSideNames.get(orientation_up))));
+					nbtTileEntity.putString("orientation_up", rotSideNames.get(rotSideNames.get(rotSideNames.get(orientation_up))));
 					break;
 				default:
 					break;
@@ -142,26 +142,26 @@ public class CompatAppliedEnergistics2 implements IBlockTransformer {
 			} else {
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setString("orientation_forward", rotSideNames.get(orientation_forward));
+					nbtTileEntity.putString("orientation_forward", rotSideNames.get(orientation_forward));
 					break;
 				case 2:
-					nbtTileEntity.setString("orientation_forward", rotSideNames.get(rotSideNames.get(orientation_forward)));
+					nbtTileEntity.putString("orientation_forward", rotSideNames.get(rotSideNames.get(orientation_forward)));
 					break;
 				case 3:
-					nbtTileEntity.setString("orientation_forward", rotSideNames.get(rotSideNames.get(rotSideNames.get(orientation_forward))));
+					nbtTileEntity.putString("orientation_forward", rotSideNames.get(rotSideNames.get(rotSideNames.get(orientation_forward))));
 					break;
 				default:
 					break;
 				}
 			}
-		} else if (classBlockCableBus.isInstance(block)) {
-			final HashMap<String, NBTTagCompound> tagsRotated = new HashMap<>(7);
+		} else if (classBlockCableBus.isInstance(blockState.getBlock())) {
+			final HashMap<String, CompoundNBT> tagsRotated = new HashMap<>(7);
 			final ArrayList<String> keys = new ArrayList<>();
-			keys.addAll(nbtTileEntity.getKeySet());
+			keys.addAll(nbtTileEntity.keySet());
 			for (final String key : keys) {
 				if ( (key.startsWith("def:") && !key.equals("def:6"))
 				  || (key.startsWith("extra:") && !key.equals("extra:6"))) {
-					final NBTTagCompound tagCompound = nbtTileEntity.getCompoundTag(key).copy();
+					final CompoundNBT tagCompound = nbtTileEntity.getCompound(key).copy();
 					final String[] parts = key.split(":");
 					if (parts.length != 2 || !rotTagSuffix.containsKey(parts[1])) {
 						// skip
@@ -180,21 +180,21 @@ public class CompatAppliedEnergistics2 implements IBlockTransformer {
 							tagsRotated.put(key, tagCompound);
 							break;
 						}
-						nbtTileEntity.removeTag(key);
+						nbtTileEntity.remove(key);
 					}
 				}
 			}
-			for (final Entry<String, NBTTagCompound> entry : tagsRotated.entrySet()) {
-				nbtTileEntity.setTag(entry.getKey(), entry.getValue());
+			for (final Entry<String, CompoundNBT> entry : tagsRotated.entrySet()) {
+				nbtTileEntity.put(entry.getKey(), entry.getValue());
 			}
 		}
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

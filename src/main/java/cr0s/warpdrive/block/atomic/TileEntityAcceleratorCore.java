@@ -40,28 +40,30 @@ import java.util.Random;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.network.NetworkManager;
-import net.minecraft.network.play.server.SPacketUpdateTileEntity;
+import net.minecraft.network.play.server.SUpdateTileEntityPacket;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.Explosion.Mode;
 
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.fml.common.Optional;
 
 public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrController implements IGlobalRegionProvider {
+	
+	public static TileEntityType<TileEntityAcceleratorCore> TYPE;
 	
 	private static final int      ACCELERATOR_COOLDOWN_TICKS = 300;
 	private static final int      ACCELERATOR_GUIDE_UPDATE_TICKS = 300;
@@ -121,7 +123,7 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	
 	public TileEntityAcceleratorCore() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveAccelerator";
 		addMethods(new String[] {
@@ -139,17 +141,18 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		cooldownTicks = 0;
 		guideTicks = ACCELERATOR_GUIDE_UPDATE_TICKS;
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -206,7 +209,7 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 				}
 				legacy_isOn = true;
 				
-			} else if ((world.getTotalWorldTime() + Math.abs(pos.getX() - pos.getZ())) % 20 == 0) {
+			} else if ((world.getGameTime() + Math.abs(pos.getX() - pos.getZ())) % 20 == 0) {
 				// intermittent update to recover block states
 				updateChillers(acceleratorSetup, true, needsCooling, false);
 			}
@@ -261,7 +264,7 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 				cooldownTicks = ACCELERATOR_COOLDOWN_TICKS;
 				guideTicks = 0;
 				
-			} else if ((world.getWorldTime() + Math.abs(pos.getX() - pos.getZ())) % 20 == 0) {
+			} else if ((world.getGameTime() + Math.abs(pos.getX() - pos.getZ())) % 20 == 0) {
 				// intermittent update to recover block states
 				updateChillers(acceleratorSetup, false, false, false);
 			}
@@ -302,7 +305,7 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 					final List<Entity> list = world.getEntitiesWithinAABBExcludingEntity(null, axisalignedbb);
 					
 					for (final Entity entity : list) {
-						if ( !(entity instanceof EntityPlayer)
+						if ( !(entity instanceof PlayerEntity)
 						  || entity instanceof FakePlayer ) {
 							continue;
 						}
@@ -335,7 +338,8 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	private void reportJammed(@Nonnull final AcceleratorSetup acceleratorSetup) {
-		assert !world.isRemote;
+		assert world != null
+		    && !world.isRemote();
 		
 		if (acceleratorSetup.setJammed.isEmpty()) {
 			return;
@@ -353,7 +357,7 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	private void updateChillers(final AcceleratorSetup acceleratorSetup, final boolean isOn, final boolean needsCooling, final boolean isChunkLoading) {
 		if ( world == null
-		  || world.isRemote
+		  || world.isRemote()
 		  || acceleratorSetup == null ) {
 			return;
 		}
@@ -364,24 +368,21 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 					if (!(world.isBlockLoaded(blockPos))) {// chunk is not loaded, skip it
 						continue;
 					}
-					if (!world.getChunk(blockPos.getX() >> 4, blockPos.getZ() >> 4).isLoaded()) {// chunk is unloading, skip it
-						continue;
-					}
 				}
-				final IBlockState blockState = world.getBlockState(blockPos);
+				final BlockState blockState = world.getBlockState(blockPos);
 				
 				if (blockState.getBlock() instanceof BlockChiller) {
-					if (!blockState.getProperties().containsKey(BlockProperties.ACTIVE)) {
+					if (!blockState.getProperties().contains(BlockProperties.ACTIVE)) {
 						WarpDrive.logger.error(String.format("Invalid blockstate property for BlockChiller %s %s %s, please report to mod author",
 						                                     blockState, blockState.getBlock(), Commons.format(world, blockPos) ));
 					}
 					if (isOn && needsCooling) {
-						if (!blockState.getValue(BlockProperties.ACTIVE)) {
-							world.setBlockState(blockPos, blockState.withProperty(BlockProperties.ACTIVE, true));
+						if (!blockState.get(BlockProperties.ACTIVE)) {
+							world.setBlockState(blockPos, blockState.with(BlockProperties.ACTIVE, true));
 						}
 					} else {
-						if (blockState.getValue(BlockProperties.ACTIVE)) {
-							world.setBlockState(blockPos, blockState.withProperty(BlockProperties.ACTIVE, false));
+						if (blockState.get(BlockProperties.ACTIVE)) {
+							world.setBlockState(blockPos, blockState.with(BlockProperties.ACTIVE, false));
 						}
 					}
 				}
@@ -391,6 +392,7 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	// inject a particle bunch
 	private void onInject(@Nonnull final VectorI vInjector) {
+		assert world != null;
 		assert setParticleBunches.size() < WarpDriveConfig.ACCELERATOR_MAX_PARTICLE_BUNCHES;
 		
 		final TileEntity tileEntity = vInjector.getTileEntity(world);
@@ -461,13 +463,16 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 		assert(found);
 		
 		// find a connected void shell
-		EnumFacing directionStart = EnumFacing.NORTH;
+		Direction directionStart = Direction.NORTH;
 		VectorI vPosition = vInjector;
-		for (final EnumFacing forgeDirection : EnumFacing.HORIZONTALS) {
-			vPosition = vInjector.clone(forgeDirection);
+		for (final Direction directionCheck : Direction.values()) {
+			if (directionCheck.getYOffset() != 0) {
+				continue;
+			}
+			vPosition = vInjector.clone(directionCheck);
 			final Block block = vPosition.getBlock(world);
 			if (block instanceof BlockVoidShellPlain) {
-				directionStart = forgeDirection;
+				directionStart = directionCheck;
 				break;
 			}
 		}
@@ -497,6 +502,7 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	// simulate a particle bunch
 	private void doSimulate(final AcceleratorSetup acceleratorSetup) {
+		assert world != null;
 		if (setParticleBunches.isEmpty()) {
 			return;
 		}
@@ -580,6 +586,7 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	private void doCollision(@Nonnull final Random random, @Nonnull final TrajectoryPoint trajectoryPointCollider,
 	                         @Nonnull final ParticleBunch particleBunch1, final ParticleBunch particleBunch2) {
+		assert world != null;
 		final double energyTotal = particleBunch1.energy + (particleBunch2 != null ? particleBunch2.energy : 0.0D);
 		final int tier = trajectoryPointCollider.getTier();
 		
@@ -602,9 +609,9 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 		                0.5F + (float) energyExtra, 0.85F + 0.50F * (float) energyExtra + 0.10F * world.rand.nextFloat());
 		if (overflow > 0) {
 			final float strength = 3.0F + tier;
-			world.newExplosion(null,
-				trajectoryPointCollider.x + 0.5D, trajectoryPointCollider.y + 0.5D, trajectoryPointCollider.z + 0.5D,
-				strength, true, true);
+			world.createExplosion(null,
+			                      trajectoryPointCollider.x + 0.5D, trajectoryPointCollider.y + 0.5D, trajectoryPointCollider.z + 0.5D,
+				                  strength, true, Mode.BREAK );
 			
 		} else {
 			for (int countParticles = 0; countParticles < 5; countParticles++) {
@@ -689,7 +696,7 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	private void rebootAccelerator(final AcceleratorSetup acceleratorSetup, final boolean isChunkLoading, final boolean isLeaking) {
-		if (world == null || world.isRemote) {
+		if (world == null || world.isRemote()) {
 			return;
 		}
 		
@@ -712,113 +719,115 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		final NBTTagList tagListParticleBunches = tagCompound.getTagList("particleBunches", Constants.NBT.TAG_COMPOUND);
+		final ListNBT tagListParticleBunches = tagCompound.getList("particleBunches", Constants.NBT.TAG_COMPOUND);
 		setParticleBunches.clear();
-		for (int index = 0; index < tagListParticleBunches.tagCount(); index++) {
-			final ParticleBunch particleBunch = new ParticleBunch(tagListParticleBunches.getCompoundTagAt(index));
+		for (int index = 0; index < tagListParticleBunches.size(); index++) {
+			final ParticleBunch particleBunch = new ParticleBunch(tagListParticleBunches.getCompound(index));
 			setParticleBunches.add(particleBunch);
 		}
 		
-		if (tagCompound.hasKey("temperatureCurrent")) {
+		if (tagCompound.contains("temperatureCurrent")) {
 			temperatureCurrent_K = tagCompound.getDouble("temperatureCurrent");
 		}
 		
-		final NBTTagList tagListControlParameters = tagCompound.getTagList("controlParameters", Constants.NBT.TAG_COMPOUND);
+		final ListNBT tagListControlParameters = tagCompound.getList("controlParameters", Constants.NBT.TAG_COMPOUND);
 		mapControlParameters.clear();
-		for (int index = 0; index < tagListControlParameters.tagCount(); index++) {
-			final AcceleratorControlParameter acceleratorControlParameter = new AcceleratorControlParameter(tagListControlParameters.getCompoundTagAt(index));
+		for (int index = 0; index < tagListControlParameters.size(); index++) {
+			final AcceleratorControlParameter acceleratorControlParameter = new AcceleratorControlParameter(tagListControlParameters.getCompound(index));
 			mapControlParameters.put(acceleratorControlParameter.controlChannel, acceleratorControlParameter);
 		}
 		
-		injectionPeriodTicks = tagCompound.getInteger("injectionPeriod");
-		if (tagCompound.hasKey("injectionTicks")) {
-			injectionTicks = tagCompound.getInteger("injectionTicks");
+		injectionPeriodTicks = tagCompound.getInt("injectionPeriod");
+		if (tagCompound.contains("injectionTicks")) {
+			injectionTicks = tagCompound.getInt("injectionTicks");
 		}
-		if (tagCompound.hasKey("nextInjector")) {
-			indexNextInjector = tagCompound.getInteger("nextInjector");
+		if (tagCompound.contains("nextInjector")) {
+			indexNextInjector = tagCompound.getInt("nextInjector");
 		}
-		if (tagCompound.hasKey("isOn")) {
+		if (tagCompound.contains("isOn")) {
 			legacy_isOn = tagCompound.getBoolean("isOn");
 		}
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		super.write(tagCompound);
 		
-		final NBTTagList tagListParticleBunches = new NBTTagList();
+		final ListNBT tagListParticleBunches = new ListNBT();
 		for (final ParticleBunch particleBunch : setParticleBunches) {
-			final NBTTagCompound tagCompoundParticleBunch = new NBTTagCompound();
-			particleBunch.writeToNBT(tagCompoundParticleBunch);
-			tagListParticleBunches.appendTag(tagCompoundParticleBunch);
+			final CompoundNBT tagCompoundParticleBunch = new CompoundNBT();
+			particleBunch.write(tagCompoundParticleBunch);
+			tagListParticleBunches.add(tagCompoundParticleBunch);
 		}
-		tagCompound.setTag("particleBunches", tagListParticleBunches);
+		tagCompound.put("particleBunches", tagListParticleBunches);
 		
-		tagCompound.setDouble("temperatureCurrent", temperatureCurrent_K);
+		tagCompound.putDouble("temperatureCurrent", temperatureCurrent_K);
 		
-		final NBTTagList tagListControlParameters = new NBTTagList();
+		final ListNBT tagListControlParameters = new ListNBT();
 		for (final AcceleratorControlParameter acceleratorControlParameter : mapControlParameters.values()) {
-			final NBTTagCompound tagCompoundControlParameter = new NBTTagCompound();
-			acceleratorControlParameter.writeToNBT(tagCompoundControlParameter);
-			tagListControlParameters.appendTag(tagCompoundControlParameter);
+			final CompoundNBT tagCompoundControlParameter = new CompoundNBT();
+			acceleratorControlParameter.write(tagCompoundControlParameter);
+			tagListControlParameters.add(tagCompoundControlParameter);
 		}
-		tagCompound.setTag("controlParameters", tagListControlParameters);
+		tagCompound.put("controlParameters", tagListControlParameters);
 		
-		tagCompound.setInteger("injectionPeriod", injectionPeriodTicks);
-		tagCompound.setInteger("injectionTicks", injectionTicks);
-		tagCompound.setInteger("nextInjector", indexNextInjector);
-		tagCompound.setBoolean("isOn", legacy_isOn);
+		tagCompound.putInt("injectionPeriod", injectionPeriodTicks);
+		tagCompound.putInt("injectionTicks", injectionTicks);
+		tagCompound.putInt("nextInjector", indexNextInjector);
+		tagCompound.putBoolean("isOn", legacy_isOn);
 		
 		return tagCompound;
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(final NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(final CompoundNBT tagCompound) {
 		super.writeItemDropNBT(tagCompound);
-		tagCompound.removeTag("temperatureCurrent");
-		tagCompound.removeTag("injectionTicks");
-		tagCompound.removeTag("nextInjector");
-		tagCompound.removeTag("isOn");
+		tagCompound.remove("temperatureCurrent");
+		tagCompound.remove("injectionTicks");
+		tagCompound.remove("nextInjector");
+		tagCompound.remove("isOn");
 		return tagCompound;
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound getUpdateTag() {
-		final NBTTagCompound tagCompound = super.getUpdateTag();
+	public CompoundNBT getUpdateTag() {
+		final CompoundNBT tagCompound = super.getUpdateTag();
 		
-		tagCompound.setBoolean("isPowered", isPowered);
+		tagCompound.putBoolean("isPowered", isPowered);
 		
 		return tagCompound;
 	}
 	
 	@Override
-	public void onDataPacket(@Nonnull final NetworkManager networkManager, @Nonnull final SPacketUpdateTileEntity packet) {
+	public void onDataPacket(@Nonnull final NetworkManager networkManager, @Nonnull final SUpdateTileEntityPacket packet) {
 		super.onDataPacket(networkManager, packet);
 		
-		final NBTTagCompound tagCompound = packet.getNbtCompound();
+		final CompoundNBT tagCompound = packet.getNbtCompound();
 		
 		isPowered = tagCompound.getBoolean("isPowered");
 	}
 	
 	@Override
-	public void onBlockBroken(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
-		if (!world.isRemote) {
+	public void remove() {
+		assert world != null;
+		if (!world.isRemote()) {
 			if (acceleratorSetup == null) {
 				final WarpDriveText textAssemblyValid = new WarpDriveText();
 				doScanAssembly(true, textAssemblyValid);
 			}
 			rebootAccelerator(acceleratorSetup, true, true);
 		}
-		super.onBlockBroken(world, blockPos, blockState);
+		super.remove();
 	}
 	
 	@Override
 	protected boolean doScanAssembly(final boolean isDirty, final WarpDriveText textReason) {
+		assert world != null;
 		final boolean isValid = super.doScanAssembly(isDirty, textReason);
 		
 		// note: acceleratorSetup is null when loading chunk, always defined otherwise
@@ -826,11 +835,11 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 		if ( isDirty
 		  || acceleratorSetup == null
 		  || acceleratorSetup.isDirty() ) {
-			acceleratorSetup = new AcceleratorSetup(world.provider.getDimension(), pos);
+			acceleratorSetup = new AcceleratorSetup(world.getDimension().getType().getRegistryName(), pos);
 			if (!acceleratorSetup.getAssemblyStatus(textReason)) {
 				if (WarpDriveConfig.LOGGING_ACCELERATOR) {
 					WarpDrive.logger.info(String.format("%s invalid accelerator setup: %s",
-					                                    this, textReason.getUnformattedText() ));
+					                                    this, textReason.getUnformattedComponentText() ));
 				}
 				// don't return false, so the player can still enable the accelerator "at their own risk"
 			} else {
@@ -887,53 +896,45 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	// OpenComputer callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getControlPoints(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getControlPoints();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getControlPointsCount(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getControlPointsCount();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] injectionPeriod(final Context context, final Arguments arguments) {
 		return injectionPeriod(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getParameters(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getParameters();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getParametersControlChannels(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getParametersControlChannels();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] parameter(final Context context, final Arguments arguments) {
 		return parameter(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getControlPoint(final Context context, final Arguments arguments) {
 		return getControlPoint(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] state(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return state();
@@ -1110,9 +1111,8 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 		return new Object[] { status, isEnabled, isPowered, energy, temperatureCurrent_K, acceleratorSetup.temperatureTarget_K };
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "enable":
@@ -1180,14 +1180,14 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	public boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final IBlockState blockState) {
+	public boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final BlockState blockState) {
 		// skip in case of explosion, etc.
 		if (isDirtyAssembly()) {
 			return true;
 		}
 		
 		// check for significant change
-		// (we don't check the controller itself: it'll be triggered in invalidate() and we don't want to reevaluate the setup at that point)
+		// (we don't check the controller itself: it'll be triggered in remove() and we don't want to reevaluate the setup at that point)
 		if ( blockState.getBlock() instanceof BlockAbstractAccelerator
 		  || blockState.getBlock() instanceof BlockCapacitor ) {
 			if (WarpDriveConfig.LOGGING_ACCELERATOR) {

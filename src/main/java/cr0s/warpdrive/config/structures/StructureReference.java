@@ -25,8 +25,8 @@ public class StructureReference extends AbstractStructure {
 	}
 	
 	@Override
-	public boolean generate(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
-		return instantiate(random).generate(world, random, blockPos);
+	public boolean place(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
+		return instantiate(random).place(world, random, blockPos);
 	}
 	
 	@Override

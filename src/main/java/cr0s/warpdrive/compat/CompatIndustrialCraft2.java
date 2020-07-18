@@ -6,9 +6,9 @@ import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -35,75 +35,75 @@ public class CompatIndustrialCraft2 implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
 		return classIC2tileEntity.isInstance(tileEntity);
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z, final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
 	private static final short[] mrotFacing    = {  0,  1,  5,  4,  2,  3,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		
 		if (nbtTileEntity.getBoolean("targetSet")) {
-			final int targetX = nbtTileEntity.getInteger("targetX");
-			final int targetY = nbtTileEntity.getInteger("targetY");
-			final int targetZ = nbtTileEntity.getInteger("targetZ");
+			final int targetX = nbtTileEntity.getInt("targetX");
+			final int targetY = nbtTileEntity.getInt("targetY");
+			final int targetZ = nbtTileEntity.getInt("targetZ");
 			if (transformation.isInside(targetX, targetY, targetZ)) {
 				final BlockPos chunkCoordinates = transformation.apply(targetX, targetY, targetZ);
-				nbtTileEntity.setInteger("targetX", chunkCoordinates.getX());
-				nbtTileEntity.setInteger("targetY", chunkCoordinates.getY());
-				nbtTileEntity.setInteger("targetZ", chunkCoordinates.getZ());
+				nbtTileEntity.putInt("targetX", chunkCoordinates.getX());
+				nbtTileEntity.putInt("targetY", chunkCoordinates.getY());
+				nbtTileEntity.putInt("targetZ", chunkCoordinates.getZ());
 			}
 		}
 		
 		if ( rotationSteps == 0
-		  || !nbtTileEntity.hasKey("facing")) {
-			return metadata;
+		  || !nbtTileEntity.contains("facing")) {
+			return blockState;
 		}
 		
 		final short facing = nbtTileEntity.getShort("facing");
 		switch (rotationSteps) {
 		case 1:
-			nbtTileEntity.setShort("facing", mrotFacing[facing]);
-			return metadata;
+			nbtTileEntity.putShort("facing", mrotFacing[facing]);
+			return blockState;
 		case 2:
-			nbtTileEntity.setShort("facing", mrotFacing[mrotFacing[facing]]);
-			return metadata;
+			nbtTileEntity.putShort("facing", mrotFacing[mrotFacing[facing]]);
+			return blockState;
 		case 3:
-			nbtTileEntity.setShort("facing", mrotFacing[mrotFacing[mrotFacing[facing]]]);
-			return metadata;
+			nbtTileEntity.putShort("facing", mrotFacing[mrotFacing[mrotFacing[facing]]]);
+			return blockState;
 		default:
-			return metadata;
+			return blockState;
 		}
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// IC2 Classic has its own approach to detect energy blocks and connect to them
 		// we need to force a reconnection by simulating chunk unloading and a new 'first tick'
 		if ( !isExperimental
 		  && tileEntity != null ) {
-			tileEntity.onChunkUnload();
+			tileEntity.onChunkUnloaded();
 			tileEntity.onLoad();
 		}
 	}

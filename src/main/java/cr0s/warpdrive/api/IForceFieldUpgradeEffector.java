@@ -1,5 +1,7 @@
 package cr0s.warpdrive.api;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -24,6 +26,6 @@ public interface IForceFieldUpgradeEffector {
 	
 	// Entity impact of this upgrade
 	// Return 
-	int onEntityEffect(final float scaledValue, World world, final int projectorX, final int projectorY, final int projectorZ,
-					   final BlockPos blockPos, Entity entity);
+	int onEntityEffect(final float scaledValue, @Nonnull final World world, final int projectorX, final int projectorY, final int projectorZ,
+	                   @Nonnull final BlockPos blockPos, @Nonnull final Entity entity);
 }

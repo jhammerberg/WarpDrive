@@ -3,62 +3,41 @@ package cr0s.warpdrive.block.forcefield;
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IDamageReceiver;
-import cr0s.warpdrive.block.ItemBlockAbstractBase;
-import cr0s.warpdrive.block.hull.BlockHullGlass;
-import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;
-import cr0s.warpdrive.data.BlockProperties;
 import cr0s.warpdrive.data.EnumPermissionNode;
 import cr0s.warpdrive.data.EnumTier;
 import cr0s.warpdrive.data.ForceFieldSetup;
 import cr0s.warpdrive.data.Vector3;
-import cr0s.warpdrive.event.ModelBakeEventHandler;
-import cr0s.warpdrive.render.BakedModelCamouflage;
 
 import java.util.ConcurrentModificationException;
 import java.util.List;
-import java.util.Random;
+import java.util.Optional;
 
-import net.minecraft.block.BlockGlass;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.SoundType;
-import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.properties.PropertyInteger;
-import net.minecraft.block.state.BlockStateContainer;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityList;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.MobEffects;
-import net.minecraft.item.EnumDyeColor;
-import net.minecraft.item.ItemBlock;
+import net.minecraft.item.DyeColor;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
 import net.minecraft.item.ItemStack;
-import net.minecraft.potion.PotionEffect;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.shapes.ISelectionContext;
+import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.world.Explosion;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.IBlockReader;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
-
-import net.minecraftforge.common.property.ExtendedBlockState;
-import net.minecraftforge.common.property.IExtendedBlockState;
-import net.minecraftforge.common.property.IUnlistedProperty;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraft.world.dimension.DimensionType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -66,175 +45,59 @@ import javax.annotation.Nullable;
 public class BlockForceField extends BlockAbstractForceField implements IDamageReceiver {
 	
 	private static final float BOUNDING_TOLERANCE = 0.05F;
-	private static final AxisAlignedBB AABB_FORCEFIELD = new AxisAlignedBB(
+	private static final VoxelShape SHAPE_FORCE_FIELD = makeCuboidShape(
 			BOUNDING_TOLERANCE, BOUNDING_TOLERANCE, BOUNDING_TOLERANCE,
 		    1 - BOUNDING_TOLERANCE, 1 - BOUNDING_TOLERANCE, 1 - BOUNDING_TOLERANCE);
 	
-	public static final PropertyInteger FREQUENCY = PropertyInteger.create("frequency", 0, 15);
+	final DyeColor dyeColor;
 	
-	public BlockForceField(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier, Material.GLASS);
+	public BlockForceField(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final DyeColor dyeColor) {
+		super(getDefaultProperties(Material.GLASS, dyeColor.getMapColor())
+				      .hardnessAndResistance(-1, WarpDriveConfig.HULL_BLAST_RESISTANCE[enumTier.getIndex()])
+				      .sound(SoundType.CLOTH),
+		      registryName, enumTier);
 		
-		setSoundType(SoundType.CLOTH);
-		setTranslationKey("warpdrive.force_field.block." + enumTier.getName());
-		setBlockUnbreakable();
-		
-		setDefaultState(getDefaultState()
-				                .withProperty(FREQUENCY, 0)
-		               );
+		this.dyeColor = dyeColor;
 	}
 	
+	/* TODO MC1.15 force field camouflage
 	@Nonnull
 	@Override
-	protected BlockStateContainer createBlockState() {
-		return new ExtendedBlockState(this,
-		                              new IProperty[] { FREQUENCY },
-		                              new IUnlistedProperty[] { BlockProperties.CAMOUFLAGE });
-	}
-	
-	@SuppressWarnings("deprecation")
-	@Nonnull
-	@Override
-	public MapColor getMapColor(final IBlockState blockState, final IBlockAccess blockAccess, final BlockPos blockPos) {
-		final IExtendedBlockState blockStateExtended = (IExtendedBlockState) getExtendedState(blockState, blockAccess, blockPos);
-		final IBlockState blockStateCamouflage = blockStateExtended.getValue(BlockProperties.CAMOUFLAGE);
-		if (blockStateCamouflage != Blocks.AIR) {
-			try {
-				return blockStateCamouflage.getMapColor(blockAccess, blockPos);
-			} catch (final Exception exception) {
-				if (!Dictionary.BLOCKS_NOCAMOUFLAGE.contains(blockStateCamouflage.getBlock())) {
-					exception.printStackTrace(WarpDrive.printStreamError);
-					WarpDrive.logger.error(String.format("Exception trying to get MapColor for %s",
-					                                     blockStateCamouflage));
-					Dictionary.BLOCKS_NOCAMOUFLAGE.add(blockStateCamouflage.getBlock());
-				}
-			}
-		}
-		return MapColor.getBlockColor(EnumDyeColor.byMetadata(blockState.getValue(FREQUENCY)));
-	}
-	
-	@SuppressWarnings("deprecation")
-	@Nonnull
-	@Override
-	public IBlockState getStateFromMeta(final int metadata) {
-		return this.getDefaultState().withProperty(FREQUENCY, metadata);
-	}
-	
-	@Override
-	public int getMetaFromState(@Nonnull final IBlockState blockState) {
-		return blockState.getValue(FREQUENCY);
-	}
-	
-	@Nonnull
-	@Override
-	public IBlockState getExtendedState(@Nonnull final IBlockState blockState, final IBlockAccess blockAccess, final BlockPos blockPos) {
+	public BlockState getExtendedState(@Nonnull final BlockState blockState, final IWorldReader worldReader, final BlockPos blockPos) {
 		if (!(blockState instanceof IExtendedBlockState)) {
 			return blockState;
 		}
-		final TileEntity tileEntity = blockAccess.getTileEntity(blockPos);
+		final TileEntity tileEntity = worldReader.getTileEntity(blockPos);
 		if (!(tileEntity instanceof TileEntityForceField)) {
 			return blockState;
 		}
 		final TileEntityForceField tileEntityForceField = (TileEntityForceField) tileEntity;
-		IBlockState blockStateCamouflage = tileEntityForceField.cache_blockStateCamouflage;
+		BlockState blockStateCamouflage = tileEntityForceField.cache_blockStateCamouflage;
 		if (!Commons.isValidCamouflage(blockStateCamouflage)) {
 			blockStateCamouflage = Blocks.AIR.getDefaultState();
 		}
 		return ((IExtendedBlockState) blockState)
-		       .withProperty(BlockProperties.CAMOUFLAGE, blockStateCamouflage);
+		       .with(BlockProperties.CAMOUFLAGE, blockStateCamouflage);
 	}
-	
-	@Nullable
-	@Override
-	public ItemBlock createItemBlock() {
-		return new ItemBlockAbstractBase(this, true, true);
-	}
-	
-	@Override
-	@SideOnly(Side.CLIENT)
-	public void getSubBlocks(@Nonnull final CreativeTabs creativeTab, @Nonnull final NonNullList<ItemStack> list) {
-		// hide in NEI
-	}
+	*/
 	
 	@Nonnull
 	@Override
-	public TileEntity createNewTileEntity(@Nonnull final World world, final int metadata) {
+	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
 		return new TileEntityForceField();
 	}
 	
-	@SideOnly(Side.CLIENT)
-	@Override
-	public void modelInitialisation() {
-		super.modelInitialisation();
-		
-		// register camouflage
-		for (final Integer integer : FREQUENCY.getAllowedValues()) {
-			final ResourceLocation registryName = getRegistryName();
-			assert registryName != null;
-			final String variant = String.format("%s=%d", FREQUENCY.getName(), integer);
-			ModelBakeEventHandler.registerBakedModel(new ModelResourceLocation(registryName, variant), BakedModelCamouflage.class);
-		}
-	}
-	
 	@SuppressWarnings("deprecation")
 	@Override
-	public boolean causesSuffocation(@Nonnull final IBlockState blockState) {
-		return false;
-	}
-	
-	@SuppressWarnings("deprecation")
-	@Override
-	public boolean isOpaqueCube(@Nonnull final IBlockState blockState) {
-		return false;
-	}
-	
-	@SuppressWarnings("deprecation")
-	@Override
-	public boolean isFullBlock(@Nonnull final IBlockState blockState) {
+	public boolean causesSuffocation(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos) {
 		return false;
 	}
 	
 	@Nonnull
 	@Override
-	public ItemStack getPickBlock(@Nonnull final IBlockState blockState, final RayTraceResult target,
-	                              @Nonnull final World world, @Nonnull final BlockPos blockPos, final EntityPlayer entityPlayer) {
+	public ItemStack getPickBlock(@Nonnull final BlockState blockState, final RayTraceResult target,
+	                              @Nonnull final IBlockReader world, @Nonnull final BlockPos blockPos, final PlayerEntity entityPlayer) {
 		return new ItemStack(Blocks.AIR);
-	}
-	
-	@Override
-	public int quantityDropped(@Nonnull final Random random) {
-		return 0;
-	}
-	
-	@Nonnull
-	@Override
-	public EnumBlockRenderType getRenderType(@Nonnull final IBlockState blockState) {
-		return EnumBlockRenderType.MODEL;
-	}
-	
-	@Nonnull
-	@Override
-	public BlockRenderLayer getRenderLayer() {
-		return BlockRenderLayer.TRANSLUCENT;
-	}
-	
-	@SuppressWarnings("deprecation")
-	@SideOnly(Side.CLIENT)
-	@Override
-	public boolean shouldSideBeRendered(@Nonnull final IBlockState blockState, @Nonnull final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos, @Nonnull final EnumFacing facing) {
-		final BlockPos blockPosSide = blockPos.offset(facing);
-		if (blockAccess.isAirBlock(blockPosSide)) {
-			return true;
-		}
-		final EnumFacing opposite = facing.getOpposite();
-		final IBlockState blockStateSide = blockAccess.getBlockState(blockPosSide);
-		if ( blockStateSide.getBlock() instanceof BlockGlass 
-		  || blockStateSide.getBlock() instanceof BlockHullGlass
-		  || blockStateSide.getBlock() instanceof BlockForceField ) {
-			return blockState.getBlock().getMetaFromState(blockState)
-				!= blockStateSide.getBlock().getMetaFromState(blockStateSide);
-		}
-		return !blockStateSide.doesSideBlockRendering(blockAccess, blockPosSide, opposite);
 	}
 	
 	protected TileEntityForceFieldProjector getProjector(@Nonnull final World world, @Nonnull final BlockPos blockPos,
@@ -247,15 +110,15 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 	}
 	
 	@Nullable
-	private ForceFieldSetup getForceFieldSetup(@Nonnull final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos) {
-		final TileEntity tileEntity = blockAccess.getTileEntity(blockPos);
+	private ForceFieldSetup getForceFieldSetup(@Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos) {
+		final TileEntity tileEntity = blockReader.getTileEntity(blockPos);
 		if (tileEntity instanceof TileEntityForceField) {
 			try {
 				return ((TileEntityForceField) tileEntity).getForceFieldSetup();
 			} catch (final Exception exception) {
 				if (Commons.throttleMe("BlockForceField.getForceFieldSetup")) {
 					WarpDrive.logger.error(String.format("Exception trying to get force field setup %s",
-					                                     Commons.format(blockAccess, blockPos) ));
+					                                     Commons.format(blockReader, blockPos) ));
 					exception.printStackTrace(WarpDrive.printStreamError);
 				}
 			}
@@ -263,9 +126,10 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 		return null;
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Override
-	public void onBlockClicked(final World world, final BlockPos blockPos, final EntityPlayer entityPlayer) {
-		if (world.isRemote) {
+	public void onBlockClicked(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final PlayerEntity entityPlayer) {
+		if (world.isRemote()) {
 			return;
 		}
 		final ForceFieldSetup forceFieldSetup = getForceFieldSetup(world, blockPos);
@@ -276,10 +140,10 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 	
 	private boolean isAccessGranted(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final ForceFieldSetup forceFieldSetup) {
 		boolean isAccessGranted = false;
-		final List<EntityPlayer> entities = world.getEntitiesWithinAABB(EntityPlayer.class, new AxisAlignedBB(
+		final List<PlayerEntity> entities = world.getEntitiesWithinAABB(PlayerEntity.class, new AxisAlignedBB(
 				blockPos.getX() - 1.0D, blockPos.getY() - 1.0D, blockPos.getZ() - 1.0D,
 				blockPos.getX() + 2.0D, blockPos.getY() + 2.0D, blockPos.getZ() + 2.0D), null);
-		for (final EntityPlayer entityPlayer : entities) {
+		for (final PlayerEntity entityPlayer : entities) {
 			if (entityPlayer != null) {
 				if ( entityPlayer.isCreative()
 				  || entityPlayer.isSpectator()
@@ -293,67 +157,59 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 	}
 	
 	@SuppressWarnings("deprecation")
-	@Nullable
+	@Nonnull
 	@Override
-	public AxisAlignedBB getCollisionBoundingBox(@Nonnull final IBlockState blockState, @Nonnull final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos) {
-		final ForceFieldSetup forceFieldSetup = getForceFieldSetup(blockAccess, blockPos);
+	public VoxelShape getCollisionShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
+	                                    @Nonnull final ISelectionContext selectionContext) {
+		final ForceFieldSetup forceFieldSetup = getForceFieldSetup(blockReader, blockPos);
 		if ( forceFieldSetup != null
-		  && blockAccess instanceof World ) {// @TODO lag when placing force field due to permission checks?
-			if (isAccessGranted((World) blockAccess, blockPos, forceFieldSetup)) {
-				return NULL_AABB;
+		  && blockReader instanceof World ) {// @TODO lag when placing force field due to permission checks?
+			if (isAccessGranted((World) blockReader, blockPos, forceFieldSetup)) {
+				return VoxelShapes.empty();
 			}
 		}
 		
-		return AABB_FORCEFIELD;
-	}
-	
-	// onEntityCollision() only works when crossing the surface, once it's inside, it won't trigger anymore.
-	// Consequently, we double with the water check through isEntityInsideMaterial().
-	// As such, we can have 3+ calls to doEntityCollision per tick.
-	// practically, forceFieldSetup.onEntityEffect will only keep the first one per tick and entity damage has a cooldown.
-	// Note: we don't want pushing the entity since there's already an upgrade for that.
-	@Nullable
-	@Override
-	public Boolean isEntityInsideMaterial(final IBlockAccess blockAccess, final BlockPos blockPos, final IBlockState iblockstate,
-	                                      final Entity entity, final double yToTest, final Material materialIn, final boolean testingHead) {
-		if (blockAccess instanceof World) {
-			doEntityCollision((World) blockAccess, blockPos, entity);
-		}
-		return super.isEntityInsideMaterial(blockAccess, blockPos, iblockstate, entity, yToTest, materialIn, testingHead);
+		return SHAPE_FORCE_FIELD;
 	}
 	
 	@Override
-	public void onEntityCollision(final World world, final BlockPos blockPos, final IBlockState blockState, final Entity entity) {
-		super.onEntityCollision(world, blockPos, blockState, entity);
+	public float getSpeedFactor() {
+		return super.getSpeedFactor();
+	}
+	
+	@SuppressWarnings("deprecation")
+	@Override
+	public void onEntityCollision(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final Entity entity) {
+		super.onEntityCollision(blockState, world, blockPos, entity);
 		
 		doEntityCollision(world, blockPos, entity);
 	}
 	
 	private void doEntityCollision(final World world, final BlockPos blockPos, final Entity entity) {
-		if (world.isRemote) {
+		if (world.isRemote()) {
 			return;
 		}
 		
 		final ForceFieldSetup forceFieldSetup = getForceFieldSetup(world, blockPos);
 		if (forceFieldSetup != null) {
 			forceFieldSetup.onEntityEffect(world, blockPos, entity);
-			if ( entity instanceof EntityLivingBase
-			  && entity.isEntityAlive() ) {
+			if ( entity instanceof LivingEntity
+			  && entity.isAlive() ) {
 				final Vector3 vCenter = new Vector3(blockPos).translate(0.5F);
-				final AxisAlignedBB aabbEntity = entity.getEntityBoundingBox();
-				final RayTraceResult rayTraceResult = aabbEntity.calculateIntercept(vCenter.toVec3d(), entity.getPositionVector());
-				if (rayTraceResult != null) {
+				final AxisAlignedBB aabbEntity = entity.getBoundingBox();
+				final Optional<Vec3d> optionalVecHit = aabbEntity.rayTrace(vCenter.toVec3d(), entity.getPositionVector());
+				if (optionalVecHit.isPresent()) {
 					
-					final double distanceToCollision = rayTraceResult.hitVec.distanceTo(vCenter.toVec3d());
+					final double distanceToCollision = optionalVecHit.get().distanceTo(vCenter.toVec3d());
 					final double distanceToCenter = Math.sqrt(vCenter.distanceTo_square(entity));
 					final double distanceMin = Math.min(distanceToCenter, distanceToCollision);
 					
 					// always slowdown
 					if (distanceMin > 1.0D) {// keep it light when a bit away
-						((EntityLivingBase) entity).addPotionEffect(new PotionEffect(MobEffects.SLOWNESS, 10, 0));
+						((LivingEntity) entity).addPotionEffect(new EffectInstance(Effects.SLOWNESS, 10, 0));
 						return;
 					}
-					((EntityLivingBase) entity).addPotionEffect(new PotionEffect(MobEffects.SLOWNESS, 20, 1));
+					((LivingEntity) entity).addPotionEffect(new EffectInstance(Effects.SLOWNESS, 20, 1));
 					
 					// check the whitelist
 					final boolean isAccessGranted = isAccessGranted(world, blockPos, forceFieldSetup);
@@ -365,12 +221,12 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 							}
 							entity.attackEntityFrom(DamageSource.OUT_OF_WORLD, 6666.0F);
 						} else {
-							if ( entity instanceof EntityPlayer
+							if ( entity instanceof PlayerEntity
 							  && Commons.throttleMe("ForceFieldProximity" + entity.getEntityId()) ) {
 								WarpDrive.logger.info(String.format("ForceField proximity detected at %.3f m for %s %s",
 								                                    distanceMin, entity, Commons.format(world, blockPos)) );
 							}
-							((EntityLivingBase) entity).addPotionEffect(new PotionEffect(MobEffects.NAUSEA, 80, 3));
+							((LivingEntity) entity).addPotionEffect(new EffectInstance(Effects.NAUSEA, 80, 3));
 						}
 					}
 				}
@@ -379,8 +235,8 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 	}
 	
 	@Override
-	public int getLightValue(@Nonnull final IBlockState blockState, @Nonnull final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos) {
-		final TileEntity tileEntity = blockAccess.getTileEntity(blockPos);
+	public int getLightValue(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos) {
+		final TileEntity tileEntity = blockReader.getTileEntity(blockPos);
 		if (tileEntity instanceof TileEntityForceField) {
 			return ((TileEntityForceField) tileEntity).cache_lightCamouflage;
 		}
@@ -391,9 +247,8 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 	private void downgrade(final World world, final BlockPos blockPos) {
 		if (enumTier.getIndex() > 1) {
 			final TileEntityForceFieldProjector tileEntityForceFieldProjector = getProjector(world, blockPos, null);
-			final IBlockState blockState = world.getBlockState(blockPos);
-			final int frequency = blockState.getBlock() == this ? blockState.getValue(FREQUENCY) : 0;
-			world.setBlockState(blockPos, WarpDrive.blockForceFields[enumTier.getIndex() - 1].getDefaultState().withProperty(FREQUENCY, (frequency + 1) % 16), 2);
+			final int frequency = dyeColor.getId();
+			world.setBlockState(blockPos, WarpDrive.blockForceFields[enumTier.getIndex() - 1][(frequency + 1) % 16].getDefaultState(), 2);
 			if (tileEntityForceFieldProjector != null) {
 				final TileEntity tileEntity = world.getTileEntity(blockPos);
 				if (tileEntity instanceof TileEntityForceField) {
@@ -402,50 +257,46 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 			}
 			
 		} else {
-			world.setBlockToAir(blockPos);
+			world.removeBlock(blockPos, false);
 		}
 	}
 	
 	// explosion handling, preferably without ASM
-	private int previous_exploderId = -1;
 	private long previous_tickWorld = -1L;
-	private int previous_idDimension = Integer.MAX_VALUE;
+	private DimensionType previous_idDimension = null;
 	private Vec3d previous_vExplosion = new Vec3d(0.0D, -1.0D, 0.0D);
 	
 	@SuppressWarnings("deprecation")
 	@Override
-	public float getExplosionResistance(@Nullable final Entity exploder) {
-		final int exploderId = exploder == null ? -1 : exploder.getEntityId();
-		if ( exploderId != previous_exploderId
-		  && Commons.isServerThread() ) {
+	public float getExplosionResistance() {
+		if (Commons.isServerThread()) {
 			if (Commons.throttleMe("getExplosionResistance")) {
-				new RuntimeException(String.format("Invalid call to deprecated getExplosionResistance(%s)",
-				                                   exploder )).printStackTrace(WarpDrive.printStreamError);
+				new RuntimeException("Invalid call to deprecated getExplosionResistance()").printStackTrace(WarpDrive.printStreamError);
 			}
 			return Float.MAX_VALUE;
 		}
-		return super.getExplosionResistance(exploder);
+		return super.getExplosionResistance();
 	}
 	
 	@Override
-	public float getExplosionResistance(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nullable final Entity exploder, @Nonnull final Explosion explosion) {
-		previous_exploderId = exploder == null ? -1 : exploder.getEntityId();
-		final long tickWorld = world.getTotalWorldTime();
+	public float getExplosionResistance(@Nonnull final BlockState blockState, @Nonnull final IWorldReader worldReader, @Nonnull final BlockPos blockPos,
+	                                    @Nullable final Entity exploder, @Nonnull final Explosion explosion ) {
+		final long tickWorld = worldReader instanceof World ? ((World) worldReader).getGameTime() : System.currentTimeMillis() / 50;
 		final Vec3d vExplosion = explosion.getPosition();
 		final boolean isFirstHit = Math.abs(tickWorld - previous_tickWorld) > 100L
-		                        || previous_idDimension != world.provider.getDimension()
+		                        || !previous_idDimension.equals(worldReader.getDimension().getType())
 		                        || Math.abs(previous_vExplosion.x - vExplosion.x) > 5.0D
 		                        || Math.abs(previous_vExplosion.y - vExplosion.y) > 5.0D
 		                        || Math.abs(previous_vExplosion.z - vExplosion.z) > 5.0D;
 		if (isFirstHit) {
 			previous_tickWorld = tickWorld;
-			previous_idDimension = world.provider.getDimension();
+			previous_idDimension = worldReader.getDimension().getType();
 			previous_vExplosion = new Vec3d(vExplosion.x, vExplosion.y, vExplosion.z);
 			WarpDrive.logger.info(String.format("Force field %s %s: explosion check of size %.3f from exploder %s %s %s explosion %s",
 			                                    enumTier,
-			                                    Commons.format(world, blockPos),
+			                                    Commons.format(worldReader, blockPos),
 			                                    explosion.size,
-			                                    exploder != null ? EntityList.getKey(exploder) : "-",
+			                                    exploder != null ? exploder.getType().getRegistryName() : "-",
 			                                    exploder != null ? exploder.getClass().toString() : "-",
 			                                    exploder,
 			                                    explosion ));
@@ -453,7 +304,7 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 		if (!Commons.isSafeThread())  {
 			if (isFirstHit) {
 				new ConcurrentModificationException(String.format("Bad multithreading detected %s from exploder %s explosion %s",
-				                                                  Commons.format(world, blockPos), exploder, explosion ))
+				                                                  Commons.format(worldReader, blockPos), exploder, explosion ))
 						.printStackTrace(WarpDrive.printStreamError);
 			} else {
 				return Float.MAX_VALUE;
@@ -467,11 +318,11 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 		  && vExplosion.z == Math.rint(vExplosion.z) ) {
 			final BlockPos blockPosExplosion = new BlockPos((int) vExplosion.x, (int) vExplosion.y, (int) vExplosion.z);
 			// IC2 Reactor blowing up => block is already air
-			final IBlockState blockState = world.getBlockState(blockPosExplosion);
-			final TileEntity tileEntity = world.getTileEntity(blockPosExplosion);
+			assert blockState == worldReader.getBlockState(blockPosExplosion);
+			final TileEntity tileEntity = worldReader.getTileEntity(blockPosExplosion);
 			if (isFirstHit) {
 				WarpDrive.logger.info(String.format("Force field %s %s: explosion from %s %s with tileEntity %s",
-				                                    enumTier, Commons.format(world, blockPos),
+				                                    enumTier, Commons.format(worldReader, blockPos),
 				                                    blockState.getBlock(), blockState.getBlock().getRegistryName(), tileEntity ));
 			}
 			// explosion with no entity and block removed, hence we can't compute the energy impact => boosting explosion resistance
@@ -562,40 +413,41 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 		}
 		final double damageLevel = strength / (magnitude * magnitude) * 1.0D;
 		double damageLeft = 0;
-		final ForceFieldSetup forceFieldSetup = Commons.isSafeThread() ? getForceFieldSetup(world, blockPos) : null;
+		final ForceFieldSetup forceFieldSetup = Commons.isSafeThread() ? getForceFieldSetup(worldReader, blockPos) : null;
 		if (forceFieldSetup != null) {
-			damageLeft = forceFieldSetup.applyDamage(world, DamageSource.causeExplosionDamage(explosion), damageLevel);
+			damageLeft = forceFieldSetup.applyDamage(worldReader, DamageSource.causeExplosionDamage(explosion), damageLevel);
 		}
 		
 		assert damageLeft >= 0;
 		if (isFirstHit && WarpDriveConfig.LOGGING_FORCE_FIELD) {
 			WarpDrive.logger.info(String.format("Force field %s %s: explosion from %s strength %.3f magnitude %.3f damageLevel %.3f damageLeft %.3f",
-			                                    enumTier, Commons.format(world, blockPos),
+			                                    enumTier, Commons.format(worldReader, blockPos),
 			                                    vExplosion,
 			                                    strength, magnitude, damageLevel, damageLeft));
 		}
-		return factorResistance * super.getExplosionResistance(world, blockPos, exploder, explosion);
+		return factorResistance * super.getExplosionResistance(blockState, worldReader, blockPos, exploder, explosion);
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Override
-	public boolean canDropFromExplosion(final Explosion explosion) {
+	public boolean canDropFromExplosion(@Nonnull final Explosion explosion) {
 		return false;
 	}
 	
 	@Override
-	public boolean canEntityDestroy(final IBlockState state, final IBlockAccess blockAccess, final BlockPos blockPos, final Entity entity) {
+	public boolean canEntityDestroy(final BlockState blockState, final IBlockReader blockReader, final BlockPos blockPos, final Entity entity) {
 		return false;
 	}
 	
 	@Override
-	public void onBlockExploded(final World world, @Nonnull final BlockPos blockPos, @Nonnull final Explosion explosion) {
+	public void onBlockExploded(final BlockState blockState, final World world, @Nonnull final BlockPos blockPos, @Nonnull final Explosion explosion) {
 		if (WarpDriveConfig.LOGGING_WEAPON) {
 			WarpDrive.logger.warn(String.format("Force field %s %s has exploded in explosion %s at %s",
 			                                    enumTier, Commons.format(world, blockPos),
 			                                    explosion, explosion.getPosition()));
 		}
 		downgrade(world, blockPos);
-		super.onBlockExploded(world, blockPos, explosion);
+		super.onBlockExploded(blockState, world, blockPos, explosion);
 	}
 	
 	@Override
@@ -607,21 +459,21 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 	}
 	
 	@Override
-	public void onExplosionDestroy(final World world, final BlockPos blockPos, final Explosion explosion) {
+	public void onExplosionDestroy(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final Explosion explosion) {
 		// (block is already set to air by caller, see IC2 iTNT for example)
 		downgrade(world, blockPos);
 		super.onExplosionDestroy(world, blockPos, explosion);
 	}
 	
 	@Override
-	public float getBlockHardness(final IBlockState blockState, final World world, final BlockPos blockPos,
-	                              final DamageSource damageSource, final int damageParameter, final Vector3 damageDirection, final int damageLevel) {
+	public float getBlockHardness(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,
+	                              @Nonnull final DamageSource damageSource, final int damageParameter, @Nonnull final Vector3 damageDirection, final int damageLevel) {
 		return WarpDriveConfig.HULL_HARDNESS[enumTier.getIndex()];
 	}
 	
 	@Override
-	public int applyDamage(final IBlockState blockState, final World world, final BlockPos blockPos, final DamageSource damageSource,
-	                       final int damageParameter, final Vector3 damageDirection, final int damageLevel) {
+	public int applyDamage(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final DamageSource damageSource,
+	                       final int damageParameter, @Nonnull final Vector3 damageDirection, final int damageLevel) {
 		final ForceFieldSetup forceFieldSetup = getForceFieldSetup(world, blockPos);
 		if (forceFieldSetup != null) {
 			return (int) Math.round(forceFieldSetup.applyDamage(world, damageSource, damageLevel));
@@ -632,12 +484,12 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 	
 	@SuppressWarnings("deprecation")
 	@Override
-	public float getBlockHardness(final IBlockState blockState, final World world, final BlockPos blockPos) {
+	public float getBlockHardness(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos) {
 		final String name = Thread.currentThread().getName();
 		// hide unbreakable status from ICBM explosion handler (as of ICBM-classic-1.12.2-3.3.0b63, Nuclear skip unbreakable blocks)
 		if (name.startsWith("ICBM")) {
 			return WarpDriveConfig.HULL_HARDNESS[enumTier.getIndex()];
 		}
-		return super.getBlockHardness(blockState, world, blockPos);
+		return super.getBlockHardness(blockState, blockReader, blockPos);
 	}
 }

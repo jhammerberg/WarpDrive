@@ -6,9 +6,9 @@ import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -38,25 +38,26 @@ public class CompatTechguns implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockTGDoor3x3.isInstance(block)
-		    || classBlockBasicMachine.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockTGDoor3x3.isInstance(blockState.getBlock())
+		    || classBlockBasicMachine.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -96,10 +97,10 @@ public class CompatTechguns implements IBlockTransformer {
 	private static final byte[]  rotMultiblockDirection = {  0,  1,  5,  4,  2,  3,  6,  7,  8,  9, 10, 14, 13, 11, 12, 15 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		
-		if (classBlockTGDoor3x3.isInstance(block)) {
+		if (classBlockTGDoor3x3.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotDoor3x3[metadata];
@@ -108,41 +109,41 @@ public class CompatTechguns implements IBlockTransformer {
 			case 3:
 				return mrotDoor3x3[mrotDoor3x3[mrotDoor3x3[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// BasicMachine is parent class for other blocks with different rotations, hence we need to exclude the latest 
-		if ( classBlockBasicMachine.isInstance(block)
-		  && !classBlockExplosiveCharge.isInstance(block)
-		  && !classBlockSimpleMachine.isInstance(block)
-		  && !classBlockMultiBlockMachine.isInstance(block)
+		if ( classBlockBasicMachine.isInstance(blockState.getBlock())
+		  && !classBlockExplosiveCharge.isInstance(blockState.getBlock())
+		  && !classBlockSimpleMachine.isInstance(blockState.getBlock())
+		  && !classBlockMultiBlockMachine.isInstance(blockState.getBlock())
 		  && nbtTileEntity != null ) {
-			if (nbtTileEntity.hasKey("rotation")) {
+			if (nbtTileEntity.contains("rotation")) {
 				final byte rotation =  nbtTileEntity.getByte("rotation");
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setByte("rotation", rotBasicMachine[rotation]);
-					return metadata;
+					nbtTileEntity.putByte("rotation", rotBasicMachine[rotation]);
+					return blockState;
 				case 2:
-					nbtTileEntity.setByte("rotation", rotBasicMachine[rotBasicMachine[rotation]]);
-					return metadata;
+					nbtTileEntity.putByte("rotation", rotBasicMachine[rotBasicMachine[rotation]]);
+					return blockState;
 				case 3:
-					nbtTileEntity.setByte("rotation", rotBasicMachine[rotBasicMachine[rotBasicMachine[rotation]]]);
-					return metadata;
+					nbtTileEntity.putByte("rotation", rotBasicMachine[rotBasicMachine[rotBasicMachine[rotation]]]);
+					return blockState;
 				default:
-					return metadata;
+					return blockState;
 				}
 			}
 			
 			// repair turret on jump to ensure it's visible
-			if (nbtTileEntity.hasKey("turretDeath")) {
-				nbtTileEntity.setBoolean("turretDeath", true);
-				nbtTileEntity.setInteger("repairTime", 0);
+			if (nbtTileEntity.contains("turretDeath")) {
+				nbtTileEntity.putBoolean("turretDeath", true);
+				nbtTileEntity.putInt("repairTime", 0);
 			}
 		}
 		
-		if (classBlockExplosiveCharge.isInstance(block)) {
+		if (classBlockExplosiveCharge.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotExplosiveCharge[metadata];
@@ -151,11 +152,11 @@ public class CompatTechguns implements IBlockTransformer {
 			case 3:
 				return mrotExplosiveCharge[mrotExplosiveCharge[mrotExplosiveCharge[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
-		if (classBlockSimpleMachine.isInstance(block)) {
+		if (classBlockSimpleMachine.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotSimpleMachine[metadata];
@@ -164,49 +165,49 @@ public class CompatTechguns implements IBlockTransformer {
 			case 3:
 				return mrotSimpleMachine[mrotSimpleMachine[mrotSimpleMachine[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
-		if ( classBlockMultiBlockMachine.isInstance(block)
+		if ( classBlockMultiBlockMachine.isInstance(blockState.getBlock())
 		  && nbtTileEntity != null ) {
 			// Reference to the master block for slave
 			// or Rotation for the Master block
-			if ( nbtTileEntity.hasKey("hasMaster")
+			if ( nbtTileEntity.contains("hasMaster")
 			  && nbtTileEntity.getBoolean("hasMaster") ) {
-				final int xMaster = nbtTileEntity.getInteger("masterX");
-				final int yMaster = nbtTileEntity.getInteger("masterY");
-				final int zMaster = nbtTileEntity.getInteger("masterZ");
+				final int xMaster = nbtTileEntity.getInt("masterX");
+				final int yMaster = nbtTileEntity.getInt("masterY");
+				final int zMaster = nbtTileEntity.getInt("masterZ");
 				final BlockPos chunkCoordinatesMaster = transformation.apply(xMaster, yMaster, zMaster);
-				nbtTileEntity.setInteger("masterX", chunkCoordinatesMaster.getX());
-				nbtTileEntity.setInteger("masterY", chunkCoordinatesMaster.getY());
-				nbtTileEntity.setInteger("masterZ", chunkCoordinatesMaster.getZ());
+				nbtTileEntity.putInt("masterX", chunkCoordinatesMaster.getX());
+				nbtTileEntity.putInt("masterY", chunkCoordinatesMaster.getY());
+				nbtTileEntity.putInt("masterZ", chunkCoordinatesMaster.getZ());
 				
-			} else if (nbtTileEntity.hasKey("multiblockDirection")) {
+			} else if (nbtTileEntity.contains("multiblockDirection")) {
 				final byte rotation = nbtTileEntity.getByte("multiblockDirection");
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setByte("multiblockDirection", rotMultiblockDirection[rotation]);
-					return metadata;
+					nbtTileEntity.putByte("multiblockDirection", rotMultiblockDirection[rotation]);
+					return blockState;
 				case 2:
-					nbtTileEntity.setByte("multiblockDirection", rotMultiblockDirection[rotMultiblockDirection[rotation]]);
-					return metadata;
+					nbtTileEntity.putByte("multiblockDirection", rotMultiblockDirection[rotMultiblockDirection[rotation]]);
+					return blockState;
 				case 3:
-					nbtTileEntity.setByte("multiblockDirection", rotMultiblockDirection[rotMultiblockDirection[rotMultiblockDirection[rotation]]]);
-					return metadata;
+					nbtTileEntity.putByte("multiblockDirection", rotMultiblockDirection[rotMultiblockDirection[rotMultiblockDirection[rotation]]]);
+					return blockState;
 				default:
-					return metadata;
+					return blockState;
 				}
 			}
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

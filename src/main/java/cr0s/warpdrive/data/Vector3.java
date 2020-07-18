@@ -6,14 +6,14 @@ import javax.annotation.Nonnull;
 import java.util.List;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraft.util.EnumFacing;
 
 /**
  * Vector3 Class is used for defining objects in a 3D space.
@@ -39,9 +39,9 @@ public class Vector3 implements Cloneable {
 	}
 	
 	public Vector3(final Entity entity) {
-		x = entity.posX;
-		y = entity.posY;
-		z = entity.posZ;
+		x = entity.getPosX();
+		y = entity.getPosY();
+		z = entity.getPosZ();
 	}
 	
 	public Vector3(final AbstractEntityFX entityFX) {
@@ -63,9 +63,9 @@ public class Vector3 implements Cloneable {
 	}
 	
 	public Vector3(final RayTraceResult rayTraceResult) {
-		x = rayTraceResult.getBlockPos().getX();
-		y = rayTraceResult.getBlockPos().getY();
-		z = rayTraceResult.getBlockPos().getZ();
+		x = rayTraceResult.getHitVec().getX();
+		y = rayTraceResult.getHitVec().getY();
+		z = rayTraceResult.getHitVec().getZ();
 	}
 	
 	public Vector3(final BlockPos blockPos) {
@@ -74,7 +74,7 @@ public class Vector3 implements Cloneable {
 		z = blockPos.getZ();
 	}
 	
-	public Vector3(final EnumFacing direction) {
+	public Vector3(final Direction direction) {
 		x = direction.getXOffset();
 		y = direction.getYOffset();
 		z = direction.getZOffset();
@@ -156,9 +156,9 @@ public class Vector3 implements Cloneable {
 	}
 	
 	public double distanceTo_square(final Entity entity) {
-		final double dX = entity.posX - x;
-		final double dY = entity.posY - y;
-		final double dZ = entity.posZ - z;
+		final double dX = entity.getPosX() - x;
+		final double dY = entity.getPosY() - y;
+		final double dZ = entity.getPosZ() - z;
 		return dX * dX + dY * dY + dZ * dZ;
 	}
 	
@@ -199,7 +199,7 @@ public class Vector3 implements Cloneable {
 	}
 	
 	// modify current vector by translation of amount block in side direction
-	public Vector3 translate(final EnumFacing side, final double amount) {
+	public Vector3 translate(final Direction side, final double amount) {
 		switch (side) {
 		case DOWN:
 			y -= amount;
@@ -227,7 +227,7 @@ public class Vector3 implements Cloneable {
 	}
 	
 	// modify current vector by translation of 1 block in side direction
-	public Vector3 translate(final EnumFacing side) {
+	public Vector3 translate(final Direction side) {
 		x += side.getXOffset();
 		y += side.getYOffset();
 		z += side.getZOffset();
@@ -325,7 +325,7 @@ public class Vector3 implements Cloneable {
 	/**
 	 * Gets a position relative to a position's side
 	 */
-	public Vector3 modifyPositionFromSide(final EnumFacing side, final double amount) {
+	public Vector3 modifyPositionFromSide(@Nonnull final Direction side, final double amount) {
 		switch (side.ordinal()) {
 		case 0:
 			y -= amount;
@@ -358,7 +358,7 @@ public class Vector3 implements Cloneable {
 		return this;
 	}
 	
-	public Vector3 modifyPositionFromSide(final EnumFacing side) {
+	public Vector3 modifyPositionFromSide(final Direction side) {
 		modifyPositionFromSide(side, 1);
 		return this;
 	}
@@ -519,22 +519,22 @@ public class Vector3 implements Cloneable {
 	}
 	
 	
-	public static Vector3 createFromNBT(final NBTTagCompound tagCompound) {
+	public static Vector3 createFromNBT(final CompoundNBT tagCompound) {
 		final Vector3 vector = new Vector3();
-		vector.readFromNBT(tagCompound);
+		vector.read(tagCompound);
 		return vector;
 	}
 	
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
+	public void read(@Nonnull final CompoundNBT tagCompound) {
 		x = tagCompound.getDouble("x");
 		y = tagCompound.getDouble("y");
 		z = tagCompound.getDouble("z");
 	}
 	
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		tagCompound.setDouble("x", x);
-		tagCompound.setDouble("y", y);
-		tagCompound.setDouble("z", z);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		tagCompound.putDouble("x", x);
+		tagCompound.putDouble("y", y);
+		tagCompound.putDouble("z", z);
 		return tagCompound;
 	}
 	
@@ -560,85 +560,6 @@ public class Vector3 implements Cloneable {
 	
 	public static Vector3 EAST() {
 		return new Vector3(1, 0, 0);
-	}
-	
-	/**
-	 * RayTrace Code, retrieved from MachineMuse.
-	 *
-	 * @author MachineMuse
-	 */
-	public RayTraceResult rayTrace(final World world, final float rotationYaw, final float rotationPitch, final boolean collisionFlag, final double reachDistance) {
-		// Somehow this destroys the playerPosition vector -.-
-		final RayTraceResult pickedBlock = rayTraceBlocks(world, rotationYaw, rotationPitch, reachDistance);
-	final 	RayTraceResult pickedEntity = rayTraceEntities(world, rotationYaw, rotationPitch, reachDistance);
-		
-		if (pickedBlock == null) {
-			return pickedEntity;
-		} else if (pickedEntity == null) {
-			return pickedBlock;
-		} else {
-			final double dBlock = distanceTo(new Vector3(pickedBlock.hitVec));
-			final double dEntity = distanceTo(new Vector3(pickedEntity.hitVec));
-			
-			if (dEntity < dBlock) {
-				return pickedEntity;
-			} else {
-				return pickedBlock;
-			}
-		}
-	}
-	
-	public RayTraceResult rayTraceBlocks(final World world, final float rotationYaw, final float rotationPitch, final double reachDistance) {
-		final Vector3 lookVector = getDeltaPositionFromRotation(rotationYaw, rotationPitch);
-		final Vector3 reachPoint = this.clone().translateFactor(lookVector, reachDistance);
-		return world.rayTraceBlocks(toVec3d(), reachPoint.toVec3d());// TODO: Removed collision flag
-	}
-	
-	public RayTraceResult rayTraceEntities(final World world, final float rotationYaw, final float rotationPitch, final double reachDistance) {
-		RayTraceResult pickedEntity = null;
-		final Vec3d startingPosition = toVec3d();
-		final Vec3d look = getDeltaPositionFromRotation(rotationYaw, rotationPitch).toVec3d();
-  	    final Vec3d reachPoint = new Vec3d(
-  	    		startingPosition.x + look.x * reachDistance,
-			    startingPosition.y + look.y * reachDistance,
-			    startingPosition.z + look.z * reachDistance);
-		final double playerBorder = 1.1 * reachDistance;
-		final AxisAlignedBB boxToScan = new AxisAlignedBB(-playerBorder, -playerBorder, -playerBorder, playerBorder, playerBorder, playerBorder);
-		final List<Entity> entitiesHit = world.getEntitiesWithinAABBExcludingEntity(null, boxToScan);
-		double closestEntity = reachDistance;
-		
-		if (entitiesHit.isEmpty()) {
-			return null;
-		}
-		
-		for (final Entity entityHit : entitiesHit) {
-			if ( entityHit != null
-			  && entityHit.canBeCollidedWith() ) {
-				final float border = entityHit.getCollisionBorderSize();
-				final AxisAlignedBB aabb = entityHit.getEntityBoundingBox().expand(border, border, border);
-				final RayTraceResult hitMOP = aabb.calculateIntercept(startingPosition, reachPoint);
-				
-				if (hitMOP != null) {
-					if (aabb.contains(startingPosition)) {
-						if (0.0D < closestEntity || closestEntity == 0.0D) {
-							pickedEntity = new RayTraceResult(entityHit);
-							pickedEntity.hitVec = hitMOP.hitVec;
-							closestEntity = 0.0D;
-						}
-					} else {
-						final double distance = startingPosition.distanceTo(hitMOP.hitVec);
-
-						if (distance < closestEntity || closestEntity == 0.0D) {
-							pickedEntity = new RayTraceResult(entityHit);
-							pickedEntity.hitVec = hitMOP.hitVec;
-							closestEntity = distance;
-						}
-					}
-				}
-			}
-		}
-		
-		return pickedEntity;
 	}
 	
 	@Override

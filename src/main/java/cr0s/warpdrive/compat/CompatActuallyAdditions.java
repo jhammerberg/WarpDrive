@@ -5,10 +5,9 @@ import cr0s.warpdrive.api.ITransformation;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -28,23 +27,24 @@ public class CompatActuallyAdditions implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockInputter.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockInputter.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -58,43 +58,43 @@ public class CompatActuallyAdditions implements IBlockTransformer {
 	private static final byte[] rotInputter         = {  0,  1,  3,  4,  5,  2 }; // -1 / 0 / 1 / 2 3 4 5
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0 || nbtTileEntity == null) {
-			return metadata;
+			return blockState;
 		}
 		
 		// inputter
-		if (nbtTileEntity.hasKey("SideToPull")) {
-			final int side = nbtTileEntity.getInteger("SideToPull");
+		if (nbtTileEntity.contains("SideToPull")) {
+			final int side = nbtTileEntity.getInt("SideToPull");
 			if (side > 1) {
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setInteger("SideToPull", rotInputter[side]);
+					nbtTileEntity.putInt("SideToPull", rotInputter[side]);
 					break;
 				case 2:
-					nbtTileEntity.setInteger("SideToPull", rotInputter[rotInputter[side]]);
+					nbtTileEntity.putInt("SideToPull", rotInputter[rotInputter[side]]);
 					break;
 				case 3:
-					nbtTileEntity.setInteger("SideToPull", rotInputter[rotInputter[rotInputter[side]]]);
+					nbtTileEntity.putInt("SideToPull", rotInputter[rotInputter[rotInputter[side]]]);
 					break;
 				default:
 					break;
 				}
 			}
 		}
-		if (nbtTileEntity.hasKey("SideToPut")) {
-			final int side = nbtTileEntity.getInteger("SideToPut");
+		if (nbtTileEntity.contains("SideToPut")) {
+			final int side = nbtTileEntity.getInt("SideToPut");
 			if (side > 1) {
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setInteger("SideToPut", rotInputter[side]);
+					nbtTileEntity.putInt("SideToPut", rotInputter[side]);
 					break;
 				case 2:
-					nbtTileEntity.setInteger("SideToPut", rotInputter[rotInputter[side]]);
+					nbtTileEntity.putInt("SideToPut", rotInputter[rotInputter[side]]);
 					break;
 				case 3:
-					nbtTileEntity.setInteger("SideToPut", rotInputter[rotInputter[rotInputter[side]]]);
+					nbtTileEntity.putInt("SideToPut", rotInputter[rotInputter[rotInputter[side]]]);
 					break;
 				default:
 					break;
@@ -102,13 +102,13 @@ public class CompatActuallyAdditions implements IBlockTransformer {
 			}
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

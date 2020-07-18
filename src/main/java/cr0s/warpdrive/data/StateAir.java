@@ -9,24 +9,28 @@ import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.event.ChunkHandler;
 import cr0s.warpdrive.api.ExceptionChunkNotLoaded;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockDynamicLiquid;
-import net.minecraft.block.BlockPane;
-import net.minecraft.block.BlockStairs;
-import net.minecraft.block.BlockStaticLiquid;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
+import javax.annotation.Nonnull;
 
-import net.minecraftforge.fluids.BlockFluidBase;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.FlowingFluidBlock;
+import net.minecraft.block.PaneBlock;
+import net.minecraft.block.StairsBlock;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Direction.Axis;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.shapes.ISelectionContext;
+import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.IChunk;
+import net.minecraft.world.gen.Heightmap.Type;
+
+import net.minecraftforge.fluids.IFluidBlock;
 
 public class StateAir {
 	
@@ -62,20 +66,20 @@ public class StateAir {
 	static final int TICKING_MASK              = VOID_PRESSURE_MASK | GENERATOR_PRESSURE_MASK | CONCENTRATION_MASK;
 	
 	private ChunkData chunkData;
-	private Chunk chunk;
-	private final MutableBlockPos blockPos;
+	private IChunk chunk;
+	private final BlockPos.Mutable blockPos;
 	protected int dataAir;               // original air data provided
-	protected IBlockState blockState;    // original block
+	protected BlockState blockState;    // original block
 	public byte concentration;
 	public short pressureGenerator;
 	public short pressureVoid;
-	public EnumFacing directionGenerator;   // direction toward source
-	public EnumFacing directionVoid;        // direction toward source
+	public Direction directionGenerator;   // direction toward source
+	public Direction directionVoid;        // direction toward source
 	
 	public StateAir(final ChunkData chunkData) {
 		this.chunkData = chunkData;
 		this.chunk = null;
-		blockPos = new MutableBlockPos();
+		blockPos = new BlockPos.Mutable();
 	}
 	
 	public void refresh(final World world, final int x, final int y, final int z) throws ExceptionChunkNotLoaded {
@@ -83,7 +87,7 @@ public class StateAir {
 		refresh(world);
 	}
 	
-	public void refresh(final World world, final StateAir stateAir, final EnumFacing forgeDirection) throws ExceptionChunkNotLoaded {
+	public void refresh(final World world, final StateAir stateAir, final Direction forgeDirection) throws ExceptionChunkNotLoaded {
 		blockPos.setPos(
 			stateAir.blockPos.getX() + forgeDirection.getXOffset(),
 			stateAir.blockPos.getY() + forgeDirection.getYOffset(),
@@ -134,7 +138,7 @@ public class StateAir {
 		chunk = null;
 	}
 	
-	public IBlockState getBlockState(final World world) {
+	public BlockState getBlockState(final World world) {
 		if (blockState == null) {
 			updateBlockCache(world);
 		}
@@ -143,7 +147,7 @@ public class StateAir {
 	
 	public void updateBlockCache(final World world) {
 		if (blockPos.getY() >= 0 && blockPos.getY() < 256) {
-			blockState = chunk.getBlockState(blockPos.getX(), blockPos.getY(), blockPos.getZ());
+			blockState = chunk.getBlockState(blockPos);
 		} else {
 			blockState = Blocks.AIR.getDefaultState();
 		}
@@ -162,19 +166,19 @@ public class StateAir {
 			setVoid((short) VOID_PRESSURE_MAX, directionGenerator.getOpposite());
 			
 		} else if (blockPos.getY() == 0) {// at bottom of map => this is a void source
-			setVoid((short) VOID_PRESSURE_MAX, EnumFacing.DOWN);
+			setVoid((short) VOID_PRESSURE_MAX, Direction.DOWN);
 			
 		} else if (blockPos.getY() == 255) {// at top of map => this is a void source
-			setVoid((short) VOID_PRESSURE_MAX, EnumFacing.UP);
+			setVoid((short) VOID_PRESSURE_MAX, Direction.UP);
 			
 		} else if (blockState != null) {// only check if block was updated
 			// check if sky is visible, which means we're in the void
 			// note: on 1.7.10, getHeightValue() is for seeing the sky (it goes through transparent blocks)
 			// getPrecipitationHeight() returns the altitude of the highest block that stops movement or is a liquid
-			final int highestBlock = chunk.getPrecipitationHeight(blockPos).getY();
+			final int highestBlock = chunk.getHeightmap(Type.MOTION_BLOCKING).getHeight(blockPos.getX() >> 4, blockPos.getZ() >> 4);
 			final boolean isVoid = highestBlock < blockPos.getY();
 			if (isVoid) {
-				setVoid((short) VOID_PRESSURE_MAX, EnumFacing.UP);
+				setVoid((short) VOID_PRESSURE_MAX, Direction.UP);
 			} else if (pressureVoid == VOID_PRESSURE_MAX) {
 				setVoid((short) 0, null);
 			}
@@ -182,32 +186,32 @@ public class StateAir {
 		// (propagation is done when spreading air itself)
 	}
 	
-	private void setBlockToNoAir(final World world) {
+	private void setBlockToNoAir(@Nonnull final World world) {
 		world.setBlockState(blockPos, Blocks.AIR.getDefaultState(), 2);
 		blockState = Blocks.AIR.getDefaultState();
 		updateBlockType(world);
 	}
 	
-	private void setBlockToAirFlow(final World world) {
+	private void setBlockToAirFlow(@Nonnull final World world) {
 		world.setBlockState(blockPos, WarpDrive.blockAirFlow.getDefaultState(), 2);
 		blockState = WarpDrive.blockAirFlow.getDefaultState();
 		updateBlockType(world);
 	}
 	
-	public boolean setAirSource(final World world, final EnumFacing direction, final short pressure) {
+	public boolean setAirSource(@Nonnull final World world, @Nonnull final Direction direction, final short pressure) {
 		assert blockState != null;
 		
 		final boolean isPlaceable = (dataAir & BLOCK_MASK) == BLOCK_AIR_PLACEABLE
 		                         || (dataAir & BLOCK_MASK) == BLOCK_AIR_FLOW
 		                         || (dataAir & BLOCK_MASK) == BLOCK_AIR_SOURCE;
 		final boolean updateRequired = (blockState.getBlock() != WarpDrive.blockAirSource)
-		         || pressureGenerator != pressure
-		         || pressureVoid != 0
-		         || concentration != CONCENTRATION_MAX;
+		                            || pressureGenerator != pressure
+		                            || pressureVoid != 0
+		                            || concentration != CONCENTRATION_MAX;
 		
 		if (updateRequired && isPlaceable) {
 			// block metadata is direction going away from generator, while internal direction is towards the generator
-			blockState = WarpDrive.blockAirSource.getDefaultState().withProperty(BlockProperties.FACING, direction);
+			blockState = WarpDrive.blockAirSource.getDefaultState().with(BlockProperties.FACING, direction);
 			world.setBlockState(blockPos, blockState, 2);
 			updateBlockType(world);
 			try {
@@ -236,62 +240,56 @@ public class StateAir {
 			typeBlock = BLOCK_AIR_PLACEABLE;
 			
 		} else if ( blockState.getMaterial() == Material.LEAVES
-		         || block.isFoliage(world, blockPos) ) {// leaves and assimilated
+		         || block.isFoliage(blockState, world, blockPos) ) {// leaves and assimilated
 			typeBlock = BLOCK_AIR_NON_PLACEABLE;
 			
 		} else if (block instanceof BlockAirSource) {
 			typeBlock = BLOCK_AIR_SOURCE;
 			
-		} else if (blockState.isNormalCube()) {
+		} else if (blockState.isNormalCube(world, blockPos)) {
 			typeBlock = BLOCK_SEALER;
 			
 		} else if (block instanceof BlockAbstractOmnipanel) {
 			typeBlock = BLOCK_SEALER;
 			
-		} else if (block instanceof BlockStairs) {
+		} else if (block instanceof StairsBlock) {
 			// stairs are reporting slab collision box, so we can't detect them automatically
 			typeBlock = BLOCK_SEALER;
 			
-		} else if ( block instanceof BlockStaticLiquid
-		         || block instanceof BlockDynamicLiquid ) {// vanilla liquid (water & lava sources or flowing)
-			// metadata = 0 for source, 8/9 for vertical flow
-			// 2 superposed sources would still be 0, so we can't use metadata. Instead, we're testing explicitly the block above
+		} else if (block instanceof FlowingFluidBlock) {// vanilla liquid (water & lava sources or flowing)
+			// 2 superposed sources would still be same level, so we can't use properties. Instead, we're testing explicitly the block above
 			// we assume it's the same fluid, since water and lava won't mix anyway
-			final Block blockAbove = world.getBlockState(blockPos.offset(EnumFacing.UP)).getBlock();
-			// @TODO: confirm blockPos wasn't modified
-			if (blockAbove == block || blockAbove instanceof BlockStaticLiquid || blockAbove instanceof BlockDynamicLiquid) {
+			final boolean isHighDensity = !((FlowingFluidBlock) block).getFluid().getAttributes().isLighterThanAir();
+			final Block blockFlowing = world.getBlockState(blockPos.offset(isHighDensity ? Direction.UP : Direction.DOWN)).getBlock();
+			if ( blockFlowing == block
+			  || blockFlowing instanceof FlowingFluidBlock ) {
 				typeBlock = BLOCK_SEALER;
 			} else {
 				typeBlock = BLOCK_AIR_NON_PLACEABLE_H;
 			}
 			
-		} else if (block instanceof BlockFluidBase) {// forge fluid
-			// metadata = 0 for source, 1 for flowing full (first horizontal or any vertical, 2+ for flowing away
+		} else if (block instanceof IFluidBlock) {// forge fluid
 			// check density to get fluid direction
-			final int density = BlockFluidBase.getDensity(world, blockPos);
-			// positive density means fluid flowing down, so checking upper block
-			final Block blockFlowing = world.getBlockState(blockPos.offset(density > 0 ? EnumFacing.UP : EnumFacing.DOWN)).getBlock();
+			final boolean isHighDensity = !((IFluidBlock) block).getFluid().getAttributes().isLighterThanAir();
+			// high density means fluid flowing down, so checking upper block
+			final Block blockFlowing = world.getBlockState(blockPos.offset(isHighDensity ? Direction.UP : Direction.DOWN)).getBlock();
 			if (blockFlowing == block) {
 				typeBlock = BLOCK_SEALER;
 			} else {
 				typeBlock = BLOCK_AIR_NON_PLACEABLE_H;
 			}
 			
-		} else if ( block.isAir(blockState, world, blockPos)
-		         || block.isReplaceable(world, blockPos) ) {// decoration like grass, modded replaceable air
-			typeBlock = BLOCK_AIR_NON_PLACEABLE;
-			
-		} else if (block instanceof BlockPane) {
+		} else if (block instanceof PaneBlock) {
 			typeBlock = BLOCK_AIR_NON_PLACEABLE_V;
 			
 		} else {
-			final AxisAlignedBB axisAlignedBB = blockState.getCollisionBoundingBox(world, blockPos);
-			if (axisAlignedBB == null) {
+			final VoxelShape collisionShape = blockState.getCollisionShape(world, blockPos, ISelectionContext.dummy());
+			if (collisionShape.isEmpty()) {
 				typeBlock = BLOCK_AIR_NON_PLACEABLE;
 			} else {
-				final boolean fullX = axisAlignedBB.maxX - axisAlignedBB.minX > 0.99D;
-				final boolean fullY = axisAlignedBB.maxY - axisAlignedBB.minY > 0.99D;
-				final boolean fullZ = axisAlignedBB.maxZ - axisAlignedBB.minZ > 0.99D;
+				final boolean fullX = collisionShape.getEnd(Axis.X) - collisionShape.getStart(Axis.X) > 0.99D;
+				final boolean fullY = collisionShape.getEnd(Axis.Y) - collisionShape.getStart(Axis.Y) > 0.99D;
+				final boolean fullZ = collisionShape.getEnd(Axis.Z) - collisionShape.getStart(Axis.Z) > 0.99D;
 				if (fullX && fullY && fullZ) {// all axis are full, it's probably a full block with custom render
 					typeBlock = BLOCK_SEALER;
 				} else if (fullX && fullZ) {// it's sealed vertically, leaking horizontally
@@ -356,12 +354,12 @@ public class StateAir {
 				updateBlockCache(world);
 			}
 			if (isAirFlow()) {
-				world.setBlockState(blockPos, WarpDrive.blockAirFlow.getDefaultState().withProperty(BlockAirFlow.CONCENTRATION, (int) concentrationNew), 3);
+				world.setBlockState(blockPos, WarpDrive.blockAirFlow.getDefaultState().with(BlockAirFlow.CONCENTRATION, (int) concentrationNew), 3);
 			}
 		}
 	}
 	
-	protected void setGeneratorAndUpdateVoid(final World world, final short pressureNew, final EnumFacing directionNew) throws ExceptionChunkNotLoaded {
+	protected void setGeneratorAndUpdateVoid(final World world, final short pressureNew, final Direction directionNew) throws ExceptionChunkNotLoaded {
 		if (pressureNew == 0 && pressureVoid > 0) {
 			removeGeneratorAndCascade(world);
 		} else {
@@ -370,7 +368,7 @@ public class StateAir {
 		}
 	}
 	
-	private void setGenerator(final short pressureNew, final EnumFacing directionNew) {
+	private void setGenerator(final short pressureNew, final Direction directionNew) {
 		boolean isUpdated = false;
 		if (pressureNew != pressureGenerator) {
 			assert pressureNew >= 0 && pressureNew <= GENERATOR_PRESSURE_MAX;
@@ -403,7 +401,7 @@ public class StateAir {
 			chunkData.setDataAir(blockPos.getX(), blockPos.getY(), blockPos.getZ(), dataAir);
 			if (depth > 0) {
 				final StateAir stateAir = new StateAir(chunkData);
-				for (final EnumFacing direction : EnumFacing.values()) {
+				for (final Direction direction : Direction.values()) {
 					stateAir.refresh(world, this, direction);
 					if ( stateAir.pressureGenerator > 0
 					  && stateAir.directionGenerator == direction.getOpposite() ) {
@@ -414,7 +412,7 @@ public class StateAir {
 		}
 	}
 	
-	protected void setVoid(final short pressureNew, final EnumFacing directionNew) {
+	protected void setVoid(final short pressureNew, final Direction directionNew) {
 		boolean isUpdated = false;
 		if (pressureNew != pressureVoid) {
 			assert pressureNew >= 0 && pressureNew <= VOID_PRESSURE_MAX;
@@ -447,7 +445,7 @@ public class StateAir {
 			chunkData.setDataAir(blockPos.getX(), blockPos.getY(), blockPos.getZ(), dataAir);
 			if (depth > 0) {
 				final StateAir stateAir = new StateAir(chunkData);
-				for (final EnumFacing direction : EnumFacing.values()) {
+				for (final Direction direction : Direction.values()) {
 					stateAir.refresh(world, this, direction);
 					if (stateAir.pressureVoid > 0 && stateAir.directionVoid == direction.getOpposite()) {
 						stateAir.removeVoidAndCascade(world, depth - 1);
@@ -461,7 +459,7 @@ public class StateAir {
 		return (dataAir & BLOCK_MASK) != BLOCK_SEALER;
 	}
 	
-	public boolean isAir(final EnumFacing forgeDirection) {
+	public boolean isAir(final Direction forgeDirection) {
 		switch (dataAir & BLOCK_MASK) {
 			case BLOCK_SEALER              : return false;
 			case BLOCK_AIR_PLACEABLE       : return true;
@@ -520,7 +518,7 @@ public class StateAir {
 		return dataNoDirection | (directionGenerator << GENERATOR_DIRECTION_SHIFT) | (directionVoid << VOID_DIRECTION_SHIFT);
 	}
 	
-	public static void dumpAroundEntity(final EntityPlayer entityPlayer) {
+	public static void dumpAroundEntity(final PlayerEntity entityPlayer) {
 		try {
 			final StateAir[][][] stateAirs = new StateAir[3][3][3];
 			for (int dy = -1; dy <= 1; dy++) {
@@ -528,9 +526,9 @@ public class StateAir {
 					for (int dx = -1; dx <= 1; dx++) {
 						final StateAir stateAir = new StateAir(null);
 						stateAir.refresh(entityPlayer.world,
-						                 MathHelper.floor(entityPlayer.posX) + dx,
-						                 MathHelper.floor(entityPlayer.posY) + dy,
-						                 MathHelper.floor(entityPlayer.posZ) + dz);
+						                 MathHelper.floor(entityPlayer.getPosX()) + dx,
+						                 MathHelper.floor(entityPlayer.getPosY()) + dy,
+						                 MathHelper.floor(entityPlayer.getPosZ()) + dz);
 						stateAirs[dx + 1][dy + 1][dz + 1] = stateAir;
 					}
 				}
@@ -564,13 +562,13 @@ public class StateAir {
 					else message.append("§f/");
 				}
 			}
-  		Commons.addChatMessage(entityPlayer, new TextComponentString(message.toString()));  // @TODO convert formatting chain
+			Commons.addChatMessage(entityPlayer, new StringTextComponent(message.toString()));  // @TODO convert formatting chain
 		} catch (final ExceptionChunkNotLoaded exceptionChunkNotLoaded) {
 			// no operation
 		}
 	}
 	
-	private static String directionToChar(final EnumFacing direction) {
+	private static String directionToChar(final Direction direction) {
 		if (direction == null) {
 			return "?";
 		}

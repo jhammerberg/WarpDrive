@@ -2,11 +2,11 @@ package cr0s.warpdrive.data;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.api.WarpDriveText;
+import cr0s.warpdrive.block.TileEntityAbstractEnergy;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import javax.annotation.Nonnull;
 
-import cofh.redstoneflux.api.IEnergyContainerItem;
 import gregtech.api.capability.GregtechCapabilities;
 import ic2.api.item.ElectricItem;
 import ic2.api.item.IElectricItem;
@@ -16,9 +16,8 @@ import ic2.api.item.ISpecialElectricItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
-import net.minecraftforge.energy.CapabilityEnergy;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.fml.common.Optional;
 
 public class EnergyWrapper {
 	
@@ -360,7 +359,6 @@ public class EnergyWrapper {
 	}
 	
 	// IndustrialCraft IElectricItem interface
-	@Optional.Method(modid = "ic2")
 	private static IElectricItemManager IC2_getManager(final ItemStack itemStack) {
 		final Item item = itemStack.getItem();
 		if (item instanceof ISpecialElectricItem) {
@@ -371,18 +369,12 @@ public class EnergyWrapper {
 		}
 		return ElectricItem.getBackupManager(itemStack);
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private static boolean IC2_isEnergyContainer(final ItemStack itemStack) {
 		return itemStack.getItem() instanceof IElectricItem;
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private static boolean IC2_canOutput(final ItemStack itemStack) {
 		return ((IElectricItem) itemStack.getItem()).canProvideEnergy(itemStack);
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private static boolean IC2_canInput(final ItemStack itemStack) {
 		final IElectricItemManager electricItemManager = IC2_getManager(itemStack);
 		if (electricItemManager == null) {
@@ -390,8 +382,6 @@ public class EnergyWrapper {
 		}
 		return electricItemManager.getCharge(itemStack) < IC2_getMaxEnergyStorage(itemStack);
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private static double IC2_getEnergyStored(final ItemStack itemStack) {
 		final IElectricItemManager electricItemManager = IC2_getManager(itemStack);
 		if (electricItemManager == null) {
@@ -399,13 +389,9 @@ public class EnergyWrapper {
 		}
 		return electricItemManager.getCharge(itemStack);
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private static double IC2_getMaxEnergyStorage(final ItemStack itemStack) {
 		return ((IElectricItem) itemStack.getItem()).getMaxCharge(itemStack);
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private static double IC2_consume(final ItemStack itemStack, final double amount_EU, final boolean simulate) {
 		final IElectricItemManager electricItemManager = IC2_getManager(itemStack);
 		if (electricItemManager == null) {
@@ -420,8 +406,6 @@ public class EnergyWrapper {
 		}
 		return 0.0D;
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private static double IC2_charge(final ItemStack itemStack, final double amount_EU, final boolean simulate) {
 		final IElectricItemManager electricItemManager = IC2_getManager(itemStack);
 		if (electricItemManager == null) {
@@ -439,92 +423,85 @@ public class EnergyWrapper {
 	
 	
 	// Gregtech energy capability
-	@Optional.Method(modid = "gregtech")
 	private static boolean GT_isEnergyContainer(final ItemStack itemStack) {
-		return itemStack.hasCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+		return itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null).isPresent();
 	}
 	
-	@Optional.Method(modid = "gregtech")
 	private static boolean GT_canOutput(final ItemStack itemStack) {
-		final gregtech.api.capability.IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
-		assert electricItem != null;
-		return electricItem.canProvideChargeExternally();
+		final LazyOptional<gregtech.api.capability.IElectricItem> electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+		assert electricItem.isPresent();
+		return electricItem.orElse(null).canProvideChargeExternally();
 	}
 	
-	@Optional.Method(modid = "gregtech")
 	private static boolean GT_canInput(final ItemStack itemStack) {
-		final gregtech.api.capability.IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
-		assert electricItem != null;
-		return electricItem.canUse(1L);
+		final LazyOptional<gregtech.api.capability.IElectricItem> electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+		assert electricItem.isPresent();
+		return electricItem.orElse(null).canUse(1L);
 	}
 	
-	@Optional.Method(modid = "gregtech")
 	private static long GT_getEnergyStored(final ItemStack itemStack) {
-		final gregtech.api.capability.IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
-		assert electricItem != null;
-		return electricItem.discharge(Integer.MAX_VALUE, Integer.MAX_VALUE, true, true, true);
+		final LazyOptional<gregtech.api.capability.IElectricItem> electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+		assert electricItem.isPresent();
+		return electricItem.orElse(null).discharge(Integer.MAX_VALUE, Integer.MAX_VALUE, true, true, true);
 	}
 	
-	@Optional.Method(modid = "gregtech")
 	private static long GT_getMaxEnergyStorage(final ItemStack itemStack) {
-		final gregtech.api.capability.IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
-		assert electricItem != null;
-		return electricItem.getMaxCharge();
+		final LazyOptional<gregtech.api.capability.IElectricItem> electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+		assert electricItem.isPresent();
+		return electricItem.orElse(null).getMaxCharge();
 	}
 	
-	@Optional.Method(modid = "gregtech")
 	private static long GT_consume(final ItemStack itemStack, final long amount_EU, final boolean simulate) {
-		final gregtech.api.capability.IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
-		assert electricItem != null;
-		return electricItem.discharge(amount_EU, Integer.MAX_VALUE, true, true, simulate);
+		final LazyOptional<gregtech.api.capability.IElectricItem> electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+		assert electricItem.isPresent();
+		return electricItem.orElse(null).discharge(amount_EU, Integer.MAX_VALUE, true, true, simulate);
 	}
 	
-	@Optional.Method(modid = "gregtech")
 	private static long GT_charge(final ItemStack itemStack, final long amount_EU, final boolean simulate) {
-		final gregtech.api.capability.IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
-		assert electricItem != null;
-		return electricItem.charge(amount_EU, Integer.MAX_VALUE, true, simulate);
+		final LazyOptional<gregtech.api.capability.IElectricItem> electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+		assert electricItem.isPresent();
+		return electricItem.orElse(null).charge(amount_EU, Integer.MAX_VALUE, true, simulate);
 	}
 	
 	
 	// Forge Energy capability
 	private static boolean FE_isEnergyContainer(final ItemStack itemStack) {
-		return itemStack.hasCapability(CapabilityEnergy.ENERGY, null);
+		return itemStack.getCapability(TileEntityAbstractEnergy.FE_CAPABILITY_ENERGY, null).isPresent();
 	}
 	
 	private static boolean FE_canOutput(final ItemStack itemStack) {
-		final IEnergyStorage energyStorage = itemStack.getCapability(CapabilityEnergy.ENERGY, null);
-		assert energyStorage != null;
-		return energyStorage.canExtract();
+		final LazyOptional<IEnergyStorage> energyStorage = itemStack.getCapability(TileEntityAbstractEnergy.FE_CAPABILITY_ENERGY, null);
+		assert energyStorage.isPresent();
+		return energyStorage.orElse(null).canExtract();
 	}
 	
 	private static boolean FE_canInput(final ItemStack itemStack) {
-		final IEnergyStorage energyStorage = itemStack.getCapability(CapabilityEnergy.ENERGY, null);
-		assert energyStorage != null;
-		return energyStorage.canReceive();
+		final LazyOptional<IEnergyStorage> energyStorage = itemStack.getCapability(TileEntityAbstractEnergy.FE_CAPABILITY_ENERGY, null);
+		assert energyStorage.isPresent();
+		return energyStorage.orElse(null).canReceive();
 	}
 	
 	private static int FE_getEnergyStored(final ItemStack itemStack) {
-		final IEnergyStorage energyStorage = itemStack.getCapability(CapabilityEnergy.ENERGY, null);
-		assert energyStorage != null;
-		return (int) Math.floor( energyStorage.getEnergyStored() );
+		final LazyOptional<IEnergyStorage> energyStorage = itemStack.getCapability(TileEntityAbstractEnergy.FE_CAPABILITY_ENERGY, null);
+		assert energyStorage.isPresent();
+		return (int) Math.floor( energyStorage.orElse(null).getEnergyStored() );
 	}
 	
 	private static int FE_getMaxEnergyStorage(final ItemStack itemStack) {
-		final IEnergyStorage energyStorage = itemStack.getCapability(CapabilityEnergy.ENERGY, null);
-		assert energyStorage != null;
-		return (int) Math.floor( energyStorage.getMaxEnergyStored() );
+		final LazyOptional<IEnergyStorage> energyStorage = itemStack.getCapability(TileEntityAbstractEnergy.FE_CAPABILITY_ENERGY, null);
+		assert energyStorage.isPresent();
+		return (int) Math.floor( energyStorage.orElse(null).getMaxEnergyStored() );
 	}
 	
 	private static int FE_consume(final ItemStack itemStack, final int amount_FE, final boolean simulate) {
-		final IEnergyStorage energyStorage = itemStack.getCapability(CapabilityEnergy.ENERGY, null);
-		assert energyStorage != null;
-		return energyStorage.extractEnergy(amount_FE, simulate);
+		final LazyOptional<IEnergyStorage> energyStorage = itemStack.getCapability(TileEntityAbstractEnergy.FE_CAPABILITY_ENERGY, null);
+		assert energyStorage.isPresent();
+		return energyStorage.orElse(null).extractEnergy(amount_FE, simulate);
 	}
 	
 	private static int FE_charge(final ItemStack itemStack, final int amount_FE, final boolean simulate) {
-		final IEnergyStorage energyStorage = itemStack.getCapability(CapabilityEnergy.ENERGY, null);
-		assert energyStorage != null;
-		return energyStorage.receiveEnergy(amount_FE, simulate);
+		final LazyOptional<IEnergyStorage> energyStorage = itemStack.getCapability(TileEntityAbstractEnergy.FE_CAPABILITY_ENERGY, null);
+		assert energyStorage.isPresent();
+		return energyStorage.orElse(null).receiveEnergy(amount_FE, simulate);
 	}
 }

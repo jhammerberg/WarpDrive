@@ -4,17 +4,21 @@ import cr0s.warpdrive.entity.EntityNPC;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.client.model.ModelBiped;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.entity.RenderLivingBase;
-import net.minecraft.client.renderer.entity.RenderManager;
-import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.entity.EntityRendererManager;
+import net.minecraft.client.renderer.entity.LivingRenderer;
+import net.minecraft.client.renderer.entity.model.BipedModel;
 import net.minecraft.util.ResourceLocation;
 
-public class RenderEntityNPC extends RenderLivingBase<EntityNPC> {
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
+
+public class RenderEntityNPC extends LivingRenderer<EntityNPC, BipedModel<EntityNPC>> {
 	
-	public RenderEntityNPC(@Nonnull final RenderManager renderManager) {
-		super(renderManager, new ModelBiped(), 0.5F);
+	public static final ResourceLocation LOCATION_MISSING_TEXTURE = new ResourceLocation("missingno");
+	
+	public RenderEntityNPC(@Nonnull final EntityRendererManager renderManager) {
+		super(renderManager, new BipedModel<>(1.0F), 0.5F);
 		
 		/*
 		@TODO: a redesign needed so that we dispatch to original renderers instead of reimplementing them
@@ -43,16 +47,16 @@ public class RenderEntityNPC extends RenderLivingBase<EntityNPC> {
 	}
 	
 	@Override
-	protected void preRenderCallback(@Nonnull final EntityNPC entityNPC, final float partialTickTime) {
-		super.preRenderCallback(entityNPC, partialTickTime);
+	protected void preRenderCallback(@Nonnull final EntityNPC entityNPC, @Nonnull final MatrixStack matrixStack, final float partialTickTime) {
+		super.preRenderCallback(entityNPC, matrixStack, partialTickTime);
 		
 		final float sizeScale = entityNPC.getSizeScale();
-		GlStateManager.scale(sizeScale, sizeScale, sizeScale);
+		RenderSystem.scalef(sizeScale, sizeScale, sizeScale);
 	}
 	
+	@Nonnull
 	@Override
-	protected ResourceLocation getEntityTexture(@Nonnull final EntityNPC entityNPC) {
-		
+	public ResourceLocation getEntityTexture(@Nonnull final EntityNPC entityNPC) {
 		final String textureString = entityNPC.getTextureString();
 		if ( !textureString.isEmpty()
 		  && ( textureString.contains(":")
@@ -60,11 +64,12 @@ public class RenderEntityNPC extends RenderLivingBase<EntityNPC> {
 			return new ResourceLocation(textureString);
 		}
 		
-		return TextureMap.LOCATION_MISSING_TEXTURE;
+		return LOCATION_MISSING_TEXTURE;
 	}
 	
 	@Override
-	public void doRender(@Nonnull final EntityNPC entityNPC, final double x, final double y, final double z, final float entityYaw, final float partialTicks) {
-		super.doRender(entityNPC, x, y, z, entityYaw, partialTicks);
+	public void render(@Nonnull final EntityNPC entityNPC, float entityYaw, final float partialTicks,
+	                   @Nonnull final MatrixStack matrixStack, @Nonnull final IRenderTypeBuffer buffer, final int packedLightIn) {
+		super.render(entityNPC, entityYaw, partialTicks, matrixStack, buffer, packedLightIn);
 	}
 }

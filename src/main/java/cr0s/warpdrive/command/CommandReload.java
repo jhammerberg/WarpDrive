@@ -24,14 +24,14 @@ public class CommandReload extends AbstractCommand {
 	
 	@Nonnull
 	@Override
-	public String getUsage(@Nonnull final ICommandSender commandSender) {
+	public String getUsage(@Nonnull final ICommandSource commandSource) {
 		return "/wreload";
 	}
 	
 	@Override
-	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSender commandSender, @Nonnull final String[] params) {
+	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSource commandSource, @Nonnull final String[] params) {
 		WarpDriveConfig.reload(server);
-		Commons.addChatMessage(commandSender, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.command.configuration_reloaded"));
-		Commons.addChatMessage(commandSender, new WarpDriveText(Commons.getStyleWarning(), "warpdrive.command.liability_warning"));
+		Commons.addChatMessage(commandSource, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.command.configuration_reloaded"));
+		Commons.addChatMessage(commandSource, new WarpDriveText(Commons.getStyleWarning(), "warpdrive.command.liability_warning"));
 	}
 }

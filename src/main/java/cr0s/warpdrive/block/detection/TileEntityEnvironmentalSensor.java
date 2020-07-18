@@ -16,14 +16,17 @@ import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Set;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.biome.Biome;
-
+import net.minecraft.world.biome.Biome.RainType;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.BiomeDictionary.Type;
-import net.minecraftforge.fml.common.Optional;
 
 public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
+	
+	public static TileEntityType<TileEntityEnvironmentalSensor> TYPE;
 	
 	// persistent properties
 	// (none)
@@ -33,7 +36,7 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 	private int airConcentration;
 	
 	public TileEntityEnvironmentalSensor() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveEnvironmentalSensor";
 		addMethods(new String[] {
@@ -48,10 +51,11 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -61,7 +65,7 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 		}
 		tickUpdate = WarpDriveConfig.G_PARAMETERS_UPDATE_INTERVAL_TICKS;
 		
-		final IBlockState blockState = world.getBlockState(pos);
+		final BlockState blockState = world.getBlockState(pos);
 		updateBlockState(blockState, BlockProperties.ACTIVE, isEnabled);
 		
 		// update breathable state from main thread
@@ -85,7 +89,8 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 	}
 	
 	public Object[] getBiome() {
-		if (!isEnabled) {
+		if ( world == null
+		  || !isEnabled ) {
 			return new Object[] { false, "Sensor is disabled." };
 		}
 		
@@ -93,7 +98,7 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 		final Set<Type> types = BiomeDictionary.getTypes(biome);
 		final Object[] result = new Object[2 + types.size()];
 		result[0] = true;
-		result[1] = biome.biomeName;
+		result[1] = new TranslationTextComponent(biome.getTranslationKey()).getUnformattedComponentText();
 		int index = 2;
 		for (final Type type : types) {
 			result[index] = type.getName();
@@ -103,18 +108,20 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 	}
 	
 	public Object[] getHumidity() {
-		if (!isEnabled) {
+		if ( world == null
+		  || !isEnabled ) {
 			return new Object[] { false, "Sensor is disabled." };
 		}
 		
 		// note: we don't account for surroundings and current weather or day time.
 		final Biome biome = world.getBiome(pos);
-		final float rainfall = biome.getRainfall();
+		final float rainfall = biome.getDownfall();
 		return new Object[] { true, rainfall > 0.85F ? "WET" : rainfall < 0.15F ? "DRY" : "MEDIUM", rainfall };
 	}
 	
 	public Object[] getTemperature() {
-		if (!isEnabled) {
+		if ( world == null
+		  || !isEnabled ) {
 			return new Object[] { false, "Sensor is disabled." };
 		}
 		
@@ -124,8 +131,9 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 	}
 	
 	private boolean isSnowNotRain() {
+		assert world != null;
 		final Biome biome = world.getBiome(pos);
-		if (biome.getEnableSnow()) {
+		if (biome.getPrecipitation() == RainType.SNOW) {
 			return true;
 		}
 		// note: base game is a bit inconsistent. We follow the snow particles rule as this is closer to weather/atmosphere.
@@ -133,14 +141,13 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 		// - snow particles are rendered instead of rain when correctedTemperature is below 0.15
 		// - cauldron is filling when rawTemperature is above 0.15
 		// - water freeze when rawTemperature is below 0.15, light below 10 and not surrounded by 4 water blocks
-		final int precipitationHeight = world.getPrecipitationHeight(pos).getY();
-		final float rawTemperature = biome.getTemperature(pos);
-		final float correctedTemperature = world.getBiomeProvider().getTemperatureAtHeight(rawTemperature, precipitationHeight);
-		return correctedTemperature < 0.15F;
+		final float temperature = biome.getTemperature(pos);
+		return temperature < 0.15F;
 	}
 	
 	public Object[] getWeather() {
-		if (!isEnabled) {
+		if ( world == null
+		  || !isEnabled ) {
 			return new Object[] { false, "Sensor is disabled." };
 		}
 		
@@ -158,7 +165,7 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 				return new Object[] { true, "RAIN", world.getWorldInfo().getRainTime() / 20 };
 			}
 		}
-		return new Object[] { true, "CLEAR", world.getWorldInfo().getCleanWeatherTime() / 20 };
+		return new Object[] { true, "CLEAR", world.getWorldInfo().getClearWeatherTime() / 20 };
 	}
 	
 	public Object[] getWorldTime() {
@@ -168,57 +175,51 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 		
 		// returns the current day, hour of the day, minutes of the day, and number of seconds simulated in the world (or play time for single player).
 		// note: we return simulated seconds as it's more natural and discourages continuous pooling/abuse in LUA.
-		final int day = (int) ((6000L + world.getWorldTime()) / 24000L);
-		final int dayTime = 2400 * (int) ((6000L + world.getWorldTime()) % 24000L) / 24000;
-		return new Object[] { true, day, dayTime / 100, (dayTime % 100) * 60 / 100, world.getTotalWorldTime() / 20 };
+		assert world != null;
+		final int day = (int) ((6000L + world.getDayTime()) / 24000L);
+		final int dayTime = 2400 * (int) ((6000L + world.getDayTime()) % 24000L) / 24000;
+		return new Object[] { true, day, dayTime / 100, (dayTime % 100) * 60 / 100, world.getGameTime() / 20 };
 	}
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getAtmosphere(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getAtmosphere();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getBiome(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getBiome();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getHumidity(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getHumidity();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getTemperature(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getTemperature();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getWeather(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getWeather();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getWorldTime(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getWorldTime();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "getAtmosphere":

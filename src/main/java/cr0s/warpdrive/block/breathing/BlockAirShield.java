@@ -8,48 +8,45 @@ import javax.annotation.Nullable;
 
 import java.util.List;
 
+import net.minecraft.block.BlockState;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.item.DyeColor;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.util.math.shapes.ISelectionContext;
+import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.util.math.shapes.VoxelShapes;
+import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
 public class BlockAirShield extends BlockAbstractOmnipanel {
 	
-	public BlockAirShield(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier, Material.CLOTH);
-		
-		setTranslationKey("warpdrive.breathing.air_shield");
+	protected final DyeColor dyeColor;
+	
+	public BlockAirShield(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final DyeColor dyeColor) {
+		super(getDefaultProperties(Material.WOOL),
+		      registryName, enumTier );
+		this.dyeColor = dyeColor;
 	}
 	
 	@SuppressWarnings("deprecation")
 	@Override
-	public boolean causesSuffocation(@Nonnull final IBlockState blockState) {
+	public boolean causesSuffocation(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos) {
 		return false;
 	}
 	
 	@Override
-	public void addCollisionBoxToList(final IBlockState blockState, final @Nonnull World world, final @Nonnull BlockPos blockPos,
+	public void addCollisionBoxToList(final BlockState blockState, final @Nonnull World world, final @Nonnull BlockPos blockPos,
 	                                  final @Nonnull AxisAlignedBB entityBox, final @Nonnull List<AxisAlignedBB> collidingBoxes,
 	                                  final @Nullable Entity entity, final boolean isActualState) {
 	}
 	
 	@SuppressWarnings("deprecation")
-	@Nullable
+	@Nonnull
 	@Override
-	public AxisAlignedBB getCollisionBoundingBox(@Nonnull final IBlockState blockState, @Nonnull final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos) {
-		return NULL_AABB;
-	}
-	
-	@Override
-	public boolean canCollideCheck(@Nonnull final IBlockState blockState, final boolean hitIfLiquid) {
-		return !hitIfLiquid;
-	}
-	
-	@Override
-	public boolean isCollidable() {
-		return false;
+	public VoxelShape getCollisionShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
+	                                    @Nonnull final ISelectionContext selectionContext) {
+		return VoxelShapes.empty();
 	}
 }

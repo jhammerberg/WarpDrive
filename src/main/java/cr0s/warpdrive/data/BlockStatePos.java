@@ -2,15 +2,15 @@ package cr0s.warpdrive.data;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 
 public class BlockStatePos implements Comparable<BlockStatePos> {
 	
 	public final BlockPos blockPos;
-	public final IBlockState blockState;
+	public final BlockState blockState;
 	
-	public BlockStatePos(@Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
+	public BlockStatePos(@Nonnull final BlockPos blockPos, @Nonnull final BlockState blockState) {
 		this.blockPos = blockPos.toImmutable();
 		this.blockState = blockState;
 	}

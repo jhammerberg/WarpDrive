@@ -5,30 +5,33 @@ import cr0s.warpdrive.block.TileEntityAbstractInterfaced;
 import javax.annotation.Nonnull;
 import java.util.Collections;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 
 public class TileEntityWeaponController extends TileEntityAbstractInterfaced {
 	
+	public static TileEntityType<TileEntityWeaponController> TYPE;
+	
 	public TileEntityWeaponController() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveWeaponController";
 		CC_scripts = Collections.singletonList("startup");
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		return super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		return super.write(tagCompound);
 	}
 }

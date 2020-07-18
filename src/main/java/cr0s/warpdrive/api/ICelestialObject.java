@@ -1,6 +1,9 @@
 package cr0s.warpdrive.api;
 
-import net.minecraft.nbt.NBTTagCompound;
+import javax.annotation.Nonnull;
+
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 
 public interface ICelestialObject {
@@ -12,7 +15,7 @@ public interface ICelestialObject {
 	
 	String getDescription();
 	
-	NBTTagCompound getTag();
+	CompoundNBT getTag();
 	
 	boolean isVirtual();
 	
@@ -37,7 +40,7 @@ public interface ICelestialObject {
 	 * @param aabb bounding box that should fit within border
 	 * @return true if we're fully inside the border
 	 */
-	boolean isInsideBorder(final AxisAlignedBB aabb);
+	boolean isInsideBorder(@Nonnull final AxisAlignedBB aabb);
 	
 	/**
 	 * Verify that the given position is within the border.
@@ -57,5 +60,5 @@ public interface ICelestialObject {
 	 * @param z current position in parent dimension
 	 * @return true if we're in orbit of the object
 	 */
-	boolean isInOrbit(final int dimensionId, final double x, final double z);
+	boolean isInOrbit(@Nonnull final ResourceLocation dimensionId, final double x, final double z);
 }

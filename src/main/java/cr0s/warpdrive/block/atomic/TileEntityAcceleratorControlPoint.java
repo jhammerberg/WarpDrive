@@ -12,12 +12,14 @@ import li.cil.oc.api.machine.Arguments;
 import li.cil.oc.api.machine.Callback;
 import li.cil.oc.api.machine.Context;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 
 import javax.annotation.Nonnull;
 
 public class TileEntityAcceleratorControlPoint extends TileEntityAbstractMachine implements IControlChannel {
+	
+	public static TileEntityType<TileEntityAcceleratorControlPoint> TYPE;
 	
 	// persistent properties
 	private int controlChannel = -1;
@@ -27,7 +29,10 @@ public class TileEntityAcceleratorControlPoint extends TileEntityAbstractMachine
 	private int updateTicks;
 	
 	public TileEntityAcceleratorControlPoint() {
-		super();
+		this(TYPE);
+	}
+	public TileEntityAcceleratorControlPoint(@Nonnull final TileEntityType<? extends TileEntityAcceleratorControlPoint> tileEntityType) {
+		super(tileEntityType);
 		
 		peripheralName = "warpdriveAcceleratorControlPoint";
 		addMethods(new String[] {
@@ -37,15 +42,16 @@ public class TileEntityAcceleratorControlPoint extends TileEntityAbstractMachine
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -57,8 +63,8 @@ public class TileEntityAcceleratorControlPoint extends TileEntityAbstractMachine
 	}
 	
 	@Override
-	public void invalidate() {
-		super.invalidate();
+	public void remove() {
+		super.remove();
 	}
 	
 	@Override
@@ -97,18 +103,18 @@ public class TileEntityAcceleratorControlPoint extends TileEntityAbstractMachine
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		controlChannel = tagCompound.getInteger(CONTROL_CHANNEL_TAG);
+		controlChannel = tagCompound.getInt(CONTROL_CHANNEL_TAG);
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setInteger(CONTROL_CHANNEL_TAG, controlChannel);
+		tagCompound.putInt(CONTROL_CHANNEL_TAG, controlChannel);
 		return tagCompound;
 	}
 	
@@ -138,21 +144,18 @@ public class TileEntityAcceleratorControlPoint extends TileEntityAbstractMachine
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] controlChannel(final Context context, final Arguments arguments) {
 		return controlChannel(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] state(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return state();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "controlChannel":

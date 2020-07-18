@@ -5,21 +5,19 @@ import cr0s.warpdrive.data.EnumTier;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.block.material.Material;
+import net.minecraft.block.BlockState;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.World;
+import net.minecraft.world.IBlockReader;
 
 public class BlockJumpGateCore extends BlockAbstractContainer {
 	
-	public BlockJumpGateCore(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier, Material.IRON);
-		
-		setTranslationKey("warpdrive.movement.jump_gate_core." + enumTier.getName());
+	public BlockJumpGateCore(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(getDefaultProperties(null), registryName, enumTier);
 	}
 	
 	@Nonnull
 	@Override
-	public TileEntity createNewTileEntity(@Nonnull final World world, final int metadata) {
+	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
 		return new TileEntityJumpGateCore();
 	}
 }

@@ -12,13 +12,13 @@ import java.util.Map.Entry;
 
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
@@ -55,7 +55,7 @@ public class CommandEntity extends AbstractCommand {
 	
 	@Nonnull
 	@Override
-	public String getUsage(@Nonnull final ICommandSender commandSender) {
+	public String getUsage(@Nonnull final ICommandSource commandSource) {
 		return "/" + getName() + " <radius> <filter> <kill?>"
 			+ "\nradius: - or <= 0 to check all loaded in current world, 1+ blocks around player"
 			+ "\nfilter: * to get all, anything else is a case insensitive string"
@@ -63,9 +63,9 @@ public class CommandEntity extends AbstractCommand {
 	}
 	
 	@Override
-	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSender commandSender, @Nonnull final String[] args) {
+	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSource commandSource, @Nonnull final String[] args) {
 		if (args.length > 3) {
-			Commons.addChatMessage(commandSender, new TextComponentString(getUsage(commandSender)));
+			Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
 			return;
 		}
 		
@@ -91,7 +91,7 @@ public class CommandEntity extends AbstractCommand {
 			}
 		} catch (final Exception exception) {
 			exception.printStackTrace(WarpDrive.printStreamError);
-			Commons.addChatMessage(commandSender, new TextComponentString(getUsage(commandSender)));
+			Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
 			return;
 		}
 		
@@ -100,21 +100,21 @@ public class CommandEntity extends AbstractCommand {
 		final List<Entity> entities;
 		if (radius <= 0) {
 			final World world;
-			if (commandSender instanceof EntityPlayerMP) {
-				world = ((EntityPlayerMP) commandSender).world;
+			if (commandSource instanceof ServerPlayerEntity) {
+				world = ((ServerPlayerEntity) commandSource).world;
 			} else {
 				world = DimensionManager.getWorld(0);
 			}
 			entities = new ArrayList<>(world.loadedEntityList);
 		} else {
-			if (!(commandSender instanceof EntityPlayerMP)) {
-				Commons.addChatMessage(commandSender, new TextComponentString(getUsage(commandSender)));
+			if (!(commandSource instanceof ServerPlayerEntity)) {
+				Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
 				return;
 			}
-			final EntityPlayerMP entityPlayer = (EntityPlayerMP) commandSender;
+			final ServerPlayerEntity entityPlayer = (ServerPlayerEntity) commandSource;
 			entities = entityPlayer.world.getEntitiesWithinAABBExcludingEntity(entityPlayer, new AxisAlignedBB(
-					Math.floor(entityPlayer.posX    ), Math.floor(entityPlayer.posY    ), Math.floor(entityPlayer.posZ    ),
-					Math.floor(entityPlayer.posX + 1), Math.floor(entityPlayer.posY + 1), Math.floor(entityPlayer.posZ + 1)).grow(radius, radius, radius));
+					Math.floor(entityPlayer.getPosX()    ), Math.floor(entityPlayer.getPosY()    ), Math.floor(entityPlayer.getPosZ()    ),
+					Math.floor(entityPlayer.getPosX() + 1), Math.floor(entityPlayer.getPosY() + 1), Math.floor(entityPlayer.getPosZ() + 1)).grow(radius, radius, radius));
 		}
 		final HashMap<String, Integer> counts = new HashMap<>(entities.size());
 		int count = 0;
@@ -147,13 +147,13 @@ public class CommandEntity extends AbstractCommand {
 				}
 				if (!filter.isEmpty()) {
 					if (count == 1) {
-						Commons.addChatMessage(commandSender, new WarpDriveText(styleFound, "warpdrive.command.found_title"));
+						Commons.addChatMessage(commandSource, new WarpDriveText(styleFound, "warpdrive.command.found_title"));
 					}
-					Commons.addChatMessage(commandSender, new WarpDriveText(styleFound, "warpdrive.command.found_line",
+					Commons.addChatMessage(commandSource, new WarpDriveText(styleFound, "warpdrive.command.found_line",
 					                                                        entity));
 				}
 				// remove entity
-				if (kill && !entity.isEntityInvulnerable(WarpDrive.damageAsphyxia)) {
+				if (kill && !entity.isInvulnerableTo(WarpDrive.damageAsphyxia)) {
 					if (!entitiesNoRemoval.isEmpty()) {
 						boolean isRemovable = true;
 						for (final String entityNoRemoval : entitiesNoRemoval) {
@@ -166,40 +166,40 @@ public class CommandEntity extends AbstractCommand {
 							continue;
 						}
 					}
-					entity.setDead();
+					entity.remove();
 				}
 			}
 		}
 		if (count == 0) {
-			final ITextComponent textComponent = new TextComponentTranslation("warpdrive.command.no_matching_entity", radius).setStyle(Commons.getStyleWarning());
-			Commons.addChatMessage(commandSender, textComponent);
+			final ITextComponent textComponent = new TranslationTextComponent("warpdrive.command.no_matching_entity", radius).setStyle(Commons.getStyleWarning());
+			Commons.addChatMessage(commandSource, textComponent);
 			return;
 		}
 		
-		ITextComponent textComponent = new TextComponentTranslation("warpdrive.command.x_matching_entities", count, radius).setStyle(Commons.getStyleCorrect());
-		Commons.addChatMessage(commandSender, textComponent);
+		ITextComponent textComponent = new TranslationTextComponent("warpdrive.command.x_matching_entities", count, radius).setStyle(Commons.getStyleCorrect());
+		Commons.addChatMessage(commandSource, textComponent);
 		if (counts.size() < 10) {
 			for (final Entry<String, Integer> entry : counts.entrySet()) {
-				textComponent = new TextComponentString(entry.getValue().toString()).setStyle(styleNumber)
-						                .appendSibling(new TextComponentString("x").setStyle(styleFactor))
-						                .appendSibling(new TextComponentString(entry.getKey()).setStyle(styleName));
+				textComponent = new StringTextComponent(entry.getValue().toString()).setStyle(styleNumber)
+				                                                                    .appendSibling(new StringTextComponent("x").setStyle(styleFactor))
+				                                                                    .appendSibling(new StringTextComponent(entry.getKey()).setStyle(styleName));
 				textComponent.getStyle().setColor(TextFormatting.WHITE);
-				Commons.addChatMessage(commandSender, textComponent);
+				Commons.addChatMessage(commandSource, textComponent);
 			}
 		} else {
-			textComponent = new TextComponentString("");
+			textComponent = new StringTextComponent("");
 			boolean isFirst = true;
 			for (final Entry<String, Integer> entry : counts.entrySet()) {
 				if (isFirst) {
 					isFirst = false;
 				} else {
-					textComponent.appendSibling(new TextComponentString(", ").setStyle(styleFactor));
+					textComponent.appendSibling(new StringTextComponent(", ").setStyle(styleFactor));
 				}
-				textComponent.appendSibling(new TextComponentString(entry.getValue().toString()).setStyle(styleNumber))
-				             .appendSibling(new TextComponentString("x").setStyle(styleFactor))
-				             .appendSibling(new TextComponentString(entry.getKey()).setStyle(styleName));
+				textComponent.appendSibling(new StringTextComponent(entry.getValue().toString()).setStyle(styleNumber))
+				             .appendSibling(new StringTextComponent("x").setStyle(styleFactor))
+				             .appendSibling(new StringTextComponent(entry.getKey()).setStyle(styleName));
 			}
-			Commons.addChatMessage(commandSender, textComponent);
+			Commons.addChatMessage(commandSource, textComponent);
 		}
 	}
 }

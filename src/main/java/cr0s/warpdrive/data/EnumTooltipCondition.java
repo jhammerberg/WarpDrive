@@ -23,7 +23,7 @@ public enum EnumTooltipCondition implements IStringSerializable {
 		switch(this) {
 		case NEVER: return false;
 		case ON_SNEAK: return isSneaking;
-		case ADVANCED_TOOLTIPS: return Minecraft.getMinecraft().gameSettings.advancedItemTooltips;
+		case ADVANCED_TOOLTIPS: return Minecraft.getInstance().gameSettings.advancedItemTooltips;
 		case CREATIVE_ONLY: return isCreativeMode;
 		case ALWAYS: return true;
 		default: return false;

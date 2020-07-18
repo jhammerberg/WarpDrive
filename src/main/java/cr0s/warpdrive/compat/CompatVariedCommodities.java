@@ -6,9 +6,9 @@ import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -34,24 +34,25 @@ public class CompatVariedCommodities implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockBasicContainer.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockBasicContainer.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -127,15 +128,15 @@ public class CompatVariedCommodities implements IBlockTransformer {
 	private static final int[]   rot8                   = {  2,  3,  4,  5,  6,  7,  0,  1,  8,  9, 10, 11, 12, 13, 14, 15 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0) {
-			return metadata;
+			return blockState;
 		}
 		
 		// BannerRotation NBT with no metadata change
 		if ( nbtTileEntity != null
-		  && nbtTileEntity.hasKey("BannerRotation") ) {
+		  && nbtTileEntity.contains("BannerRotation") ) {
 			// get the rotation matrix
 			final String idTileEntity = nbtTileEntity.getString("id");
 			final int[] rot;
@@ -153,24 +154,24 @@ public class CompatVariedCommodities implements IBlockTransformer {
 			}
 			
 			// apply
-			final int BannerRotation = nbtTileEntity.getInteger("BannerRotation");
+			final int BannerRotation = nbtTileEntity.getInt("BannerRotation");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setInteger("BannerRotation", rot[BannerRotation]);
-				return metadata;
+				nbtTileEntity.putInt("BannerRotation", rot[BannerRotation]);
+				return blockState;
 			case 2:
-				nbtTileEntity.setInteger("BannerRotation", rot[rot[BannerRotation]]);
-				return metadata;
+				nbtTileEntity.putInt("BannerRotation", rot[rot[BannerRotation]]);
+				return blockState;
 			case 3:
-				nbtTileEntity.setInteger("BannerRotation", rot[rot[rot[BannerRotation]]]);
-				return metadata;
+				nbtTileEntity.putInt("BannerRotation", rot[rot[rot[BannerRotation]]]);
+				return blockState;
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// Carpentry bench is just metadata
-		if (classBlockCarpentryBench.isInstance(block)) {
+		if (classBlockCarpentryBench.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotCarpentryBench[metadata];
@@ -179,71 +180,71 @@ public class CompatVariedCommodities implements IBlockTransformer {
 			case 3:
 				return mrotCarpentryBench[mrotCarpentryBench[mrotCarpentryBench[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// Signs
 		if ( nbtTileEntity != null 
-		  && nbtTileEntity.hasKey("SignRotation") ) {
-			final int SignRotation = nbtTileEntity.getInteger("SignRotation");
+		  && nbtTileEntity.contains("SignRotation") ) {
+			final int SignRotation = nbtTileEntity.getInt("SignRotation");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setInteger("SignRotation", rot4[SignRotation]);
-				return metadata;
+				nbtTileEntity.putInt("SignRotation", rot4[SignRotation]);
+				return blockState;
 			case 2:
-				nbtTileEntity.setInteger("SignRotation", rot4[rot4[SignRotation]]);
-				return metadata;
+				nbtTileEntity.putInt("SignRotation", rot4[rot4[SignRotation]]);
+				return blockState;
 			case 3:
-				nbtTileEntity.setInteger("SignRotation", rot4[rot4[rot4[SignRotation]]]);
-				return metadata;
+				nbtTileEntity.putInt("SignRotation", rot4[rot4[rot4[SignRotation]]]);
+				return blockState;
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// Blood use compass directions
-		if ( classBlockBlood.isInstance(block)
+		if ( classBlockBlood.isInstance(blockState.getBlock())
 		  && nbtTileEntity != null ) {
 			final boolean HideNorth = nbtTileEntity.getBoolean("HideNorth");
 			final boolean HideEast  = nbtTileEntity.getBoolean("HideEast");
 			final boolean HideSouth = nbtTileEntity.getBoolean("HideSouth");
 			final boolean HideWest  = nbtTileEntity.getBoolean("HideWest");
-			final int Rotation  = nbtTileEntity.getInteger("Rotation");
+			final int Rotation  = nbtTileEntity.getInt("Rotation");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setBoolean("HideNorth", HideWest );
-				nbtTileEntity.setBoolean("HideEast" , HideNorth);
-				nbtTileEntity.setBoolean("HideSouth", HideEast );
-				nbtTileEntity.setBoolean("HideWest" , HideSouth);
-				nbtTileEntity.setInteger("Rotation", rot4[Rotation]);
-				return metadata;
+				nbtTileEntity.putBoolean("HideNorth", HideWest );
+				nbtTileEntity.putBoolean("HideEast" , HideNorth);
+				nbtTileEntity.putBoolean("HideSouth", HideEast );
+				nbtTileEntity.putBoolean("HideWest" , HideSouth);
+				nbtTileEntity.putInt("Rotation", rot4[Rotation]);
+				return blockState;
 			case 2:
-				nbtTileEntity.setBoolean("HideNorth", HideSouth);
-				nbtTileEntity.setBoolean("HideEast" , HideWest );
-				nbtTileEntity.setBoolean("HideSouth", HideNorth);
-				nbtTileEntity.setBoolean("HideWest" , HideEast );
-				nbtTileEntity.setInteger("Rotation", rot4[rot4[Rotation]]);
-				return metadata;
+				nbtTileEntity.putBoolean("HideNorth", HideSouth);
+				nbtTileEntity.putBoolean("HideEast" , HideWest );
+				nbtTileEntity.putBoolean("HideSouth", HideNorth);
+				nbtTileEntity.putBoolean("HideWest" , HideEast );
+				nbtTileEntity.putInt("Rotation", rot4[rot4[Rotation]]);
+				return blockState;
 			case 3:
-				nbtTileEntity.setBoolean("HideNorth", HideEast );
-				nbtTileEntity.setBoolean("HideEast" , HideSouth);
-				nbtTileEntity.setBoolean("HideSouth", HideWest );
-				nbtTileEntity.setBoolean("HideWest" , HideNorth);
-				nbtTileEntity.setInteger("Rotation", rot4[rot4[rot4[Rotation]]]);
-				return metadata;
+				nbtTileEntity.putBoolean("HideNorth", HideEast );
+				nbtTileEntity.putBoolean("HideEast" , HideSouth);
+				nbtTileEntity.putBoolean("HideSouth", HideWest );
+				nbtTileEntity.putBoolean("HideWest" , HideNorth);
+				nbtTileEntity.putInt("Rotation", rot4[rot4[rot4[Rotation]]]);
+				return blockState;
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

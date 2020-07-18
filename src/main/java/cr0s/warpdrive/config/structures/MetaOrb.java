@@ -1,5 +1,6 @@
 package cr0s.warpdrive.config.structures;
 
+import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IXmlRepresentable;
 import cr0s.warpdrive.config.InvalidXmlException;
@@ -8,13 +9,14 @@ import cr0s.warpdrive.config.XmlFileManager;
 
 import javax.annotation.Nonnull;
 
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
 import org.w3c.dom.Element;
 
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.block.Block;
 import net.minecraft.world.World;
 
 public class MetaOrb extends Orb {
@@ -42,8 +44,8 @@ public class MetaOrb extends Orb {
 	}
 	
 	@Override
-	public boolean generate(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
-		return instantiate(random).generate(world, random, blockPos);
+	public boolean place(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
+		return instantiate(random).place(world, random, blockPos);
 	}
 	
 	@Override
@@ -53,8 +55,7 @@ public class MetaOrb extends Orb {
 	
 	public class MetaShell implements IXmlRepresentable {
 		private final String parentFullName;
-		protected Block block;
-		protected int metadata;
+		protected BlockState blockState;
 		protected int minCount;
 		protected int maxCount;
 		protected double minRadius;
@@ -81,29 +82,10 @@ public class MetaOrb extends Orb {
 			// block & metadata
 			stringValue = element.getAttribute("block");
 			if (!stringValue.isEmpty()) {
-				
-				block = Block.getBlockFromName(stringValue);
-				if (block == null) {
+				blockState = Commons.readBlockStateFromString(stringValue);
+				if (blockState.getBlock() == Blocks.AIR) {
 					WarpDrive.logger.warn(String.format("Skipping missing metaShell core block %s in %s",
 					                                    stringValue, parentFullName));
-				} else {
-					// metadata
-					stringValue = element.getAttribute("metadata");
-					if (stringValue.isEmpty()) {
-						metadata = 0;
-					} else {
-						try {
-							metadata = Integer.parseInt(stringValue);
-						} catch (final NumberFormatException exception) {
-							throw new InvalidXmlException(String.format("Failed to load metaShell from structure %s due to invalid metadata %s, expecting an integer",
-							                                            parentFullName, stringValue));
-						}
-					}
-					
-					if (metadata < 0 || metadata > 15) {
-						throw new InvalidXmlException(String.format("Failed to load metaShell from structure %s due to invalid metadata %d, expecting a value between 0 and 15 included",
-						                                            parentFullName, metadata));
-					}
 				}
 			}
 			

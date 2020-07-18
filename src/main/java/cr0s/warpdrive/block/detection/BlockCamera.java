@@ -5,21 +5,19 @@ import cr0s.warpdrive.data.EnumTier;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.block.material.Material;
+import net.minecraft.block.BlockState;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.World;
+import net.minecraft.world.IBlockReader;
 
 public class BlockCamera extends BlockAbstractRotatingContainer {
 	
-	public BlockCamera(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier, Material.IRON);
-		
-		setTranslationKey("warpdrive.detection.camera");
+	public BlockCamera(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(getDefaultProperties(null), registryName, enumTier);
 	}
 	
 	@Nonnull
 	@Override
-	public TileEntity createNewTileEntity(@Nonnull final World world, final int metadata) {
+	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
 		return new TileEntityCamera();
 	}
 }

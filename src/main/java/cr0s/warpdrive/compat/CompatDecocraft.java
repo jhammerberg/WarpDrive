@@ -7,10 +7,10 @@ import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -34,24 +34,25 @@ public class CompatDecocraft implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockFake.isInstance(block)
-		    || classBlockProps.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockFake.isInstance(blockState.getBlock())
+		    || classBlockProps.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -73,21 +74,21 @@ public class CompatDecocraft implements IBlockTransformer {
 	private static final int[]  rotBlockRotation    = {  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,  0,  1,  2,  3 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		
 		// Props rotation
-		if (nbtTileEntity.hasKey("BlockRotation")) {
-			final int blockRotation = nbtTileEntity.getInteger("BlockRotation");
+		if (nbtTileEntity.contains("BlockRotation")) {
+			final int blockRotation = nbtTileEntity.getInt("BlockRotation");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setInteger("BlockRotation", rotBlockRotation[blockRotation]);
+				nbtTileEntity.putInt("BlockRotation", rotBlockRotation[blockRotation]);
 				break;
 			case 2:
-				nbtTileEntity.setInteger("BlockRotation", rotBlockRotation[rotBlockRotation[blockRotation]]);
+				nbtTileEntity.putInt("BlockRotation", rotBlockRotation[rotBlockRotation[blockRotation]]);
 				break;
 			case 3:
-				nbtTileEntity.setInteger("BlockRotation", rotBlockRotation[rotBlockRotation[rotBlockRotation[blockRotation]]]);
+				nbtTileEntity.putInt("BlockRotation", rotBlockRotation[rotBlockRotation[rotBlockRotation[blockRotation]]]);
 				break;
 			default:
 				break;
@@ -95,9 +96,9 @@ public class CompatDecocraft implements IBlockTransformer {
 		}
 		
 		// Props reference to fake blocks (slaves)
-		if (nbtTileEntity.hasKey("slaves", NBT.TAG_LIST)) {
-			final NBTTagList listOldSlaves = nbtTileEntity.getTagList("slaves", NBT.TAG_INT_ARRAY);
-			for (int index = 0; index < listOldSlaves.tagCount(); index++) {
+		if (nbtTileEntity.contains("slaves", NBT.TAG_LIST)) {
+			final ListNBT listOldSlaves = nbtTileEntity.getList("slaves", NBT.TAG_INT_ARRAY);
+			for (int index = 0; index < listOldSlaves.size(); index++) {
 				final int[] intSlavePos = listOldSlaves.getIntArrayAt(index);
 				if (intSlavePos.length == 3) {// expecting a BlockPos
 					final int x = intSlavePos[0];
@@ -122,7 +123,7 @@ public class CompatDecocraft implements IBlockTransformer {
 		}
 		
 		// Slave block
-		if (nbtTileEntity.hasKey("master", NBT.TAG_INT_ARRAY)) {
+		if (nbtTileEntity.contains("master", NBT.TAG_INT_ARRAY)) {
 			final int[] intMasterPos = nbtTileEntity.getIntArray("master");
 			if (intMasterPos.length == 3) {// expecting a BlockPos
 				final int x = intMasterPos[0];
@@ -145,7 +146,7 @@ public class CompatDecocraft implements IBlockTransformer {
 			}
 		}
 		
-		if (classBlockProps.isInstance(block)) {
+		if (classBlockProps.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotProps[metadata];
@@ -154,16 +155,16 @@ public class CompatDecocraft implements IBlockTransformer {
 			case 3:
 				return mrotProps[mrotProps[mrotProps[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// no operation
 	}
 }

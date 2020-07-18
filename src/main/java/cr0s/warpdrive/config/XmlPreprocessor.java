@@ -20,7 +20,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.ModList;
 
 public class XmlPreprocessor {
 	
@@ -46,11 +46,11 @@ public class XmlPreprocessor {
 			}
 			
 			if (mod.startsWith("!")) {
-				if (Loader.isModLoaded(mod.substring(1))) {
+				if (ModList.get().isLoaded(mod.substring(1))) {
 					modCheckResults.addMod(mod, "loaded");
 				}
 				
-			} else if (!Loader.isModLoaded(mod)) {
+			} else if (!ModList.get().isLoaded(mod)) {
 				modCheckResults.addMod(mod, "not loaded");
 			}
 		}

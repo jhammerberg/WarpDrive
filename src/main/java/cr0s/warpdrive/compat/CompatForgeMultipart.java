@@ -8,11 +8,10 @@ import cr0s.warpdrive.config.WarpDriveConfig;
 
 import java.lang.reflect.Method;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -51,24 +50,25 @@ public class CompatForgeMultipart implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockMultipart.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockMultipart.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -91,10 +91,10 @@ public class CompatForgeMultipart implements IBlockTransformer {
 		                                          20, 21, 22, 23, 16, 17, 18, 19,  8,  9, 10, 11, 12, 13, 14, 15,
 		                                          24, 25, 26, 27, 28, 29, 30, 31 };
 	
-	private NBTTagCompound rotate_part(final byte rotationSteps, final NBTTagCompound nbtPart) {
-		final NBTTagCompound nbtNewPart = nbtPart.copy();
+	private CompoundNBT rotate_part(final byte rotationSteps, final CompoundNBT nbtPart) {
+		final CompoundNBT nbtNewPart = nbtPart.copy();
 		
-		if (!nbtNewPart.hasKey("id")) {
+		if (!nbtNewPart.contains("id")) {
 			WarpDrive.logger.error(String.format("Ignoring ForgeMultipart with missing id: %s", nbtPart));
 		} else {
 			final String id = nbtPart.getString("id");
@@ -146,19 +146,19 @@ public class CompatForgeMultipart implements IBlockTransformer {
 			
 			// actual rotation
 			if (propertyName != null && rot != null) {
-				if (nbtPart.hasKey(propertyName)) {
+				if (nbtPart.contains(propertyName)) {
 					final byte value = nbtPart.getByte(propertyName);
 					final byte masked = (byte) (value & mask);
 					final byte notmasked = (byte) (value - masked);
 					switch (rotationSteps) {
 					case 1:
-						nbtNewPart.setByte(propertyName, (byte) (notmasked | rot[masked]));
+						nbtNewPart.putByte(propertyName, (byte) (notmasked | rot[masked]));
 						break;
 					case 2:
-						nbtNewPart.setByte(propertyName, (byte) (notmasked | rot[rot[masked]]));
+						nbtNewPart.putByte(propertyName, (byte) (notmasked | rot[rot[masked]]));
 						break;
 					case 3:
-						nbtNewPart.setByte(propertyName, (byte) (notmasked | rot[rot[rot[masked]]]));
+						nbtNewPart.putByte(propertyName, (byte) (notmasked | rot[rot[rot[masked]]]));
 						break;
 					default:
 						break;
@@ -170,34 +170,34 @@ public class CompatForgeMultipart implements IBlockTransformer {
 	}
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0 || nbtTileEntity == null) {
-			return metadata;
+			return blockState;
 		}
 		
 		// Parts
-		if (nbtTileEntity.hasKey("parts")) {
-			final NBTTagList nbtParts = nbtTileEntity.getTagList("parts", Constants.NBT.TAG_COMPOUND);
-			final NBTTagList nbtNewParts = new NBTTagList();
-			for (int index = 0; index < nbtParts.tagCount(); index++) {
-				final NBTTagCompound nbtPart = nbtParts.getCompoundTagAt(index);
-				final NBTTagCompound nbtNewPart = rotate_part(rotationSteps, nbtPart);
-				nbtNewParts.appendTag(nbtNewPart);
+		if (nbtTileEntity.contains("parts")) {
+			final ListNBT nbtParts = nbtTileEntity.getList("parts", Constants.NBT.TAG_COMPOUND);
+			final ListNBT nbtNewParts = new ListNBT();
+			for (int index = 0; index < nbtParts.size(); index++) {
+				final CompoundNBT nbtPart = nbtParts.getCompound(index);
+				final CompoundNBT nbtNewPart = rotate_part(rotationSteps, nbtPart);
+				nbtNewParts.add(nbtNewPart);
 			}
-			nbtTileEntity.setTag("parts", nbtNewParts);
+			nbtTileEntity.put("parts", nbtNewParts);
 		} else {
 			WarpDrive.logger.error(String.format("Ignoring ForgeMultipart with no 'parts': %s",
 			                                     nbtTileEntity));
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

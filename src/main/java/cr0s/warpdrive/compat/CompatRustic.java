@@ -11,10 +11,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagString;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.StringNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -64,39 +64,40 @@ public class CompatRustic implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockApiary.isInstance(block)
-		    || classBlockBrewingBarrel.isInstance(block)
-		    || classBlockCabinet.isInstance(block)
-		    || classBlockCandle.isInstance(block)
-		    || classBlockChair.isInstance(block)
-		    || classBlockClayWallDiag.isInstance(block)
-		    || classBlockCondenser.isInstance(block)
-		    || classBlockCondenserAdvanced.isInstance(block)
-		    || classBlockGargoyle.isInstance(block)
-		    || classBlockLantern.isInstance(block)
-		    || classBlockRetort.isInstance(block)
-		    || classBlockRopeBase.isInstance(block)
-		    || classBlockStakeTied.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockApiary.isInstance(blockState.getBlock())
+		    || classBlockBrewingBarrel.isInstance(blockState.getBlock())
+		    || classBlockCabinet.isInstance(blockState.getBlock())
+		    || classBlockCandle.isInstance(blockState.getBlock())
+		    || classBlockChair.isInstance(blockState.getBlock())
+		    || classBlockClayWallDiag.isInstance(blockState.getBlock())
+		    || classBlockCondenser.isInstance(blockState.getBlock())
+		    || classBlockCondenserAdvanced.isInstance(blockState.getBlock())
+		    || classBlockGargoyle.isInstance(blockState.getBlock())
+		    || classBlockLantern.isInstance(blockState.getBlock())
+		    || classBlockRetort.isInstance(blockState.getBlock())
+		    || classBlockRopeBase.isInstance(blockState.getBlock())
+		    || classBlockStakeTied.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
-		if (classBlockStakeTied.isInstance(block)) {
-			return new NBTTagString("stake_tied");
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
+		if (classBlockStakeTied.isInstance(blockState.getBlock())) {
+			return StringNBT.valueOf("stake_tied");
 		}
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
-		if (classBlockStakeTied.isInstance(block)) {// @TODO Rustic mod is forcing drops here, not sure how to work around it without ASM => anchor block
+	                            final BlockState blockState, final TileEntity tileEntity) {
+		if (classBlockStakeTied.isInstance(blockState.getBlock())) {// @TODO Rustic mod is forcing drops here, not sure how to work around it without ASM => anchor block
 			final BlockPos blockPos = new BlockPos(x, y, z);
 			// get all horizontal ropes
 			final Set<BlockPos> setBlockPosHorizontalRopes = Commons.getConnectedBlocks(world, blockPos, Commons.DIRECTIONS_HORIZONTAL, setBlockRope, 16);
@@ -104,19 +105,19 @@ public class CompatRustic implements IBlockTransformer {
 				// get all vertical/hanging ropes
 				final Set<BlockPos> setBlockPosVerticalRopes = Commons.getConnectedBlocks(world, blockPosHorizontalRope, Commons.DIRECTIONS_VERTICAL, setBlockRope, 16);
 				for (final BlockPos blockPosVerticalRope : setBlockPosVerticalRopes) {
-					final boolean isDone = world.setBlockToAir(blockPosVerticalRope);
+					final boolean isDone = world.removeBlock(blockPosVerticalRope, false);
 					if (!isDone) {
 						WarpDrive.logger.error(String.format("Failed to remove hanging rope at %s",
 						                                     blockPosVerticalRope));
 					}
 				}
-				final boolean isDone = world.setBlockToAir(blockPosHorizontalRope);
+				final boolean isDone = world.removeBlock(blockPosHorizontalRope, false);
 				if (!isDone) {
 					WarpDrive.logger.error(String.format("Failed to remove tension rope at %s",
 					                                     blockPosHorizontalRope));
 				}
 			}
-			final boolean isDone = world.setBlockToAir(blockPos);
+			final boolean isDone = world.removeBlock(blockPos, false);
 			if (!isDone) {
 				WarpDrive.logger.error(String.format("Failed to remove tied rope at %s",
 				                                     blockPos));
@@ -134,18 +135,18 @@ public class CompatRustic implements IBlockTransformer {
 	private static final byte[] rotRopeBase         = {  0,  2,  1,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0) {
-			return metadata;
+			return blockState;
 		}
 		
 		// horizontal facing: 0 1 2 3
-		if ( classBlockApiary.isInstance(block)
-		  || classBlockBrewingBarrel.isInstance(block)
-		  || classBlockChair.isInstance(block)
-		  || classBlockClayWallDiag.isInstance(block)
-		  || classBlockGargoyle.isInstance(block) ) {
+		if ( classBlockApiary.isInstance(blockState.getBlock())
+		  || classBlockBrewingBarrel.isInstance(blockState.getBlock())
+		  || classBlockChair.isInstance(blockState.getBlock())
+		  || classBlockClayWallDiag.isInstance(blockState.getBlock())
+		  || classBlockGargoyle.isInstance(blockState.getBlock()) ) {
 			switch (rotationSteps) {
 			case 1:
 				return rotFacingHorizontal[metadata];
@@ -154,12 +155,12 @@ public class CompatRustic implements IBlockTransformer {
 			case 3:
 				return rotFacingHorizontal[rotFacingHorizontal[rotFacingHorizontal[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// cabinet facing: 0x3 horizontal rotation, 0x4 top, 0x8 mirror
-		if (classBlockCabinet.isInstance(block)) {
+		if (classBlockCabinet.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return rotCabinet[metadata];
@@ -168,12 +169,12 @@ public class CompatRustic implements IBlockTransformer {
 			case 3:
 				return rotCabinet[rotCabinet[rotCabinet[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// candle facing is hardcoded
-		if (classBlockCandle.isInstance(block)) {
+		if (classBlockCandle.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return rotCandle[metadata];
@@ -182,13 +183,13 @@ public class CompatRustic implements IBlockTransformer {
 			case 3:
 				return rotCandle[rotCandle[rotCandle[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// Condenser rotation: 0x3 is 5 - vanilla facing, 0x4 is bottom, 0x8 is 0
-		if ( classBlockCondenser.isInstance(block)
-		  || classBlockCondenserAdvanced.isInstance(block) ) {
+		if ( classBlockCondenser.isInstance(blockState.getBlock())
+		  || classBlockCondenserAdvanced.isInstance(blockState.getBlock()) ) {
 			switch (rotationSteps) {
 			case 1:
 				return rotCondenser[metadata];
@@ -197,12 +198,12 @@ public class CompatRustic implements IBlockTransformer {
 			case 3:
 				return rotCondenser[rotCondenser[rotCondenser[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// vanilla facing
-		if (classBlockLantern.isInstance(block)) {
+		if (classBlockLantern.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return rotFacing[metadata];
@@ -211,12 +212,12 @@ public class CompatRustic implements IBlockTransformer {
 			case 3:
 				return rotFacing[rotFacing[rotFacing[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// retort facing: 0x3 is 5 - vanilla facing
-		if (classBlockRetort.isInstance(block)) {
+		if (classBlockRetort.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return rotRetort[metadata];
@@ -225,12 +226,12 @@ public class CompatRustic implements IBlockTransformer {
 			case 3:
 				return rotRetort[rotRetort[rotRetort[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// rope & chain facing: 0x3 is Y, X or Z axis
-		if (classBlockRopeBase.isInstance(block)) {
+		if (classBlockRopeBase.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return rotRopeBase[metadata];
@@ -239,17 +240,17 @@ public class CompatRustic implements IBlockTransformer {
 			case 3:
 				return rotRopeBase[rotRopeBase[rotRopeBase[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

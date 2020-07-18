@@ -20,13 +20,14 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
-
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 
 public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
+	
+	public static TileEntityType<TileEntityRadar> TYPE;
 	
 	private ArrayList<RadarEcho> results;
 	
@@ -38,7 +39,7 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 	private int scanning_countdown_ticks = 0;
 	
 	public TileEntityRadar() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveRadar";
 		addMethods(new String[] {
@@ -63,14 +64,15 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
-		final IBlockState blockState = world.getBlockState(pos);
+		final BlockState blockState = world.getBlockState(pos);
 		if (!isScanning) {
 			if (computer_isConnected()) {
 				updateBlockState(blockState, BlockRadar.MODE, EnumRadarMode.ACTIVE);
@@ -96,24 +98,24 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		radius = tagCompound.getInteger("radius");
+		radius = tagCompound.getInt("radius");
 		isScanning = tagCompound.getBoolean("isScanning");
-		scanning_radius = tagCompound.getInteger("scanning_radius");
-		scanning_countdown_ticks = tagCompound.getInteger("scanning_countdown");
+		scanning_radius = tagCompound.getInt("scanning_radius");
+		scanning_countdown_ticks = tagCompound.getInt("scanning_countdown");
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setInteger("radius", radius);
-		tagCompound.setBoolean("isScanning", isScanning);
-		tagCompound.setInteger("scanning_radius", scanning_radius);
-		tagCompound.setInteger("scanning_countdown", scanning_countdown_ticks);
+		tagCompound.putInt("radius", radius);
+		tagCompound.putBoolean("isScanning", isScanning);
+		tagCompound.putInt("scanning_radius", scanning_radius);
+		tagCompound.putInt("scanning_countdown", scanning_countdown_ticks);
 		
 		return tagCompound;
 	}
@@ -257,55 +259,47 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getGlobalPosition(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getGlobalPosition();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] radius(final Context context, final Arguments arguments) {
 		return radius(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getScanDuration(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getScanDuration();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] start(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return start();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getResults(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getResults();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getResultsCount(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getResultsCount();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getResult(final Context context, final Arguments arguments) {
 		return getResult(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "getGlobalPosition":
@@ -335,7 +329,7 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 	}
 	
 	@Override
-	public boolean energy_canInput(final EnumFacing from) {
+	public boolean energy_canInput(final Direction from) {
 		return true;
 	}
 }

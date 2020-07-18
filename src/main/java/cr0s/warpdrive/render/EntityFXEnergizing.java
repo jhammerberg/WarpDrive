@@ -1,32 +1,40 @@
 package cr0s.warpdrive.render;
 
 import cr0s.warpdrive.data.Vector3;
+
+import javax.annotation.Nonnull;
+
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.GlStateManager.DestFactor;
-import net.minecraft.client.renderer.GlStateManager.SourceFactor;
+import net.minecraft.client.particle.IParticleRenderType;
+import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-@SideOnly(Side.CLIENT)
+import com.mojang.blaze3d.platform.GlStateManager.DestFactor;
+import com.mojang.blaze3d.platform.GlStateManager.SourceFactor;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.IVertexBuilder;
+
+@OnlyIn(Dist.CLIENT)
 public class EntityFXEnergizing extends AbstractEntityFX {
 	
 	private static final ResourceLocation TEXTURE = new ResourceLocation("warpdrive", "textures/particle/energy_grey.png");
 	
-	private double radius;
-	private double length;
+	private final double radius;
+	private final double length;
 	private final int countSteps;
-	private float rotYaw;
-	private float rotPitch;
+	private final float rotYaw;
+	private final float rotPitch;
 	private float prevYaw;
 	private float prevPitch;
 	
@@ -35,7 +43,7 @@ public class EntityFXEnergizing extends AbstractEntityFX {
 	                          final int age, final float radius) {
 		super(world, position.x, position.y, position.z, 0.0D, 0.0D, 0.0D);
 		
-		setRBGColorF(red, green, blue);
+		setColor(red, green, blue);
 		setSize(0.02F, 0.02F);
 		canCollide = false;
 		motionX = 0.0D;
@@ -53,111 +61,113 @@ public class EntityFXEnergizing extends AbstractEntityFX {
 		rotPitch = (float) (Math.atan2(yd, lengthXZ) * 180.0D / Math.PI);
 		prevYaw = rotYaw;
 		prevPitch = rotPitch;
-		particleMaxAge = age;
+		maxAge = age;
 		
 		// kill the particle if it's too far away
 		// reduce cylinder resolution when fancy graphic are disabled
-		final Entity entityRender = Minecraft.getMinecraft().getRenderViewEntity();
+		final Entity entityRender = Minecraft.getInstance().getRenderViewEntity();
 		int visibleDistance = 300;
 		
-		if (!Minecraft.getMinecraft().gameSettings.fancyGraphics) {
+		if (!Minecraft.getInstance().gameSettings.fancyGraphics) {
 			visibleDistance = 100;
 			countSteps = 1;
 		} else {
 			countSteps = 6;
 		}
 		
-		if (entityRender.getDistance(posX, posY, posZ) > visibleDistance) {
-			particleMaxAge = 0;
+		if ( entityRender == null
+		  || entityRender.getDistanceSq(posX, posY, posZ) > visibleDistance * visibleDistance ) {
+			maxAge = 0;
 		}
 	}
 	
 	@Override
-	public void onUpdate() {
+	public void tick() {
 		prevPosX = posX;
 		prevPosY = posY;
 		prevPosZ = posZ;
 		prevYaw = rotYaw;
 		prevPitch = rotPitch;
 		
-		if (particleAge++ >= particleMaxAge) {
+		if (age++ >= maxAge) {
 			setExpired();
 		}
 	}
 	
 	@Override
-	public void renderParticle(final BufferBuilder vertexBuffer, final Entity entityIn, final float partialTick,
-	                           final float rotationX, final float rotationZ, final float rotationYZ, final float rotationXY, final float rotationXZ) {
-		GlStateManager.pushMatrix();
+	public void renderParticle(@Nonnull final IVertexBuilder vertexBuffer, @Nonnull final ActiveRenderInfo renderInfo, final float partialTicks) {
+		RenderSystem.pushMatrix();
 		
-		final double factorFadeIn = Math.min((particleAge + partialTick) / 20.0F, 1.0F);
+		final double factorFadeIn = Math.min((age + partialTicks) / 20.0F, 1.0F);
 		
 		// alpha starts at 50%, vanishing to 10% during last ticks
 		float alpha = 0.5F;
-		if (particleMaxAge - particleAge <= 4) {
-			alpha = 0.5F - (4 - (particleMaxAge - particleAge)) * 0.1F;
+		if (maxAge - age <= 4) {
+			alpha = 0.5F - (4 - (maxAge - age)) * 0.1F;
 		} else {
 			// add random flickering
-			final double timeAlpha = ((getSeed() ^ 0x47C8) & 0xFFFF) + particleAge + partialTick + 0.0167D;
+			final double timeAlpha = ((getSeed() ^ 0x47C8) & 0xFFFF) + age + partialTicks + 0.0167D;
 			alpha += Math.pow(Math.sin(timeAlpha * 0.37D) + Math.sin(0.178D + timeAlpha * 0.17D), 2.0D) * 0.05D;
 		}
 		
 		// get brightness factors
-		final int brightnessForRender = getBrightnessForRender(partialTick);
+		final int brightnessForRender = getBrightnessForRender(partialTicks);
 		final int brightnessHigh = brightnessForRender >> 16 & 65535;
 		final int brightnessLow  = Math.max(240, brightnessForRender & 65535);
 		
 		// texture clock is offset to de-synchronize particles
-		final double timeTexture = (getSeed() & 0xFFFF) + particleAge + partialTick;
+		final double timeTexture = (getSeed() & 0xFFFF) + age + partialTicks;
 		
 		// repeated a pixel column, changing periodically, to animate the texture
-		final double uOffset = ((int) Math.floor(timeTexture * 0.5D) % 16) / 16.0D;
+		final float uOffset = ((int) Math.floor(timeTexture * 0.5D) % 16) / 16.0F;
 		
 		// add vertical noise
-		final double vOffset = Math.pow(Math.sin(timeTexture * 0.20D), 2.0D) * 0.005D;
+		final float vOffset = (float) Math.pow(Math.sin(timeTexture * 0.20F), 2.0F) * 0.005F;
 		
 		
 		// bind our texture, repeating on both axis
-		Minecraft.getMinecraft().getTextureManager().bindTexture(TEXTURE);
-		GlStateManager.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
-		GlStateManager.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
+		Minecraft.getInstance().getTextureManager().bindTexture(TEXTURE);
+		RenderSystem.texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
+		RenderSystem.texParameter(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
 		
 		// rendering on both sides
-		GlStateManager.disableCull();
+		RenderSystem.disableCull();
 		
 		// alpha transparency, don't update depth mask
-		GlStateManager.enableBlend();
-		GlStateManager.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE);
-		GlStateManager.depthMask(false);
+		RenderSystem.enableBlend();
+		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE);
+		RenderSystem.depthMask(false);
 		
 		// animated translation
-		final float xx = (float)(prevPosX + (posX - prevPosX) * partialTick - interpPosX);
-		final float yy = (float)(prevPosY + (posY - prevPosY) * partialTick - interpPosY);
-		final float zz = (float)(prevPosZ + (posZ - prevPosZ) * partialTick - interpPosZ);
-		GlStateManager.translate(xx, yy, zz);
+		final Vec3d vec3d = renderInfo.getProjectedView();
+		final float xx = (float)(MathHelper.lerp(partialTicks, prevPosX, posX) - vec3d.getX());
+		final float yy = (float)(MathHelper.lerp(partialTicks, prevPosY, posY) - vec3d.getY());
+		final float zz = (float)(MathHelper.lerp(partialTicks, prevPosZ, posZ) - vec3d.getZ());
+		RenderSystem.translatef(xx, yy, zz);
 		
 		// animated rotation
-		final float rotYaw = prevYaw + (this.rotYaw - prevYaw) * partialTick;
-		final float rotPitch = prevPitch + (this.rotPitch - prevPitch) * partialTick;
+		final float rotYaw = prevYaw + (this.rotYaw - prevYaw) * partialTicks;
+		final float rotPitch = prevPitch + (this.rotPitch - prevPitch) * partialTicks;
 		final float rotSpin = 0.0F;
-		GlStateManager.rotate(90.0F, 1.0F, 0.0F, 0.0F);
-		GlStateManager.rotate(180.0F + rotYaw, 0.0F, 0.0F, -1.0F);
-		GlStateManager.rotate(rotPitch, 1.0F, 0.0F, 0.0F);
-		GlStateManager.rotate(rotSpin, 0.0F, 1.0F, 0.0F);
+		RenderSystem.rotatef(90.0F, 1.0F, 0.0F, 0.0F);
+		RenderSystem.rotatef(180.0F + rotYaw, 0.0F, 0.0F, -1.0F);
+		RenderSystem.rotatef(rotPitch, 1.0F, 0.0F, 0.0F);
+		RenderSystem.rotatef(rotSpin, 0.0F, 1.0F, 0.0F);
 		
 		// actual parameters
 		final double radius = this.radius * factorFadeIn;
 		final double yMin = length * (0.5D - factorFadeIn / 2.0D);
 		final double yMax = length * (0.5D + factorFadeIn / 2.0D);
-		final double uMin = uOffset;
-		final double uMax = uMin + 1.0D / 32.0D;
+		final float uMin = uOffset;
+		final float uMax = uMin + 1.0F / 32.0F;
 		
-		final double vMin = -1.0D + vOffset;
-		final double vMax = vMin + length * factorFadeIn;
+		final float vMin = -1.0F + vOffset;
+		final float vMax = (float) (vMin + length * factorFadeIn);
 		
 		// start drawing
 		final Tessellator tessellator = Tessellator.getInstance();
-		vertexBuffer.begin(GL11.GL_QUADS, DefaultVertexFormats.PARTICLE_POSITION_TEX_COLOR_LMAP);
+		final BufferBuilder bufferbuilder = tessellator.getBuffer();
+		bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX_LIGHTMAP);
 		
 		// loop covering 45 deg, using symmetry to cover a full circle
 		final double angleMax = Math.PI / 4.0D;
@@ -220,14 +230,15 @@ public class EntityFXEnergizing extends AbstractEntityFX {
 		tessellator.draw();
 		
 		// restore OpenGL state
-		GlStateManager.depthMask(true);
-		GlStateManager.disableBlend();
-		GlStateManager.enableCull();
-		GlStateManager.popMatrix();
+		RenderSystem.depthMask(true);
+		RenderSystem.disableBlend();
+		RenderSystem.enableCull();
+		RenderSystem.popMatrix();
 	}
 	
 	@Override
-	public int getFXLayer() {
-		return 3; // custom texture
+	@Nonnull
+	public IParticleRenderType getRenderType() {
+		return IParticleRenderType.CUSTOM;
 	}
 }

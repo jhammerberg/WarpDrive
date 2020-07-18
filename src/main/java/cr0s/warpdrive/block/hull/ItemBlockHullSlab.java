@@ -1,27 +1,34 @@
 package cr0s.warpdrive.block.hull;
 
+import cr0s.warpdrive.api.IBlockBase;
+import cr0s.warpdrive.block.ItemBlockAbstractBase;
 import cr0s.warpdrive.block.hull.BlockHullSlab.EnumVariant;
 
 import javax.annotation.Nonnull;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.SoundType;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.BlockItemUseContext;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.item.ItemUseContext;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.shapes.ISelectionContext;
+import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.world.World;
 
 public class ItemBlockHullSlab extends ItemBlockHull {
 	
 	private final Block blockSlab;
 	
-	public ItemBlockHullSlab(final Block blockSlab) {
+	public <T extends Block & IBlockBase> ItemBlockHullSlab(final T blockSlab) {
 		super(blockSlab);
 		
 		this.blockSlab = blockSlab;
@@ -35,36 +42,47 @@ public class ItemBlockHullSlab extends ItemBlockHull {
 	
 	@Nonnull
 	@Override
-	public EnumActionResult onItemUse(@Nonnull final EntityPlayer entityPlayer,
-	                                  @Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final EnumHand hand,
-	                                  @Nonnull final EnumFacing facing, final float hitX, final float hitY, final float hitZ) {
+	public ActionResultType onItemUse(@Nonnull final ItemUseContext context) {
+		final PlayerEntity entityPlayer = context.getPlayer();
+		final World world = context.getWorld();
+		final BlockPos blockPos = context.getPos();
+		final Hand hand = context.getHand();
+		final Direction facing = context.getFace();
+		
+		if (entityPlayer == null) {
+			return ActionResultType.FAIL;
+		}
+		
 		// get context
 		final ItemStack itemStackHeld = entityPlayer.getHeldItem(hand);
 		if (itemStackHeld.isEmpty()) {
-			return EnumActionResult.FAIL;
+			return ActionResultType.FAIL;
 		}
 		
 		// check if clicked block can be interacted with
-		@SuppressWarnings("deprecation")
-		final IBlockState blockStateItem = blockSlab.getStateFromMeta(itemStackHeld.getItemDamage());
-		final int metadataItem = itemStackHeld.getItemDamage();
-		final EnumVariant variantItem = blockStateItem.getValue(BlockHullSlab.VARIANT);
+		// TODO MC1.15 HullSlab
+		final BlockState blockStateItem = blockSlab.getDefaultState(); // getStateFromMeta(itemStackHeld.getDamage());
+		final int metadataItem = itemStackHeld.getDamage();
+		final EnumVariant variantItem = blockStateItem.get(BlockHullSlab.VARIANT);
 		
-		final IBlockState blockStateWorld = world.getBlockState(blockPos);
-		final EnumVariant variantWorld = blockStateWorld.getBlock() == blockSlab ? blockStateWorld.getValue(BlockHullSlab.VARIANT) : EnumVariant.PLAIN_FULL;
+		final BlockState blockStateWorld = world.getBlockState(blockPos);
+		final EnumVariant variantWorld = blockStateWorld.getBlock() == blockSlab ? blockStateWorld.get(BlockHullSlab.VARIANT) : EnumVariant.PLAIN_FULL;
 		
 		if ( blockStateWorld.getBlock() == blockSlab
 		  && !variantItem.getIsDouble()
 		  && !variantWorld.getIsDouble()
 		  && variantWorld.getIsPlain() == variantItem.getIsPlain() ) {
 			if (!entityPlayer.canPlayerEdit(blockPos, facing, itemStackHeld)) {
-				return EnumActionResult.FAIL;
+				return ActionResultType.FAIL;
 			}
 			
 			// try to merge slabs when right-clicking directly the inner face
 			if (variantWorld.getFacing() == facing.getOpposite()) {
-				final AxisAlignedBB boundingBox = blockStateWorld.getCollisionBoundingBox(world, blockPos);
-				if (boundingBox != null && world.checkNoEntityCollision(boundingBox)) {
+				final VoxelShape boundingBox = blockStateWorld.getCollisionShape(world, blockPos, ISelectionContext.dummy());
+				if ( !boundingBox.isEmpty()
+					// TODO MC1.15 HullSlab
+					//  && world.checkNoEntityCollision(boundingBox)
+				) {
 					final EnumVariant variantNew;
 					if (variantWorld.getIsPlain()) {// plain
 						variantNew = EnumVariant.PLAIN_FULL;
@@ -85,7 +103,7 @@ public class ItemBlockHullSlab extends ItemBlockHull {
 							break;
 						}
 					}
-					world.setBlockState(blockPos, blockSlab.getDefaultState().withProperty(BlockHullSlab.VARIANT, variantNew), 3);
+					world.setBlockState(blockPos, blockSlab.getDefaultState().with(BlockHullSlab.VARIANT, variantNew), 3);
 					
 					final SoundType soundtype = blockSlab.getSoundType(blockStateWorld, world, blockPos, entityPlayer);
 					world.playSound(entityPlayer, blockPos, soundtype.getPlaceSound(), SoundCategory.BLOCKS,
@@ -93,31 +111,34 @@ public class ItemBlockHullSlab extends ItemBlockHull {
 					itemStackHeld.shrink(1);
 				}
 				
-				return EnumActionResult.SUCCESS;
+				return ActionResultType.SUCCESS;
 			}
 			
 		} else {
 			// check is closer block can be interacted with
 			final BlockPos blockPosSide = blockPos.offset(facing);
-			final IBlockState blockStateSide = world.getBlockState(blockPosSide);
-			final EnumVariant variantSide = blockStateSide.getBlock() == blockSlab ? blockStateSide.getValue(BlockHullSlab.VARIANT) : EnumVariant.PLAIN_FULL;
+			final BlockState blockStateSide = world.getBlockState(blockPosSide);
+			final EnumVariant variantSide = blockStateSide.getBlock() == blockSlab ? blockStateSide.get(BlockHullSlab.VARIANT) : EnumVariant.PLAIN_FULL;
 			
 			if ( blockStateSide.getBlock() == blockSlab
 			  && !variantItem.getIsDouble()
 			  && !variantSide.getIsDouble()
 			  && variantSide.getIsPlain() == variantItem.getIsPlain() ) {
 				if (!entityPlayer.canPlayerEdit(blockPosSide, facing, itemStackHeld)) {
-					return EnumActionResult.FAIL;
+					return ActionResultType.FAIL;
 				}
 				
 				// try to place ignoring the existing block
-				final IBlockState blockStatePlaced = blockSlab.getStateForPlacement(world, blockPosSide, facing, hitX, hitY, hitZ, metadataItem, entityPlayer, hand);
-				final EnumFacing enumFacingPlaced = blockStatePlaced.getValue(BlockHullSlab.VARIANT).getFacing().getOpposite();
+				final BlockState blockStatePlaced = blockSlab.getStateForPlacement(new BlockItemUseContext(context));
+				final Direction enumFacingPlaced = blockStatePlaced.get(BlockHullSlab.VARIANT).getFacing().getOpposite();
 				
 				// try to merge slabs when right-clicking on a side block
-				if (enumFacingPlaced == blockStateSide.getValue(BlockHullSlab.VARIANT).getFacing()) {
-					final AxisAlignedBB boundingBox = blockStateWorld.getCollisionBoundingBox(world, blockPosSide);
-					if (boundingBox != null && world.checkNoEntityCollision(boundingBox)) {
+				if (enumFacingPlaced == blockStateSide.get(BlockHullSlab.VARIANT).getFacing()) {
+					final VoxelShape boundingBox = blockStateWorld.getCollisionShape(world, blockPosSide, ISelectionContext.dummy());
+					if ( !boundingBox.isEmpty()
+					// TODO MC1.15 HullSlab
+					//  && world.checkNoEntityCollision(boundingBox)
+					    ) {
 						final EnumVariant variantNew;
 						if (variantSide.getIsPlain()) {// plain
 							variantNew = EnumVariant.PLAIN_FULL;
@@ -138,7 +159,7 @@ public class ItemBlockHullSlab extends ItemBlockHull {
 								break;
 							}
 						}
-						world.setBlockState(blockPosSide, blockSlab.getDefaultState().withProperty(BlockHullSlab.VARIANT, variantNew), 3);
+						world.setBlockState(blockPosSide, blockSlab.getDefaultState().with(BlockHullSlab.VARIANT, variantNew), 3);
 						
 						final SoundType soundtype = blockSlab.getSoundType(blockStateWorld, world, blockPosSide, entityPlayer);
 						world.playSound(entityPlayer, blockPosSide, soundtype.getPlaceSound(), SoundCategory.BLOCKS,
@@ -146,25 +167,27 @@ public class ItemBlockHullSlab extends ItemBlockHull {
 						itemStackHeld.shrink(1);
 					}
 					
-					return EnumActionResult.SUCCESS;
+					return ActionResultType.SUCCESS;
 				}
 				
 			}
 		}
 		
-		return super.onItemUse(entityPlayer, world, blockPos, hand, facing, hitX, hitY, hitZ);
+		return super.onItemUse(context);
 	}
 	
 	@Override
-	public boolean canPlaceBlockOnSide(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final EnumFacing facing,
-	                                   @Nonnull final EntityPlayer entityPlayer, @Nonnull final ItemStack itemStack) {
-		// check if clicked block can be interacted with
-		@SuppressWarnings("deprecation")
-		final IBlockState blockStateItem = blockSlab.getStateFromMeta(itemStack.getItemDamage());
-		final EnumVariant variantItem = blockStateItem.getValue(BlockHullSlab.VARIANT);
+	protected boolean canPlace(@Nonnull final BlockItemUseContext context, @Nonnull final BlockState blockState) {
+		final World world = context.getWorld();
+		final BlockPos blockPos = context.getPos();
+		final Direction facing = context.getFace();
 		
-		final IBlockState blockStateWorld = world.getBlockState(blockPos);
-		final EnumVariant variantWorld = blockStateWorld.getBlock() == blockSlab ? blockStateWorld.getValue(BlockHullSlab.VARIANT) : EnumVariant.PLAIN_FULL;
+		// check if clicked block can be interacted with
+		final BlockState blockStateItem = blockState; // TODO MC1.15 Hull slabs
+		final EnumVariant variantItem = blockStateItem.get(BlockHullSlab.VARIANT);
+		
+		final BlockState blockStateWorld = world.getBlockState(blockPos);
+		final EnumVariant variantWorld = blockStateWorld.getBlock() == blockSlab ? blockStateWorld.get(BlockHullSlab.VARIANT) : EnumVariant.PLAIN_FULL;
 		
 		if ( blockStateWorld.getBlock() == blockSlab
 		  && !variantItem.getIsDouble()
@@ -175,14 +198,14 @@ public class ItemBlockHullSlab extends ItemBlockHull {
 		
 		// check the block on our side
 		final BlockPos blockPosSide = blockPos.offset(facing);
-		final IBlockState blockStateSide = world.getBlockState(blockPosSide);
-		final EnumVariant variantSide = blockStateSide.getBlock() == blockSlab ? blockStateSide.getValue(BlockHullSlab.VARIANT) : EnumVariant.PLAIN_FULL;
+		final BlockState blockStateSide = world.getBlockState(blockPosSide);
+		final EnumVariant variantSide = blockStateSide.getBlock() == blockSlab ? blockStateSide.get(BlockHullSlab.VARIANT) : EnumVariant.PLAIN_FULL;
 		if ( blockStateSide.getBlock() == blockSlab
 		  && variantSide.getIsPlain() == variantItem.getIsPlain() ) {
 			return true;
 		}
 		
 		// default behavior
-		return super.canPlaceBlockOnSide(world, blockPos, facing, entityPlayer, itemStack);
+		return super.canPlace(context, blockState);
 	}
 }

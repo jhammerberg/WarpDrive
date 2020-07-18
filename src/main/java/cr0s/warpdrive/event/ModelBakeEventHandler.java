@@ -3,15 +3,17 @@ package cr0s.warpdrive.event;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IMyBakedModel;
 
+import javax.annotation.Nonnull;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import net.minecraft.client.renderer.block.model.IBakedModel;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.client.renderer.model.IBakedModel;
+import net.minecraft.client.renderer.model.ModelResourceLocation;
 
 import net.minecraftforge.client.event.ModelBakeEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.client.model.data.IModelData;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class ModelBakeEventHandler {
 	
@@ -28,9 +30,9 @@ public class ModelBakeEventHandler {
 	
 	// Called after all the other baked block models have been added to the modelRegistry, before BlockModelShapes caches the models.
 	@SubscribeEvent
-	public void onModelBake(final ModelBakeEvent event) {
+	public void onModelBake(@Nonnull final ModelBakeEvent event) {
 		for (final Entry<ModelResourceLocation, Class<? extends IMyBakedModel>> entry : modelResourceLocationToBakedModel.entrySet()) {
-			final IBakedModel bakedModelExisting = event.getModelRegistry().getObject(entry.getKey());
+			final IBakedModel bakedModelExisting = event.getModelRegistry().get(entry.getKey());
 			if (bakedModelExisting == null) {
 				WarpDrive.logger.warn(String.format("Unable to update baked model for missing %s",
 				                                    entry.getKey()));
@@ -51,7 +53,7 @@ public class ModelBakeEventHandler {
 				continue;
 			}
 			
-			event.getModelRegistry().putObject(entry.getKey(), bakedModelNew);
+			event.getModelRegistry().put(entry.getKey(), bakedModelNew);
 		}
 	}
 }

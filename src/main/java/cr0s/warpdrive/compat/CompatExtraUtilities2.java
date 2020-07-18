@@ -11,9 +11,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -69,39 +69,40 @@ public class CompatExtraUtilities2 implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockIndexer.isInstance(block)
-		    || classBlockMachine.isInstance(block)
-		    || classBlockPlayerChest.isInstance(block)
-		    || classBlockScreen.isInstance(block)
-		    || classBlockWardChunkLoader.isInstance(block)
-		    || classBlockXUBlockFull.isInstance(block)
-		    || classBlockXUBlockStaticRotation.isInstance(block)
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockIndexer.isInstance(blockState.getBlock())
+		    || classBlockMachine.isInstance(blockState.getBlock())
+		    || classBlockPlayerChest.isInstance(blockState.getBlock())
+		    || classBlockScreen.isInstance(blockState.getBlock())
+		    || classBlockWardChunkLoader.isInstance(blockState.getBlock())
+		    || classBlockXUBlockFull.isInstance(blockState.getBlock())
+		    || classBlockXUBlockStaticRotation.isInstance(blockState.getBlock())
 		    
-		    || classBlockQuarryProxy.isInstance(block)
-		    || classBlockOneWay.isInstance(block)
-		    || classBlockPowerTransmitter.isInstance(block)
-		    || classBlockAdvInteractor.isInstance(block)
-		    || classBlockSpotlight.isInstance(block)
-		    || classBlockSpike.isInstance(block)
+		    || classBlockQuarryProxy.isInstance(blockState.getBlock())
+		    || classBlockOneWay.isInstance(blockState.getBlock())
+		    || classBlockPowerTransmitter.isInstance(blockState.getBlock())
+		    || classBlockAdvInteractor.isInstance(blockState.getBlock())
+		    || classBlockSpotlight.isInstance(blockState.getBlock())
+		    || classBlockSpike.isInstance(blockState.getBlock())
 				
-		    || classBlockTransferHolder.isInstance(block);
+		    || classBlockTransferHolder.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -123,20 +124,20 @@ public class CompatExtraUtilities2 implements IBlockTransformer {
 	}
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0) {
-			return metadata;
+			return blockState;
 		}
 		
 		// horizontal facing: 0 3 1 2 / 4 7 5 6 / 8 11 9 10 / 12 15 13 14
-		if ( classBlockIndexer.isInstance(block)
-		  || classBlockMachine.isInstance(block)
-		  || classBlockPlayerChest.isInstance(block)
-		  || classBlockScreen.isInstance(block)
-		  || classBlockWardChunkLoader.isInstance(block)
-		  || classBlockXUBlockFull.isInstance(block)
-		  || classBlockXUBlockStaticRotation.isInstance(block) ) {
+		if ( classBlockIndexer.isInstance(blockState.getBlock())
+		  || classBlockMachine.isInstance(blockState.getBlock())
+		  || classBlockPlayerChest.isInstance(blockState.getBlock())
+		  || classBlockScreen.isInstance(blockState.getBlock())
+		  || classBlockWardChunkLoader.isInstance(blockState.getBlock())
+		  || classBlockXUBlockFull.isInstance(blockState.getBlock())
+		  || classBlockXUBlockStaticRotation.isInstance(blockState.getBlock()) ) {
 			switch (rotationSteps) {
 			case 1:
 				return rotFacingHorizontal[metadata];
@@ -145,17 +146,17 @@ public class CompatExtraUtilities2 implements IBlockTransformer {
 			case 3:
 				return rotFacingHorizontal[rotFacingHorizontal[rotFacingHorizontal[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// vanilla facing
-		if ( classBlockQuarryProxy.isInstance(block)
-		  || classBlockOneWay.isInstance(block)
-		  || classBlockPowerTransmitter.isInstance(block)
-		  || classBlockAdvInteractor.isInstance(block)
-		  || classBlockSpotlight.isInstance(block)
-		  || classBlockSpike.isInstance(block) ) {
+		if ( classBlockQuarryProxy.isInstance(blockState.getBlock())
+		  || classBlockOneWay.isInstance(blockState.getBlock())
+		  || classBlockPowerTransmitter.isInstance(blockState.getBlock())
+		  || classBlockAdvInteractor.isInstance(blockState.getBlock())
+		  || classBlockSpotlight.isInstance(blockState.getBlock())
+		  || classBlockSpike.isInstance(blockState.getBlock()) ) {
 			switch (rotationSteps) {
 			case 1:
 				return rotFacing[metadata];
@@ -164,7 +165,7 @@ public class CompatExtraUtilities2 implements IBlockTransformer {
 			case 3:
 				return rotFacing[rotFacing[rotFacing[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -172,11 +173,11 @@ public class CompatExtraUtilities2 implements IBlockTransformer {
 		// @TODO support EU2 restricted/blocked pipes
 		
 		// Grocket (pipe attachments)
-		if (classBlockTransferHolder.isInstance(block)) {
-			final Map<String, NBTBase> map = new HashMap<>();
+		if (classBlockTransferHolder.isInstance(blockState.getBlock())) {
+			final Map<String, INBT> map = new HashMap<>();
 			for (final String key : rotPipeTagName.keySet()) {
-				if (nbtTileEntity.hasKey(key)) {
-					final NBTBase tagBase = nbtTileEntity.getTag(key);
+				if (nbtTileEntity.contains(key)) {
+					final INBT tagBase = nbtTileEntity.get(key);
 					switch (rotationSteps) {
 					case 1:
 						map.put(rotPipeTagName.get(key), tagBase);
@@ -191,23 +192,23 @@ public class CompatExtraUtilities2 implements IBlockTransformer {
 						map.put(key, tagBase);
 						break;
 					}
-					nbtTileEntity.removeTag(key);
+					nbtTileEntity.remove(key);
 				}
 			}
 			if (!map.isEmpty()) {
-				for (final Entry<String, NBTBase> entry : map.entrySet()) {
-					nbtTileEntity.setTag(entry.getKey(), entry.getValue());
+				for (final Entry<String, INBT> entry : map.entrySet()) {
+					nbtTileEntity.put(entry.getKey(), entry.getValue());
 				}
 			}
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

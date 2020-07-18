@@ -23,21 +23,22 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.gen.ChunkProviderServer;
+import net.minecraft.world.server.ChunkHolder;
+import net.minecraft.world.server.ServerChunkProvider;
+import net.minecraft.world.server.ServerWorld;
 
-import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.Constants;
 
 import org.apache.commons.lang3.text.WordUtils;
@@ -51,7 +52,7 @@ public class GlobalRegionManager {
 	
 	public static String GALAXY_UNDEFINED = "???";
 	
-	private static final HashMap<Integer, CopyOnWriteArraySet<GlobalRegion>> registry = new HashMap<>();
+	private static final HashMap<ResourceLocation, CopyOnWriteArraySet<GlobalRegion>> registry = new HashMap<>();
 	private static int countAdd = 0;
 	private static int countRemove = 0;
 	private static int countRead = 0;
@@ -137,7 +138,7 @@ public class GlobalRegionManager {
 	
 	@Nullable
 	public static GlobalRegion getByName(final EnumGlobalRegionType enumGlobalRegionType, final String name) {
-		for (final Integer dimensionId : registry.keySet()) {
+		for (final ResourceLocation dimensionId : registry.keySet()) {
 			final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(dimensionId);
 			if (setGlobalRegions == null) {
 				continue;
@@ -156,7 +157,7 @@ public class GlobalRegionManager {
 	
 	@Nullable
 	public static GlobalRegion getByUUID(final EnumGlobalRegionType enumGlobalRegionType, final UUID uuid) {
-		for (final Integer dimensionId : registry.keySet()) {
+		for (final ResourceLocation dimensionId : registry.keySet()) {
 			final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(dimensionId);
 			if (setGlobalRegions == null) {
 				continue;
@@ -178,7 +179,7 @@ public class GlobalRegionManager {
 		final StringBuilder resultMatch = new StringBuilder();
 		final StringBuilder resultCaseInsensitive = new StringBuilder();
 		final StringBuilder resultContains = new StringBuilder();
-		for (final Integer dimensionId : registry.keySet()) {
+		for (final ResourceLocation dimensionId : registry.keySet()) {
 			final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(dimensionId);
 			if (setGlobalRegions == null) {
 				continue;
@@ -242,7 +243,7 @@ public class GlobalRegionManager {
 	
 	@Nullable
 	public static GlobalRegion getNearest(final EnumGlobalRegionType enumGlobalRegionType, @Nonnull final World world, @Nonnull final BlockPos blockPos) {
-		final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(world.provider.getDimension());
+		final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(world.getDimension().getType().getRegistryName());
 		if (setGlobalRegions == null) {
 			return null;
 		}
@@ -269,13 +270,13 @@ public class GlobalRegionManager {
 		return result;
 	}
 	
-	public static boolean onBlockUpdating(@Nullable final Entity entity, @Nonnull final World world, @Nonnull final BlockPos blockPos, final IBlockState blockState) {
+	public static boolean onBlockUpdating(@Nullable final Entity entity, @Nonnull final IWorld world, @Nonnull final BlockPos blockPos, final BlockState blockState) {
 		if (!Commons.isSafeThread()) {
 			WarpDrive.logger.error(String.format("Non-threadsafe call to GlobalRegionManager:onBlockUpdating outside main thread, for %s %s",
 			                                     blockState, Commons.format(world, blockPos) ));
 			return false;
 		}
-		final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(world.provider.getDimension());
+		final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(world.getDimension().getType().getRegistryName());
 		if (setGlobalRegions == null) {
 			return true;
 		}
@@ -291,13 +292,13 @@ public class GlobalRegionManager {
 		return isAllowed;
 	}
 	
-	public static boolean onChatReceived(@Nonnull final EntityPlayer entityPlayer, @Nonnull final String message) {
+	public static boolean onChatReceived(@Nonnull final PlayerEntity entityPlayer, @Nonnull final String message) {
 		if (!Commons.isSafeThread()) {
 			WarpDrive.logger.error(String.format("Non-threadsafe call to GlobalRegionManager:onChatReceived outside main thread, for %s %s",
 			                                     entityPlayer, message ));
 			return false;
 		}
-		final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(entityPlayer.world.provider.getDimension());
+		final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(entityPlayer.world.getDimension().getType().getRegistryName());
 		if (setGlobalRegions == null) {
 			return true;
 		}
@@ -326,18 +327,18 @@ public class GlobalRegionManager {
 			tileEntity.getPos().getX(), tileEntity.getPos().getY(), tileEntity.getPos().getZ());
 		// printRegistry();
 		final int radius2 = radius * radius;
-		for (final Map.Entry<Integer, CopyOnWriteArraySet<GlobalRegion>> entryDimension : registry.entrySet()) {
+		for (final Map.Entry<ResourceLocation, CopyOnWriteArraySet<GlobalRegion>> entryDimension : registry.entrySet()) {
 			for (final GlobalRegion globalRegion : entryDimension.getValue()) {
 				if (!globalRegion.type.hasRadarEcho()) {
 					continue;
 				}
-				final Vector3 vectorItem = globalRegion.getUniversalCoordinates(tileEntity.getWorld().isRemote);
+				final Vector3 vectorItem = globalRegion.getUniversalCoordinates(tileEntity.getWorld().isRemote());
 				if (vectorItem == null) {
 					continue;
 				}
-				final double dX = vectorItem.x - vectorRadar.x;
-				final double dY = vectorItem.y - vectorRadar.y;
-				final double dZ = vectorItem.z - vectorRadar.z;
+				final double dX = vectorItem.x - (vectorRadar == null ? 0 : vectorRadar.x);
+				final double dY = vectorItem.y - (vectorRadar == null ? 0 : vectorRadar.y);
+				final double dZ = vectorItem.z - (vectorRadar == null ? 0 : vectorRadar.z);
 				final double distance2 = dX * dX + dY * dY + dZ * dZ;
 				if (distance2 > radius2) {
 					continue;
@@ -394,15 +395,15 @@ public class GlobalRegionManager {
 		WarpDrive.logger.info(String.format("Global region registry (%s entries after %s):",
 		                                    registry.size(), trigger));
 		
-		for (final Map.Entry<Integer, CopyOnWriteArraySet<GlobalRegion>> entryDimension : registry.entrySet()) {
+		for (final Map.Entry<ResourceLocation, CopyOnWriteArraySet<GlobalRegion>> entryDimension : registry.entrySet()) {
 			final StringBuilder message = new StringBuilder();
 			for (final GlobalRegion registryItem : entryDimension.getValue()) {
-				message.append(String.format("\n- %s '%s' @ DIM%d (%d %d %d) with %.3f isolation rate",
+				message.append(String.format("\n- %s '%s' @ %s (%d %d %d) with %.3f isolation rate",
 				                             registryItem.type, registryItem.name,
 				                             registryItem.dimensionId, registryItem.x, registryItem.y, registryItem.z,
 				                             registryItem.isolationRate));
 			}
-			WarpDrive.logger.info(String.format("- %d entries in dimension %d: %s",
+			WarpDrive.logger.info(String.format("- %d entries in dimension %s: %s",
 			                                    entryDimension.getValue().size(), entryDimension.getKey(), message.toString()));
 		}
 	}
@@ -417,12 +418,13 @@ public class GlobalRegionManager {
 		}
 		final AxisAlignedBB aabb1 = shipCore1.getGlobalRegionArea();		
 		
-		final CopyOnWriteArraySet<GlobalRegion> setRegistryItems = registry.get(shipCore1.getWorld().provider.getDimension());
+		assert shipCore1.getWorld() != null;
+		final CopyOnWriteArraySet<GlobalRegion> setRegistryItems = registry.get(shipCore1.getWorld().getDimension().getType().getRegistryName());
 		if (setRegistryItems == null) {
 			return null;
 		}
 		for (final GlobalRegion registryItem : setRegistryItems) {
-			assert registryItem.dimensionId == shipCore1.getWorld().provider.getDimension();
+			assert registryItem.dimensionId.equals(shipCore1.getWorld().getDimension().getType().getRegistryName());
 			
 			// only check ships
 			if (registryItem.type != EnumGlobalRegionType.SHIP) {
@@ -480,8 +482,8 @@ public class GlobalRegionManager {
 		LocalProfiler.start("Global region registry cleanup");
 		
 		boolean isValid;
-		for (final Map.Entry<Integer, CopyOnWriteArraySet<GlobalRegion>> entryDimension : registry.entrySet()) {
-			final WorldServer world = DimensionManager.getWorld(entryDimension.getKey());
+		for (final Map.Entry<ResourceLocation, CopyOnWriteArraySet<GlobalRegion>> entryDimension : registry.entrySet()) {
+			final ServerWorld world = Commons.getLoadedWorldServer(entryDimension.getKey());
 			// skip unloaded worlds
 			if (world == null) {
 				continue;
@@ -491,11 +493,11 @@ public class GlobalRegionManager {
 				if (registryItem != null) {
 					
 					boolean isLoaded;
-					if (world.getChunkProvider() instanceof ChunkProviderServer) {
-						final ChunkProviderServer chunkProviderServer = world.getChunkProvider();
+					if (world.getChunkProvider() instanceof ServerChunkProvider) {
+						final ServerChunkProvider chunkProviderServer = world.getChunkProvider();
 						try {
-							final Chunk chunk = chunkProviderServer.loadedChunks.get(ChunkPos.asLong(registryItem.x >> 4, registryItem.z >> 4));
-							isLoaded = chunk != null && chunk.isLoaded();
+							final ChunkHolder chunkHolder = chunkProviderServer.chunkManager.loadedChunks.get(ChunkPos.asLong(registryItem.x >> 4, registryItem.z >> 4));
+							isLoaded = chunkHolder != null;
 						} catch (final NoSuchFieldError exception) {
 							if (!isExceptionReported) {
 								exception.printStackTrace(WarpDrive.printStreamError);
@@ -523,30 +525,20 @@ public class GlobalRegionManager {
 					final TileEntity tileEntity = world.getTileEntity(registryItem.getBlockPos());
 					isValid = true;
 					switch (registryItem.type) {
-					case UNDEFINED:
-						break;
 					case SHIP:
-						isValid = block instanceof BlockShipCore && tileEntity != null && !tileEntity.isInvalid();
+						isValid = block instanceof BlockShipCore && tileEntity != null && !tileEntity.isRemoved();
 						break;
 					case JUMP_GATE:
-						// isValid = block == WarpDrive.blockJumpGateCore && tileEntity != null && !tileEntity.isInvalid();
-						break;
-					case PLANET:
-						break;
-					case STAR:
-						break;
-					case STRUCTURE:
-						break;
-					case WARP_ECHO:
+						// isValid = block == WarpDrive.blockJumpGateCore && tileEntity != null && !tileEntity.isRemoved();
 						break;
 					case ACCELERATOR:
-						isValid = block instanceof BlockAcceleratorCore && tileEntity != null && !tileEntity.isInvalid();
+						isValid = block instanceof BlockAcceleratorCore && tileEntity != null && !tileEntity.isRemoved();
 						break;
 					case TRANSPORTER:
-						isValid = block instanceof BlockTransporterCore && tileEntity != null && !tileEntity.isInvalid();
+						isValid = block instanceof BlockTransporterCore && tileEntity != null && !tileEntity.isRemoved();
 						break;
 					case VIRTUAL_ASSISTANT:
-						isValid = block instanceof BlockVirtualAssistant && tileEntity != null && !tileEntity.isInvalid();
+						isValid = block instanceof BlockVirtualAssistant && tileEntity != null && !tileEntity.isRemoved();
 						break;
 					default:
 						break;
@@ -557,7 +549,7 @@ public class GlobalRegionManager {
 					if (registryItem == null) {
 						WarpDrive.logger.warn("Cleaning up global region object ~null~");
 					} else {
-						WarpDrive.logger.warn(String.format("Cleaning up global region object %s at dimension %d (%d %d %d)",
+						WarpDrive.logger.warn(String.format("Cleaning up global region object %s at dimension %s (%d %d %d)",
 						                                    registryItem.type,
 						                                    registryItem.dimensionId, registryItem.x, registryItem.y, registryItem.z ));
 					}
@@ -570,25 +562,25 @@ public class GlobalRegionManager {
 		LocalProfiler.stop();
 	}
 	
-	public static void readFromNBT(@Nullable final NBTTagCompound tagCompound) {
+	public static void read(@Nullable final CompoundNBT tagCompound) {
 		if ( tagCompound == null
-		  || ( !tagCompound.hasKey("starMapRegistryItems")
-		    && !tagCompound.hasKey("globalRegions") ) ) {
+		  || ( !tagCompound.contains("starMapRegistryItems")
+		    && !tagCompound.contains("globalRegions") ) ) {
 			registry.clear();
 			return;
 		}
 		
 		// read all entries in a flat structure
-		final NBTTagList tagList;
-		if (tagCompound.hasKey("starMapRegistryItems")) {
-			tagList = tagCompound.getTagList("starMapRegistryItems", Constants.NBT.TAG_COMPOUND);
+		final ListNBT tagList;
+		if (tagCompound.contains("starMapRegistryItems")) {
+			tagList = tagCompound.getList("starMapRegistryItems", Constants.NBT.TAG_COMPOUND);
 		} else {
-			tagList = tagCompound.getTagList("globalRegions", Constants.NBT.TAG_COMPOUND);
+			tagList = tagCompound.getList("globalRegions", Constants.NBT.TAG_COMPOUND);
 		}
-		final GlobalRegion[] registryFlat = new GlobalRegion[tagList.tagCount()];
-		final HashMap<Integer, Integer> sizeDimensions = new HashMap<>();
-		for (int index = 0; index < tagList.tagCount(); index++) {
-			final GlobalRegion globalRegion = new GlobalRegion(tagList.getCompoundTagAt(index));
+		final GlobalRegion[] registryFlat = new GlobalRegion[tagList.size()];
+		final HashMap<ResourceLocation, Integer> sizeDimensions = new HashMap<>();
+		for (int index = 0; index < tagList.size(); index++) {
+			final GlobalRegion globalRegion = new GlobalRegion(tagList.getCompound(index));
 			registryFlat[index] = globalRegion;
 			
 			// update stats
@@ -598,8 +590,8 @@ public class GlobalRegionManager {
 		}
 		
 		// pre-build the local collections using known stats to avoid re-allocations
-		final HashMap<Integer, ArrayList<GlobalRegion>> registryLocal = new HashMap<>();
-		for (final Entry<Integer, Integer> entryDimension : sizeDimensions.entrySet()) {
+		final HashMap<ResourceLocation, ArrayList<GlobalRegion>> registryLocal = new HashMap<>();
+		for (final Entry<ResourceLocation, Integer> entryDimension : sizeDimensions.entrySet()) {
 			registryLocal.put(entryDimension.getKey(), new ArrayList<>(entryDimension.getValue()));
 		}
 		
@@ -610,20 +602,20 @@ public class GlobalRegionManager {
 		
 		// transfer to main one
 		registry.clear();
-		for (final Entry<Integer, ArrayList<GlobalRegion>> entry : registryLocal.entrySet()) {
+		for (final Entry<ResourceLocation, ArrayList<GlobalRegion>> entry : registryLocal.entrySet()) {
 			registry.put(entry.getKey(), new CopyOnWriteArraySet<>(entry.getValue()));
 		}
 	}
 	
-	public static void writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		final NBTTagList tagList = new NBTTagList();
+	public static void write(@Nonnull final CompoundNBT tagCompound) {
+		final ListNBT tagList = new ListNBT();
 		for (final CopyOnWriteArraySet<GlobalRegion> globalRegions : registry.values()) {
 			for (final GlobalRegion globalRegion : globalRegions) {
-				final NBTTagCompound tagCompoundItem = new NBTTagCompound();
-				globalRegion.writeToNBT(tagCompoundItem);
-				tagList.appendTag(tagCompoundItem);
+				final CompoundNBT tagCompoundItem = new CompoundNBT();
+				globalRegion.write(tagCompoundItem);
+				tagList.add(tagCompoundItem);
 			}
 		}
-		tagCompound.setTag("globalRegions", tagList);
+		tagCompound.put("globalRegions", tagList);
 	}
 }

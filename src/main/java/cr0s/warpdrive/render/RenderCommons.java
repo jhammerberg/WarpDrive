@@ -9,28 +9,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.GlStateManager.DestFactor;
-import net.minecraft.client.renderer.GlStateManager.SourceFactor;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.model.BakedQuad;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.renderer.vertex.VertexFormat;
+import net.minecraft.client.renderer.vertex.VertexFormatElement;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 
 import org.lwjgl.opengl.GL11;
 
-import net.minecraftforge.client.model.IModel;
+import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.model.ModelLoaderRegistry;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.model.geometry.IModelGeometry;
 
-@SideOnly(Side.CLIENT)
+import com.mojang.blaze3d.platform.GlStateManager.DestFactor;
+import com.mojang.blaze3d.platform.GlStateManager.SourceFactor;
+import com.mojang.blaze3d.systems.RenderSystem;
+
+@OnlyIn(Dist.CLIENT)
 public class RenderCommons {
 	
-	private static final Minecraft minecraft = Minecraft.getMinecraft();
+	private static final Minecraft minecraft = Minecraft.getInstance();
 	private static final int TEXT_BORDER = 2;
 	private static final float SCALE_UV = 0.00390625F;  // 1/256
 	
@@ -48,7 +51,7 @@ public class RenderCommons {
 	                                            final float red, final float green, final float blue, final float alpha) {
 		final Tessellator tessellator = Tessellator.getInstance();
 		final BufferBuilder vertexBuffer = tessellator.getBuffer();
-		vertexBuffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_COLOR);
+		vertexBuffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
 		vertexBuffer.pos( x         , (y + sizeY), zLevel).tex(SCALE_UV * u          , SCALE_UV * (v + sizeY)).color(red, green, blue, alpha).endVertex();
 		vertexBuffer.pos((x + sizeX), (y + sizeY), zLevel).tex(SCALE_UV * (u + sizeX), SCALE_UV * (v + sizeY)).color(red, green, blue, alpha).endVertex();
 		vertexBuffer.pos((x + sizeX),  y         , zLevel).tex(SCALE_UV * (u + sizeX), SCALE_UV * v).color(red, green, blue, alpha).endVertex();
@@ -61,21 +64,20 @@ public class RenderCommons {
 		final double cycle = ((System.nanoTime() / 1000L) % 0x200000) / (double) 0x200000;
 		
 		// start rendering
-		GlStateManager.pushMatrix();
-		GlStateManager.scale(2.0F, 2.0F, 0.0F);
+		RenderSystem.pushMatrix();
+		RenderSystem.scalef(2.0F, 2.0F, 0.0F);
 		
 		int y = scaledHeight / 10;
 		
 		// bold title, single line, centered, with shadows
-		final String textTitle = Commons.updateEscapeCodes("§l" + new TextComponentTranslation(title).getFormattedText());
-		minecraft.fontRenderer.drawString(textTitle,
-		                                  scaledWidth / 4.0F - minecraft.fontRenderer.getStringWidth(textTitle) / 2.0F,
-		                                  y - minecraft.fontRenderer.FONT_HEIGHT,
-		                                     Commons.colorARGBtoInt(230, 255, 32, 24),
-		                                  true);
+		final String textTitle = Commons.updateEscapeCodes("§l" + new TranslationTextComponent(title).getFormattedText());
+		minecraft.fontRenderer.drawStringWithShadow(textTitle,
+		                                            scaledWidth / 4.0F - minecraft.fontRenderer.getStringWidth(textTitle) / 2.0F,
+		                                            y - minecraft.fontRenderer.FONT_HEIGHT,
+		                                            Commons.colorARGBtoInt(230, 255, 32, 24) );
 		
 		// normal message, multi-lines, centered, without shadows
-		final String textMessage = Commons.updateEscapeCodes(new TextComponentTranslation(message).getFormattedText());
+		final String textMessage = Commons.updateEscapeCodes(new TranslationTextComponent(message).getFormattedText());
 		final int alpha = 160 + (int) (85.0D * Math.sin(cycle * 2 * Math.PI));
 		
 		final List<String> listMessages = minecraft.fontRenderer.listFormattedStringToWidth(textMessage, scaledWidth / 2);
@@ -83,13 +85,12 @@ public class RenderCommons {
 			minecraft.fontRenderer.drawString(textLine,
 			                                  scaledWidth / 4.0F - minecraft.fontRenderer.getStringWidth(textLine) / 2.0F,
 			                                  y,
-			                                  Commons.colorARGBtoInt(alpha, 192, 64, 48),
-			                                  false);
+			                                  Commons.colorARGBtoInt(alpha, 192, 64, 48) );
 			y += minecraft.fontRenderer.FONT_HEIGHT;
 		}
 		
 		// close rendering
-		GlStateManager.popMatrix();
+		RenderSystem.popMatrix();
 		return alpha;
 	}
 	
@@ -98,7 +99,7 @@ public class RenderCommons {
 	                           final EnumDisplayAlignment enumScreenAnchor, final int xOffset, final int yOffset,
 	                           final EnumDisplayAlignment enumTextAlignment, final float widthTextRatio, final int widthTextMin) {
 		// prepare the string box content and dimensions
-		final String text_formatted = Commons.updateEscapeCodes(formatPrefix + new TextComponentTranslation(text).getFormattedText());
+		final String text_formatted = Commons.updateEscapeCodes(formatPrefix + new TranslationTextComponent(text).getFormattedText());
 		final int scaled_box_width = Math.max(widthTextMin, Math.round(widthTextRatio * screen_width)) + 2 * TEXT_BORDER;
 		
 		final List<String> listLines = minecraft.fontRenderer.listFormattedStringToWidth(text_formatted, scaled_box_width - 2 * TEXT_BORDER);
@@ -109,16 +110,16 @@ public class RenderCommons {
 		final int screen_text_y = Math.round(screen_height * enumScreenAnchor.yRatio + yOffset - enumTextAlignment.yRatio * scaled_box_height * scale);
 		
 		// start rendering
-		GlStateManager.pushMatrix();
-		GlStateManager.scale(scale, scale, 0.0F);
+		RenderSystem.pushMatrix();
+		RenderSystem.scalef(scale, scale, 0.0F);
 		final int scaled_box_x  = Math.round(screen_text_x / scale - TEXT_BORDER);
 		final int scaled_box_y  = Math.round(screen_text_y / scale - TEXT_BORDER);
 		final int scaled_text_x = Math.round(screen_text_x / scale);
 		int scaled_text_y       = Math.round(screen_text_y / scale);
 		
 		// draw background box
-		GlStateManager.disableTexture2D();
-		GlStateManager.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
+		RenderSystem.disableTexture();
+		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
 		
 		final float red   = (colorBackground >> 16 & 255) / 255.0F;
 		final float blue  = (colorBackground >> 8  & 255) / 255.0F;
@@ -133,17 +134,21 @@ public class RenderCommons {
 		vertexBuffer.pos(scaled_box_x + scaled_box_width, scaled_box_y                    , -90.0D).color(red, green, blue, alpha).endVertex();
 		vertexBuffer.pos(scaled_box_x                   , scaled_box_y                    , -90.0D).color(red, green, blue, alpha).endVertex();
 		tessellator.draw();
-		GlStateManager.enableTexture2D();
-		GlStateManager.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE);
+		RenderSystem.enableTexture();
+		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE);
 		
 		// draw text
 		for (final String textLine : listLines) {
-			minecraft.fontRenderer.drawString(textLine, scaled_text_x, scaled_text_y, colorText, hasShadow);
+			if (hasShadow) {
+				minecraft.fontRenderer.drawStringWithShadow(textLine, scaled_text_x, scaled_text_y, colorText);
+			} else {
+				minecraft.fontRenderer.drawString(textLine, scaled_text_x, scaled_text_y, colorText);
+			}
 			scaled_text_y += minecraft.fontRenderer.FONT_HEIGHT;
 		}
 		
 		// close rendering
-		GlStateManager.popMatrix();
+		RenderSystem.popMatrix();
 	}
 	
 	public static void drawText(final int screen_width, final int screen_height, final String textHeader, final String textContent,
@@ -151,8 +156,8 @@ public class RenderCommons {
 	                            @Nonnull final EnumDisplayAlignment enumScreenAnchor, final int xOffset, final int yOffset,
 	                            @Nonnull final EnumDisplayAlignment enumTextAlignment, final float widthTextRatio, final int widthTextMin) {
 		// prepare the string box content and dimensions
-		final String header_formatted  = Commons.updateEscapeCodes(prefixHeader + new TextComponentTranslation(textHeader).getFormattedText());
-		final String content_formatted = Commons.updateEscapeCodes(new TextComponentTranslation(textContent).getFormattedText());
+		final String header_formatted  = Commons.updateEscapeCodes(prefixHeader + new TranslationTextComponent(textHeader).getFormattedText());
+		final String content_formatted = Commons.updateEscapeCodes(new TranslationTextComponent(textContent).getFormattedText());
 		final int scaled_box_width = Math.max(widthTextMin, Math.round(widthTextRatio * screen_width)) + 2 * TEXT_BORDER;
 		
 		final List<String> listHeaderLines = 
@@ -170,16 +175,16 @@ public class RenderCommons {
 		final int screen_text_y = Math.round(screen_height * enumScreenAnchor.yRatio + yOffset - enumTextAlignment.yRatio * scaled_box_height * scale);
 		
 		// start rendering
-		GlStateManager.pushMatrix();
-		GlStateManager.scale(scale, scale, 0.0F);
+		RenderSystem.pushMatrix();
+		RenderSystem.scalef(scale, scale, 0.0F);
 		final int scaled_box_x  = Math.round(screen_text_x / scale - TEXT_BORDER);
 		final int scaled_box_y  = Math.round(screen_text_y / scale - TEXT_BORDER);
 		final int scaled_text_x = Math.round(screen_text_x / scale);
 		int scaled_text_y       = Math.round(screen_text_y / scale);
 		
 		// draw background box
-		GlStateManager.disableTexture2D();
-		GlStateManager.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
+		RenderSystem.disableTexture();
+		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
 		
 		final float red   = (colorBackground >> 16 & 0xFF) / 255.0F;
 		final float green = (colorBackground >> 8  & 0xFF) / 255.0F;
@@ -194,32 +199,37 @@ public class RenderCommons {
 		vertexBuffer.pos(scaled_box_x + scaled_box_width, scaled_box_y                    , -90.0D).color(red, green, blue, alpha).endVertex();
 		vertexBuffer.pos(scaled_box_x                   , scaled_box_y                    , -90.0D).color(red, green, blue, alpha).endVertex();
 		tessellator.draw();
-		GlStateManager.enableTexture2D();
-		GlStateManager.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE);
+		RenderSystem.enableTexture();
+		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE);
 		
 		// draw text
 		for (final String textLine : listHeaderLines) {
-			minecraft.fontRenderer.drawString(textLine, scaled_text_x, scaled_text_y, colorText, hasHeaderShadow);
+			if (hasHeaderShadow) {
+				minecraft.fontRenderer.drawStringWithShadow(textLine, scaled_text_x, scaled_text_y, colorText);
+			} else {
+				minecraft.fontRenderer.drawString(textLine, scaled_text_x, scaled_text_y, colorText);
+			}
 			scaled_text_y += minecraft.fontRenderer.FONT_HEIGHT;
 		}
 		if (hasTileAndContent) {
 			scaled_text_y += TEXT_BORDER;
 		}
 		for (final String textLine : listContentLines) {
-			minecraft.fontRenderer.drawString(textLine, scaled_text_x, scaled_text_y, colorText, false);
+			minecraft.fontRenderer.drawString(textLine, scaled_text_x, scaled_text_y, colorText);
 			scaled_text_y += minecraft.fontRenderer.FONT_HEIGHT;
 		}
 		
 		// close rendering
-		// GlStateManager.enableTexture2D();
-		GlStateManager.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
-		GlStateManager.popMatrix();
+		// RenderSystem.enableTexture();
+		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
+		RenderSystem.popMatrix();
 	}
 	
-	public static IModel getModel(final ResourceLocation resourceLocation) {
-		final IModel model;
+	public static IModelGeometry<?> getModel(final ResourceLocation resourceLocation) {
+		final IModelGeometry<?> model = null;
 		try {
-			model = ModelLoaderRegistry.getModel(resourceLocation);
+			// MC1.15 reactor core rendering
+			// model = ModelLoaderRegistry.getModel(resourceLocation);
 		} catch (final Exception exception) {
 			WarpDrive.logger.info(String.format("getModel %s", resourceLocation));
 			throw new RuntimeException(exception);
@@ -232,9 +242,9 @@ public class RenderCommons {
 		final int l2 = brightness & 0xFFFF;
 		for (final BakedQuad quad : quads) {
 			final int[] vData = quad.getVertexData();
-			final VertexFormat format = quad.getFormat();
+			final VertexFormat format = renderer.getVertexFormat();
 			final int size = format.getIntegerSize();
-			final int uv = format.getUvOffsetById(0) / 4;
+			final int uv = format.getElements().stream().filter(element -> element.getUsage() == VertexFormatElement.Usage.UV).findFirst().get().getIndex() / 4;
 			// final int color = format.getColorOffset();
 			for (int i = 0; i < 4; ++i) {
 				renderer

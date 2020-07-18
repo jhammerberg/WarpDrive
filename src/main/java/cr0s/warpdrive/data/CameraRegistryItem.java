@@ -5,10 +5,11 @@ import cr0s.warpdrive.api.IVideoChannel;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.dimension.DimensionType;
 
 public class CameraRegistryItem {
 	
-	public int dimensionId;
+	public DimensionType dimensionType;
 	public BlockPos blockPos;
 	public int videoChannel;
 	public EnumCameraType type;
@@ -16,14 +17,15 @@ public class CameraRegistryItem {
 	public CameraRegistryItem(final World world, final BlockPos blockPos, final int videoChannel, final EnumCameraType enumCameraType) {
 		this.videoChannel = videoChannel;
 		this.blockPos = blockPos;
-		this.dimensionId = world.provider.getDimension();
+		this.dimensionType = world.getDimension().getType();
 		this.type = enumCameraType;
 	}
 	
 	public boolean isTileEntity(final TileEntity tileEntity) {
+		assert tileEntity.getWorld() != null;
 		return tileEntity instanceof IVideoChannel
-			&& dimensionId == tileEntity.getWorld().provider.getDimension()
+		    && videoChannel == ((IVideoChannel) tileEntity).getVideoChannel()
 			&& blockPos.equals(tileEntity.getPos())
-			&& videoChannel == ((IVideoChannel) tileEntity).getVideoChannel();
+		    && dimensionType == tileEntity.getWorld().getDimension().getType();
 	}
 }

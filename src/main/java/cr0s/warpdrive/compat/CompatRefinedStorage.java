@@ -7,18 +7,16 @@ import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fml.common.Optional;
-import net.minecraftforge.fml.common.Optional.Method;
 
 import com.raoulvdberge.refinedstorage.api.IRSAPI;
 import com.raoulvdberge.refinedstorage.api.network.node.INetworkNode;
@@ -47,18 +45,18 @@ public class CompatRefinedStorage implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockBase.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockBase.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	@Optional.Method(modid = "refinedstorage")
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		if (!(tileEntity instanceof TileBase)) {
 			return null;
 		}
@@ -77,19 +75,18 @@ public class CompatRefinedStorage implements IBlockTransformer {
 		
 		final TileBase tileBase = (TileBase) tileEntity;
 		
-		final NBTTagCompound tagCompound = new NBTTagCompound();
+		final CompoundNBT tagCompound = new CompoundNBT();
 		
-		tagCompound.setInteger(NBT_DIRECTION, tileBase.getDirection().ordinal());
-		tagCompound.setTag(NBT_NODE, networkNode.write(new NBTTagCompound()));
-		tagCompound.setString(NBT_NODE_ID, networkNode.getId());
+		tagCompound.putInt(NBT_DIRECTION, tileBase.getDirection().ordinal());
+		tagCompound.put(NBT_NODE, networkNode.write(new CompoundNBT()));
+		tagCompound.putString(NBT_NODE_ID, networkNode.getId());
 		
 		return tagCompound;
 	}
 	
 	@Override
-	@Optional.Method(modid = "refinedstorage")
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		if (!(tileEntity instanceof TileBase)) {
 			return;
 		}
@@ -136,32 +133,32 @@ public class CompatRefinedStorage implements IBlockTransformer {
 	private static final int[]  rotFacing           = {  0,  1,  5,  4,  2,  3,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		// nothing to do as it's all stored externally
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	@Method(modid = "refinedstorage")
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
-		if (!(nbtBase instanceof NBTTagCompound)) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
+		if (!(nbtBase instanceof CompoundNBT)) {
 			WarpDrive.logger.error(String.format("Unexpected external NBT while restoring RefinedStorage, please report to mod author: %s",
 			                                     nbtBase));
 			return;
 		}
 		
 		final byte rotationSteps = transformation.getRotationSteps();
-		final NBTTagCompound tagCompound = (NBTTagCompound) nbtBase;
-		final NBTTagCompound tagCompoundNode = tagCompound.getCompoundTag(NBT_NODE);
+		final CompoundNBT tagCompound = (CompoundNBT) nbtBase;
+		final CompoundNBT tagCompoundNode = tagCompound.getCompound(NBT_NODE);
 		
 		// transform node
-		if (tagCompoundNode.hasKey("Covers", Constants.NBT.TAG_LIST)) {
-			final NBTTagList tagListCovers = tagCompoundNode.getTagList("Covers", Constants.NBT.TAG_COMPOUND);
-			for (int index = 0; index < tagListCovers.tagCount(); index++) {
-				final NBTTagCompound compoundTagCover = tagListCovers.getCompoundTagAt(index);
-				final int directionCoverOld = compoundTagCover.getInteger("Direction");
+		if (tagCompoundNode.contains("Covers", Constants.NBT.TAG_LIST)) {
+			final ListNBT tagListCovers = tagCompoundNode.getList("Covers", Constants.NBT.TAG_COMPOUND);
+			for (int index = 0; index < tagListCovers.size(); index++) {
+				final CompoundNBT compoundTagCover = tagListCovers.getCompound(index);
+				final int directionCoverOld = compoundTagCover.getInt("Direction");
 				final int directionCoverNew;
 				
 				switch (rotationSteps) {
@@ -178,7 +175,7 @@ public class CompatRefinedStorage implements IBlockTransformer {
 					directionCoverNew = directionCoverOld;
 					break;
 				}
-				compoundTagCover.setInteger("Direction", directionCoverNew);
+				compoundTagCover.putInt("Direction", directionCoverNew);
 			}
 		}
 		
@@ -205,7 +202,7 @@ public class CompatRefinedStorage implements IBlockTransformer {
 		
 		// restore direction
 		if (tileEntity instanceof TileBase) {
-			final int directionOld = tagCompound.getInteger(NBT_DIRECTION);
+			final int directionOld = tagCompound.getInt(NBT_DIRECTION);
 			final int directionNew;
 			
 			switch (rotationSteps) {
@@ -223,7 +220,7 @@ public class CompatRefinedStorage implements IBlockTransformer {
 				break;
 			}
 			
-			((TileBase) tileEntity).setDirection(EnumFacing.byIndex(directionNew));
+			((TileBase) tileEntity).setDirection(Direction.byIndex(directionNew));
 			
 			tileEntity.markDirty();
 		}

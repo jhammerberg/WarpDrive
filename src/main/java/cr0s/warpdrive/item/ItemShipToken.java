@@ -8,107 +8,89 @@ import java.util.List;
 import java.util.Random;
 
 import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class ItemShipToken extends ItemAbstractBase {	
 	
 	private static ItemStack[] itemStackCache;
-	private static final int[] VALID_METADATAS = { 0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 34, 35, 40, 41, 42, 43, 44, 45 };
+	public static final int[] TOKEN_IDs = { 0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 34, 35, 40, 41, 42, 43, 44, 45 };
 	
-	public ItemShipToken(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier);
+	public ItemShipToken(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, final int tokenId) {
+		super(new Item.Properties()
+				      .group(WarpDrive.itemGroupMain),
+		      registryName,
+		      enumTier );
 		
-		setHasSubtypes(true);
-		setTranslationKey("warpdrive.tool.ship_token");
-		setCreativeTab(WarpDrive.creativeTabMain);
+		setTranslationKey("warpdrive.tool.ship_token" + tokenId);
 		
-		itemStackCache = new ItemStack[VALID_METADATAS.length];
+		itemStackCache = new ItemStack[TOKEN_IDs.length];
 	}
 	
-	public static ItemStack getItemStack(final Random random) {
-		return getItemStack(VALID_METADATAS[random.nextInt(VALID_METADATAS.length)]);
+	@Nonnull
+	public static ItemStack getItemStack(@Nonnull final Random random) {
+		return getItemStack(TOKEN_IDs[random.nextInt(TOKEN_IDs.length)]);
 	}
 	
-	public static ItemStack getItemStack(final int metadataWanted) {
-		for (int index = 0; index < VALID_METADATAS.length; index++) {
-			if (metadataWanted == VALID_METADATAS[index]) {
+	@Nonnull
+	public static ItemStack getItemStack(final int tokenId) {
+		for (int index = 0; index < TOKEN_IDs.length; index++) {
+			if (tokenId == TOKEN_IDs[index]) {
 				if (itemStackCache[index] == null) {
-					itemStackCache[index] = new ItemStack(WarpDrive.itemShipToken, 1, metadataWanted);
+					itemStackCache[index] = new ItemStack(WarpDrive.itemShipTokens[index]);
 				}
 				return itemStackCache[index];
 			}
 		}
-		return null;
+		return ItemStack.EMPTY;
 	}
 	
 	@Nonnull
-	public static ItemStack getItemStackNoCache(final int metadataWanted, final int amount) {
-		for (final int metadataValid : VALID_METADATAS) {
-			if (metadataWanted == metadataValid) {
-				return new ItemStack(WarpDrive.itemShipToken, amount, metadataWanted);
+	public static ItemStack getItemStackNoCache(final int tokenId, final int amount) {
+		for (int index = 0; index < TOKEN_IDs.length; index++) {
+			if (tokenId == TOKEN_IDs[index]) {
+				return new ItemStack(WarpDrive.itemShipTokens[index], amount);
 			}
 		}
-		return new ItemStack(WarpDrive.itemShipToken, amount, 0);
+		return ItemStack.EMPTY;
 	}
 	
 	@Nonnull
-	@Override
-	public String getTranslationKey(final ItemStack itemStack) {
-		final int metadata = itemStack.getItemDamage();
-		for (final int metadataValid : VALID_METADATAS) {
-			if (metadata == metadataValid) {
-				return "item.warpdrive.tool.ship_token" + metadata;
-			}
-		}
-		return getTranslationKey();
-	}
-	
-	@Override
-	public void getSubItems(@Nonnull final CreativeTabs creativeTab, @Nonnull final NonNullList<ItemStack> list) {
-		if (!isInCreativeTab(creativeTab)) {
-			return;
-		}
-		for (final int metadataValid : VALID_METADATAS) {
-			list.add(new ItemStack(this, 1, metadataValid));
-		}
-	}
-	
-	public static String getSchematicName(final ItemStack itemStack) {
-		String schematicName = "" + itemStack.getItemDamage();
-		final NBTTagCompound tagCompound = itemStack.getTagCompound();
-		if (tagCompound != null && tagCompound.hasKey("shipName")) {
+	public static String getSchematicName(@Nonnull final ItemStack itemStack) {
+		String schematicName = "" + itemStack.getDamage();
+		final CompoundNBT tagCompound = itemStack.getTag();
+		if (tagCompound != null && tagCompound.contains("shipName")) {
 			schematicName = tagCompound.getString("shipName");
 		}
 		return schematicName;
 	}
 	
-	public static void setSchematicName(final ItemStack itemStack, final String schematicName) {
-		if (!itemStack.hasTagCompound()) {
-			itemStack.setTagCompound(new NBTTagCompound());
+	public static void setSchematicName(@Nonnull final ItemStack itemStack, @Nonnull final String schematicName) {
+		if (!itemStack.hasTag()) {
+			itemStack.setTag(new CompoundNBT());
 		}
-		final NBTTagCompound tagCompound = itemStack.getTagCompound();
+		final CompoundNBT tagCompound = itemStack.getTag();
 		assert tagCompound != null;
-		tagCompound.setString("shipName", schematicName);
+		tagCompound.putString("shipName", schematicName);
 	}
 	
 	@Override
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public void addInformation(@Nonnull final ItemStack itemStack, @Nullable final World world,
-	                           @Nonnull final List<String> list, @Nonnull final ITooltipFlag advancedItemTooltips) {
+	                           @Nonnull final List<ITextComponent> list, @Nonnull final ITooltipFlag advancedItemTooltips) {
 		super.addInformation(itemStack, world, list, advancedItemTooltips);
 		
-		Commons.addTooltip(list, new TextComponentTranslation("item.warpdrive.tool.ship_token.tooltip.usage",
+		Commons.addTooltip(list, new TranslationTextComponent("item.warpdrive.tool.ship_token.tooltip.usage",
 		                                                      getSchematicName(itemStack)).getFormattedText());
 	}
 }

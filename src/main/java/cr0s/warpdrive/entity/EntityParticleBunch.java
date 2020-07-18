@@ -9,17 +9,22 @@ import cr0s.warpdrive.data.Vector3;
 import javax.annotation.Nonnull;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.Pose;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.IPacket;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
+import net.minecraft.network.play.server.SSpawnObjectPacket;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class EntityParticleBunch extends Entity {
 	
@@ -28,6 +33,8 @@ public class EntityParticleBunch extends Entity {
 	private static final double[] PARTICLE_BUNCH_ENERGY_TO_X       = { 0.1D, 1.0D, 10.0D, 100.0D };
 	private static final double[] PARTICLE_BUNCH_ENERGY_TO_SOUND_Y = { 0.0D, 1.0D,  2.0D,   3.0D };
 	private static final SoundEvent[] PARTICLE_BUNCH_SOUNDS = { SoundEvents.ACCELERATING_LOW, SoundEvents.ACCELERATING_MEDIUM, SoundEvents.ACCELERATING_HIGH };
+	
+	public static final EntityType<EntityParticleBunch> TYPE;
 	
 	// persistent properties
 	private static final DataParameter<Float> DATA_PARAMETER_ENERGY = EntityDataManager.createKey(EntityParticleBunch.class, DataSerializers.FLOAT);
@@ -39,8 +46,18 @@ public class EntityParticleBunch extends Entity {
 	private static final int UPDATE_TICKS_TIMEOUT = 20;
 	private int soundTicks;
 	
-	public EntityParticleBunch(final World world) {
-		super(world);
+	static {
+		TYPE = EntityType.Builder.<EntityParticleBunch>create(EntityParticleBunch::new, EntityClassification.MISC)
+		                         .size(2.0F, 2.0F)
+		                         .setTrackingRange(300)
+		                         .setUpdateInterval(1)
+		                         .setShouldReceiveVelocityUpdates(false)
+		                         .build("entity_particle_bunch");
+		TYPE.setRegistryName(WarpDrive.MODID, "entity_particle_bunch");
+	}
+	
+	public EntityParticleBunch(@Nonnull final EntityType<EntityParticleBunch> entityType, @Nonnull final World world) {
+		super(entityType, world);
 		
 		if (WarpDriveConfig.LOGGING_ACCELERATOR) {
 			WarpDrive.logger.info(String.format("%s created in dimension %s",
@@ -48,37 +65,24 @@ public class EntityParticleBunch extends Entity {
 		}
 	}
 	
-	public EntityParticleBunch(final World world, final double x, final double y, final double z) {
-		super(world);
+	public EntityParticleBunch(@Nonnull final World world, final double x, final double y, final double z) {
+		super(TYPE, world);
 		
-		this.posX = x + 0.5D;
-		this.posY = y + 0.5D;
-		this.posZ = z + 0.5D;
+		this.setPosition(x + 0.5D, y + 0.5D, z + 0.5D);
 		
 		if (WarpDriveConfig.LOGGING_ACCELERATOR) {
 			WarpDrive.logger.info(this + " created");
 		}
 	}
 	
-	// override to skip the block bounding override on client side
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	@Override
-	public void setPositionAndRotation(final double x, final double y, final double z, final float yaw, final float pitch) {
-	//	super.setPositionAndRotation(x, y, z, yaw, pitch);
-		this.setPosition(x, y, z);
-		this.setRotation(yaw, pitch);
-	}
-	
-	@SideOnly(Side.CLIENT)
-	@Override
-	public int getBrightnessForRender() {
-		final int lightFromSky = 0;
-		final int lightFromBlock = 15;
-		return lightFromSky << 20 | lightFromBlock << 4;
+	public float getBrightness() {
+		return 1.0F;
 	}
 	
 	@Override
-	public boolean isEntityInvulnerable(@Nonnull final DamageSource source) {
+	public boolean isInvulnerableTo(@Nonnull final DamageSource source) {
 		return true;
 	}
 	
@@ -99,14 +103,16 @@ public class EntityParticleBunch extends Entity {
 	}
 	
 	@Override
-	public void onUpdate() {
-		if (world.isRemote) {
+	public void tick() {
+		// do not call super: this is a visual entity only, accelerator core controls its position/motion
+		
+		if (world.isRemote()) {
 			return;
 		}
 		
 		lastUpdateTicks++;
 		if (lastUpdateTicks > UPDATE_TICKS_TIMEOUT) {
-			setDead();
+			remove();
 		}
 		
 		// apply sound effects
@@ -118,66 +124,63 @@ public class EntityParticleBunch extends Entity {
 			final float pitch = 0.6F + 0.4F * (float) (factor - indexSound);
 			
 			soundTicks = (int) Math.floor(ACCELERATION_SOUND_UPDATE_TICKS * pitch);
-			world.playSound(null, posX, posY, posZ, soundEvent, SoundCategory.HOSTILE, 1.0F, pitch);
+			world.playSound(null, getPosX(), getPosY(), getPosZ(), soundEvent, SoundCategory.HOSTILE, 1.0F, pitch);
 		}
 	}
 	
 	@Override
-	protected void entityInit() {
+	protected void registerData() {
 		dataManager.register(DATA_PARAMETER_ENERGY, 0.0F);
 		
-		// entity size is used by vanilla to define render distance, so we force to a high value and adjust in render itself
-		setSize(2.0F, 2.0F);
 		noClip = true;
 		soundTicks = 0;
 	}
 	
 	@Override
-	public float getEyeHeight() {
+	public float getEyeHeight(@Nonnull final Pose pose) {
 		return 2.0F;
 	}
 	
+	@Nonnull
 	@Override
-	public void setDead() {
-		super.setDead();
+	public IPacket<?> createSpawnPacket() {
+		return new SSpawnObjectPacket(this);
+	}
+	
+	@Override
+	public void remove(final boolean keepData) {
+		super.remove(keepData);
 		if (WarpDriveConfig.LOGGING_ACCELERATOR) {
 			WarpDrive.logger.info(this + " dead");
 		}
 	}
 	
 	@Override
-	protected void readEntityFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		// energy = tagCompound.getInteger("energy");
-		vectorNextPosition = Vector3.createFromNBT(tagCompound.getCompoundTag("nextPosition"));
-		if (tagCompound.hasKey("turningPoint")) {
-			vectorTurningPoint = Vector3.createFromNBT(tagCompound.getCompoundTag("turningPoint"));
+	protected void readAdditional(@Nonnull final CompoundNBT tagCompound) {
+		// energy = tagCompound.getInt("energy");
+		vectorNextPosition = Vector3.createFromNBT(tagCompound.getCompound("nextPosition"));
+		if (tagCompound.contains("turningPoint")) {
+			vectorTurningPoint = Vector3.createFromNBT(tagCompound.getCompound("turningPoint"));
 		}
 	}
 	
 	@Override
-	protected void writeEntityToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		// tagCompound.setDouble("energy", energy);
-		tagCompound.setTag("nextPosition", vectorNextPosition.writeToNBT(new NBTTagCompound()));
+	protected void writeAdditional(@Nonnull final CompoundNBT tagCompound) {
+		// tagCompound.putDouble("energy", energy);
+		tagCompound.put("nextPosition", vectorNextPosition.write(new CompoundNBT()));
 		if (vectorTurningPoint != null) {
-			tagCompound.setTag("turningPoint", vectorTurningPoint.writeToNBT(new NBTTagCompound()));
+			tagCompound.put("turningPoint", vectorTurningPoint.write(new CompoundNBT()));
 		}
-	}
-	
-	@Nonnull
-	@Override
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		return super.writeToNBT(tagCompound);
 	}
 	
 	// prevent saving entity to chunk
 	@Override
-	public boolean writeToNBTAtomically(@Nonnull final NBTTagCompound tagCompound) {
+	public boolean writeUnlessPassenger(@Nonnull final CompoundNBT tagCompound) {
 		return false;
 	}
 	
-	// prevent saving entity to chunk
 	@Override
-	public boolean writeToNBTOptional(@Nonnull final NBTTagCompound tagCompound) {
+	public boolean writeUnlessRemoved(@Nonnull final CompoundNBT tagCompound) {
 		return false;
 	}
 	
@@ -187,6 +190,6 @@ public class EntityParticleBunch extends Entity {
 		return String.format("%s/%d %s",
 		                     getClass().getSimpleName(),
 		                     getEntityId(),
-		                     Commons.format(world, posX, posY, posZ));
+		                     Commons.format(world, getPosX(), getPosY(), getPosZ()));
 	}
 }

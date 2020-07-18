@@ -9,7 +9,7 @@ import cr0s.warpdrive.network.PacketHandler;
 import java.util.List;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.world.World;
@@ -29,9 +29,9 @@ public class DamageIrradiation extends DamageSource {
 		final AxisAlignedBB axisAlignedBB = new AxisAlignedBB(
 			v3Position.x - radius, v3Position.y - radius, v3Position.z - radius,
 			v3Position.x + radius, v3Position.y + radius, v3Position.z + radius);
-		final List<EntityLivingBase> listEntityLivingBase = world.getEntitiesWithinAABB(EntityLivingBase.class, axisAlignedBB);
+		final List<LivingEntity> listEntityLivingBase = world.getEntitiesWithinAABB(LivingEntity.class, axisAlignedBB);
 		if (listEntityLivingBase != null) {
-			for (final EntityLivingBase entityLivingBase : listEntityLivingBase) {
+			for (final LivingEntity entityLivingBase : listEntityLivingBase) {
 				// cap damage below 1 m distance, since the entity is never really inside the source and damage tends to +INF
 				final float distance = Math.min(1.0F, (float) Math.sqrt(v3Position.distanceTo_square(entityLivingBase)));
 				onEntityEffect(strength / (distance * distance), world, v3Position, entityLivingBase);
@@ -41,8 +41,8 @@ public class DamageIrradiation extends DamageSource {
 	
 	public void onEntityEffect(final float strength, final World world, final Vector3 v3Source, final Entity entity) {
 		if ( strength <= 0.0F
-		  || !(entity instanceof EntityLivingBase)
-		  || entity.isDead ) {
+		  || !(entity instanceof LivingEntity)
+		  || !entity.isAlive() ) {
 			return;
 		}
 		

@@ -8,7 +8,7 @@ import cr0s.warpdrive.block.movement.TileEntityShipCore;
 import cr0s.warpdrive.data.EnumShipMovementType;
 import cr0s.warpdrive.data.JumpShip;
 
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -60,9 +60,9 @@ public class DeploySequencer extends JumpSequencer {
 		
 		if (playerNameRequester != null) {
 			// Warn owner if deployment done but wait next tick for teleportation
-			final EntityPlayerMP entityPlayerMP = Commons.getOnlinePlayerByName(playerNameRequester);
-			if (entityPlayerMP != null) {
-				Commons.addChatMessage(entityPlayerMP, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.builder.guide.ship_deployed"));
+			final ServerPlayerEntity entityServerPlayer = Commons.getOnlinePlayerByName(playerNameRequester);
+			if (entityServerPlayer != null) {
+				Commons.addChatMessage(entityServerPlayer, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.builder.guide.ship_deployed"));
 			}
 		}
 	}
@@ -71,13 +71,13 @@ public class DeploySequencer extends JumpSequencer {
 	protected void state_finishing() {
 		if ( playerNameRequester != null && !playerNameRequester.isEmpty()
 		  && isRequesterCaptain ) {
-			final EntityPlayerMP entityPlayerMP = Commons.getOnlinePlayerByName(playerNameRequester);
-			if (entityPlayerMP != null) {
+			final ServerPlayerEntity entityServerPlayer = Commons.getOnlinePlayerByName(playerNameRequester);
+			if (entityServerPlayer != null) {
 				final TileEntity tileEntity = worldTarget.getTileEntity(new BlockPos(destX, destY, destZ));
 				if (tileEntity instanceof TileEntityShipCore) {
-					final boolean isSuccess = ((TileEntityShipCore) tileEntity).summonOwnerOnDeploy(entityPlayerMP);
+					final boolean isSuccess = ((TileEntityShipCore) tileEntity).summonOwnerOnDeploy(entityServerPlayer);
 					if (isSuccess) {
-						Commons.addChatMessage(entityPlayerMP, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.builder.guide.welcome_aboard"));
+						Commons.addChatMessage(entityServerPlayer, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.builder.guide.welcome_aboard"));
 					} else {
 						WarpDrive.logger.warn(String.format("Failed to assign new captain %s",
 						                                    playerNameRequester));

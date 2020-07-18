@@ -5,13 +5,16 @@ import cr0s.warpdrive.client.SirenSound;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.SoundEvents;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.tileentity.TileEntityType;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class TileEntitySiren extends TileEntityAbstractMachine {
+	
+	public static TileEntityType<TileEntitySiren> TYPE;
 	
 	public enum EnumSirenState {
 		STARTING, STARTED, STOPPING, STOPPED
@@ -26,29 +29,30 @@ public class TileEntitySiren extends TileEntityAbstractMachine {
 	private float range = 0.0F;
 	private int tickUpdate = 0;
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	private SirenSound sound;
 	
 	public TileEntitySiren() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveSiren";
 		doRequireUpgradeToInterface();
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
+		assert world != null;
 		
 		range = WarpDriveConfig.SIREN_RANGE_BLOCKS_BY_TIER[enumTier.getIndex()];
 		
-		final IBlockState blockState = world.getBlockState(pos);
+		final BlockState blockState = world.getBlockState(pos);
 		isIndustrial = ((BlockSiren) blockState.getBlock()).getIsIndustrial();
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
 		/* Updating the sound too quickly breaks Minecraft's sounds handler.
 		 * Therefore, we only update our sound once every 0.5 seconds.
@@ -63,7 +67,7 @@ public class TileEntitySiren extends TileEntityAbstractMachine {
 		}
 		
 		if ( world == null
-		  || !world.isRemote ) {
+		  || !world.isRemote() ) {
 		    return;
         }
 		if (sound == null) {
@@ -116,35 +120,38 @@ public class TileEntitySiren extends TileEntityAbstractMachine {
     
 	// Stops the siren when the chunk is unloaded.
 	@Override
-	public void onChunkUnload() {
-		if ( world.isRemote
+	public void onChunkUnloaded() {
+		if ( world != null
+		  && world.isRemote()
 		  && isPlaying() ) {
 		    stopSound();
         }
-		super.onChunkUnload();
+		super.onChunkUnloaded();
 	}
     
 	// Stops the siren when the TileEntity object is invalidated.
 	@Override
-	public void invalidate() {
-		if (world.isRemote && isPlaying()) {
+	public void remove() {
+		if ( world != null
+		  && world.isRemote()
+		  && isPlaying() ) {
 		    stopSound();
         }
-		super.invalidate();
+		super.remove();
 	}
     
 	// Create a new SirenSound object that the siren will use.
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	private void setSound() {
-		sound = new SirenSound(isIndustrial ? SoundEvents.SIREN_INDUSTRIAL : SoundEvents.SIREN_RAID, range, pos.getX(), pos.getY(), pos.getZ());
+		sound = new SirenSound(isIndustrial ? SoundEvents.SIREN_INDUSTRIAL : SoundEvents.SIREN_RAID, range, pos);
 	}
     
 	// Forces the siren to start playing its sound;
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
     private boolean startSound() {
 		if (!isPlaying()) {
 			try {
-				Minecraft.getMinecraft().getSoundHandler().playSound(sound);
+				Minecraft.getInstance().getSoundHandler().play(sound);
 				return true;
 			} catch (final IllegalArgumentException exception) {
 				return false;
@@ -155,19 +162,20 @@ public class TileEntitySiren extends TileEntityAbstractMachine {
 	}
     
 	// Forces the siren to stop playing its sound.
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	void stopSound() {
-		Minecraft.getMinecraft().getSoundHandler().stopSound(sound);
+		Minecraft.getInstance().getSoundHandler().stop(sound);
 	}
     
 	// Checks if the siren is currently playing its sound.
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	boolean isPlaying() {
-		return Minecraft.getMinecraft().getSoundHandler().isSoundPlaying(sound);
+		return Minecraft.getInstance().getSoundHandler().isPlaying(sound);
 	}
     
 	// Checks if the siren is being powered by redstone.
 	private boolean isPowered() {
+		assert world != null;
 		return world.getRedstonePowerFromNeighbors(pos) > 0;
 	}
 }

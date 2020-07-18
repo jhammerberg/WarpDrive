@@ -6,15 +6,25 @@ import javax.annotation.Nonnull;
 import java.util.List;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.IPacket;
+import net.minecraft.network.play.server.SSpawnObjectPacket;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 public final class EntityStarCore extends Entity {
 	
+	public static final EntityType<EntityStarCore> TYPE;
+	
+	// persistent properties
+	// (none)
+	
+	// computed properties
 	public int xCoord;
 	public int yCoord;
 	public int zCoord;
@@ -30,20 +40,33 @@ public final class EntityStarCore extends Entity {
 	
 	private int ticks = 0;
 	
-	public EntityStarCore(final World world) {
-		super(world);
+	static {
+		TYPE = EntityType.Builder.<EntityStarCore>create(EntityStarCore::new, EntityClassification.MISC)
+				       .setTrackingRange(300)
+				       .setUpdateInterval(1)
+				       .setShouldReceiveVelocityUpdates(false)
+				       .build("entity_star_sore");
+		TYPE.setRegistryName(WarpDrive.MODID, "entity_star_sore");
+	}
+	
+	public EntityStarCore(final EntityType<EntityStarCore> entityType, final World world) {
+		super(entityType, world);
 	}
 	
 	public EntityStarCore(final World world, final int x, final int y, final int z, final int radius) {
-		super(world);
+		super(TYPE, world);
 		
 		this.xCoord = x;
-		this.posX = x;
 		this.yCoord = y;
-		this.posY = y;
 		this.zCoord = z;
-		this.posZ = z;
+		this.setPosition(x, y, z);
 		this.radius = radius;
+	}
+	
+	@Nonnull
+	@Override
+	public IPacket<?> createSpawnPacket() {
+		return new SSpawnObjectPacket(this);
 	}
 	
 	private void actionToEntitiesNearStar() {
@@ -61,7 +84,7 @@ public final class EntityStarCore extends Entity {
 		yMin = yCoord - MAX_RANGE;
 		yMax = yCoord + MAX_RANGE;
 		final AxisAlignedBB aabb = new AxisAlignedBB(xMin, yMin, zMin, xMax, yMax, zMax);
-		final List list = world.getEntitiesWithinAABBExcludingEntity(this, aabb);
+		final List<Entity> list = world.getEntitiesWithinAABBExcludingEntity(this, aabb);
 		
 		if (!isLogged) {
 			isLogged = true;
@@ -72,18 +95,18 @@ public final class EntityStarCore extends Entity {
 				continue;
 			}
 			
-			if (object instanceof EntityLivingBase) {
-				final EntityLivingBase entityLivingBase = (EntityLivingBase) object;
+			if (object instanceof LivingEntity) {
+				final LivingEntity entityLivingBase = (LivingEntity) object;
 				
 				//System.out.println("Found: " + entity.getEntityName() + " distance: " + entity.getDistanceToEntity(this));
 				
 				// creative bypass
-				if (entityLivingBase.isEntityInvulnerable(WarpDrive.damageWarm)) {
+				if (entityLivingBase.isInvulnerableTo(WarpDrive.damageWarm)) {
 					continue;
 				}
-				if (entityLivingBase instanceof EntityPlayer) {
-					final EntityPlayer entityPlayer = (EntityPlayer) entityLivingBase;
-					if (entityPlayer.capabilities.disableDamage) {
+				if (entityLivingBase instanceof PlayerEntity) {
+					final PlayerEntity entityPlayer = (PlayerEntity) entityLivingBase;
+					if (entityPlayer.abilities.disableDamage) {
 						continue;
 					}
 				}
@@ -93,9 +116,9 @@ public final class EntityStarCore extends Entity {
 					// 100% kill, ignores any protection
 					entityLivingBase.attackEntityFrom(DamageSource.ON_FIRE, 9000);
 					entityLivingBase.attackEntityFrom(DamageSource.GENERIC, 9000);
-					if (!entityLivingBase.isDead) {
+					if (entityLivingBase.isAlive()) {
 						WarpDrive.logger.warn(String.format("Forcing entity death due to star proximity: %s", entityLivingBase));
-						entityLivingBase.setDead();
+						entityLivingBase.remove();
 					}
 				} else if (distanceSq <= BURN_RANGESQ) {
 					// burn entity
@@ -116,8 +139,8 @@ public final class EntityStarCore extends Entity {
 	}
 	
 	@Override
-	public void onUpdate() {
-		if (world.isRemote) {
+	public void tick() {
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -128,36 +151,28 @@ public final class EntityStarCore extends Entity {
 	}
 	
 	@Override
-	protected void readEntityFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		xCoord = tagCompound.getInteger("x");
-		yCoord = tagCompound.getInteger("y");
-		zCoord = tagCompound.getInteger("z");
-		radius = tagCompound.getInteger("radius");
+	protected void readAdditional(@Nonnull final CompoundNBT tagCompound) {
+		xCoord = tagCompound.getInt("x");
+		yCoord = tagCompound.getInt("y");
+		zCoord = tagCompound.getInt("z");
+		radius = tagCompound.getInt("radius");
 	}
 	
 	@Override
-	protected void entityInit() {
+	protected void registerData() {
 		noClip = true;
 	}
 	
-	// override to skip the block bounding override on client side
 	@Override
-	public void setPositionAndRotation(final double x, final double y, final double z, final float yaw, final float pitch) {
-		//	super.setPositionAndRotation(x, y, z, yaw, pitch);
-		this.setPosition(x, y, z);
-		this.setRotation(yaw, pitch);
+	protected void writeAdditional(final CompoundNBT tagCompound) {
+		tagCompound.putInt("x", xCoord);
+		tagCompound.putInt("y", yCoord);
+		tagCompound.putInt("z", zCoord);
+		tagCompound.putInt("radius", radius);
 	}
 	
 	@Override
-	protected void writeEntityToNBT(final NBTTagCompound tagCompound) {
-		tagCompound.setInteger("x", xCoord);
-		tagCompound.setInteger("y", yCoord);
-		tagCompound.setInteger("z", zCoord);
-		tagCompound.setInteger("radius", radius);
-	}
-	
-	@Override
-	public boolean shouldRenderInPass(final int pass) {
+	public boolean isInRangeToRenderDist(double distance) {
 		return false;
 	}
 }

@@ -9,18 +9,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityChest;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.world.World;
 
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.wrapper.EmptyHandler;
 
 // note: unlike Forge's InvWrapper this won't create ItemStack all around, saving us a bit of lag from GC and capabilities
 
@@ -30,22 +29,7 @@ public class InventoryWrapper {
 	// public static final String TAG_INVENTORY = "inventory";
 	
 	// WarpDrive methods
-	public static boolean isInventory(final TileEntity tileEntity, final EnumFacing facing) {
-		boolean isInventory = false;
-		
-		if (tileEntity instanceof IInventory) {
-			isInventory = true;
-		}
-		
-		if ( !isInventory
-		  && tileEntity.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, facing)) {
-			isInventory = true;
-		}
-		
-		return isInventory;
-	}
-	
-	public static Object getInventory(final TileEntity tileEntity, final EnumFacing facing) {
+	public static Object getInventory(final TileEntity tileEntity, final Direction facing) {
 		if (tileEntity instanceof IInventory) {
 			return tileEntity;
 		}
@@ -60,9 +44,9 @@ public class InventoryWrapper {
 	public static @Nonnull Collection<Object> getConnectedInventories(final World world, final BlockPos blockPos) {
 		final Collection<Object> result = new ArrayList<>(6);
 		final Collection<IItemHandler> resultCapabilities = new ArrayList<>(6);
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 		
-		for(final EnumFacing side : EnumFacing.VALUES) {
+		for(final Direction side : Direction.values()) {
 			mutableBlockPos.setPos(blockPos.getX() + side.getXOffset(),
 			                       blockPos.getY() + side.getYOffset(),
 			                       blockPos.getZ() + side.getZOffset() );
@@ -71,8 +55,10 @@ public class InventoryWrapper {
 			if (tileEntity instanceof IInventory) {
 				result.add(tileEntity);
 				
-				if (tileEntity instanceof TileEntityChest) {
-					final TileEntityChest tileEntityChest = (TileEntityChest) tileEntity;
+				/* @TODO MC1.15 check support for double chests
+				if (tileEntity instanceof ChestTileEntity) {
+					final ChestTileEntity tileEntityChest = (ChestTileEntity) tileEntity;
+					tileEntityChest.getSizeInventory()
 					tileEntityChest.checkForAdjacentChests();
 					if (tileEntityChest.adjacentChestXNeg != null) {
 						result.add(tileEntityChest.adjacentChestXNeg);
@@ -84,9 +70,10 @@ public class InventoryWrapper {
 						result.add(tileEntityChest.adjacentChestZPos);
 					}
 				}
+				 */
 			} else if (tileEntity != null) {
-				final IItemHandler itemHandler = tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, side);
-				if (itemHandler != null) {
+				final IItemHandler itemHandler = tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, side).orElse(EmptyHandler.INSTANCE);
+				if (itemHandler.getSlots() > 0) {
 					resultCapabilities.add(itemHandler);
 				}
 			}
@@ -149,8 +136,8 @@ public class InventoryWrapper {
 					while (qtyLeft > 0) {
 						transfer = Math.min(qtyLeft, itemStackLeft.getMaxStackSize());
 						final ItemStack itemStackDrop = Commons.copyWithSize(itemStackLeft, transfer);
-						final EntityItem entityItem = new EntityItem(world, blockPos.getX() + 0.5D, blockPos.getY() + 1.0D, blockPos.getZ() + 0.5D, itemStackDrop);
-						world.spawnEntity(entityItem);
+						final ItemEntity entityItem = new ItemEntity(world, blockPos.getX() + 0.5D, blockPos.getY() + 1.0D, blockPos.getZ() + 0.5D, itemStackDrop);
+						world.addEntity(entityItem);
 						qtyLeft -= transfer;
 					}
 				}
@@ -311,9 +298,10 @@ public class InventoryWrapper {
 				                                     indexSlot, itemStack, inventory));
 				if (inventory instanceof TileEntity) {
 					final World world = ((TileEntity) inventory).getWorld();
+					assert world != null;
 					final BlockPos blockPos = ((TileEntity) inventory).getPos();
-					final EntityItem entityItem = new EntityItem(world, blockPos.getX() + 0.5D, blockPos.getY() + 1.0D, blockPos.getZ() + 0.5D, itemStack);
-					world.spawnEntity(entityItem);
+					final ItemEntity entityItem = new ItemEntity(world, blockPos.getX() + 0.5D, blockPos.getY() + 1.0D, blockPos.getZ() + 0.5D, itemStack);
+					world.addEntity(entityItem);
 				}
 			}
 		} else if (inventory instanceof IItemHandler) {

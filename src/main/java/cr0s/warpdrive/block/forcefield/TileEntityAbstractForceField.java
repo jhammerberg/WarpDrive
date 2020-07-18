@@ -12,12 +12,8 @@ import li.cil.oc.api.machine.Arguments;
 import li.cil.oc.api.machine.Callback;
 import li.cil.oc.api.machine.Context;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 
 import javax.annotation.Nonnull;
 
@@ -30,8 +26,8 @@ public abstract class TileEntityAbstractForceField extends TileEntityAbstractEne
 	// computed properties
 	protected Vector3 vRGB;
 	
-	public TileEntityAbstractForceField() {
-		super();
+	public TileEntityAbstractForceField(@Nonnull TileEntityType<? extends TileEntityAbstractForceField> tileEntityType) {
+		super(tileEntityType);
 		
 		addMethods(new String[] {
 			"beamFrequency"
@@ -39,18 +35,20 @@ public abstract class TileEntityAbstractForceField extends TileEntityAbstractEne
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
-		if ( IBeamFrequency.isValid(beamFrequency) ) {
+	protected void onFirstTick() {
+		super.onFirstTick();
+		
+		if (IBeamFrequency.isValid(beamFrequency)) {
 			ForceFieldRegistry.updateInRegistry(this);
 		}
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -63,14 +61,14 @@ public abstract class TileEntityAbstractForceField extends TileEntityAbstractEne
 	}
 	
 	@Override
-	public void onBlockBroken(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
+	public void remove() {
 		ForceFieldRegistry.removeFromRegistry(this);
-		super.onBlockBroken(world, blockPos, blockState);
+		super.remove();
 	}
 	
 	@Override
-	public void onChunkUnload() {
-		super.onChunkUnload();
+	public void onChunkUnloaded() {
+		super.onChunkUnloaded();
 		// reload chunks as needed
 		// ForceFieldRegistry.removeFromRegistry(this);
 	}
@@ -101,29 +99,29 @@ public abstract class TileEntityAbstractForceField extends TileEntityAbstractEne
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		setBeamFrequency(tagCompound.getInteger(IBeamFrequency.BEAM_FREQUENCY_TAG));
+		setBeamFrequency(tagCompound.getInt(IBeamFrequency.BEAM_FREQUENCY_TAG));
 		isConnected = tagCompound.getBoolean("isConnected");
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setInteger(IBeamFrequency.BEAM_FREQUENCY_TAG, beamFrequency);
-		tagCompound.setBoolean("isConnected", isConnected);
+		tagCompound.putInt(IBeamFrequency.BEAM_FREQUENCY_TAG, beamFrequency);
+		tagCompound.putBoolean("isConnected", isConnected);
 		return tagCompound;
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound getUpdateTag() {
-		final NBTTagCompound tagCompound = super.getUpdateTag();
+	public CompoundNBT getUpdateTag() {
+		final CompoundNBT tagCompound = super.getUpdateTag();
 		
-		tagCompound.removeTag(IBeamFrequency.BEAM_FREQUENCY_TAG);
+		tagCompound.remove(IBeamFrequency.BEAM_FREQUENCY_TAG);
 		
 		return tagCompound;
 	}
@@ -150,14 +148,12 @@ public abstract class TileEntityAbstractForceField extends TileEntityAbstractEne
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] beamFrequency(final Context context, final Arguments arguments) {
 		return beamFrequency(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "beamFrequency":

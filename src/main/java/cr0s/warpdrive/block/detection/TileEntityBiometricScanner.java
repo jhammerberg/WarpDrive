@@ -17,17 +17,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 
-import net.minecraftforge.fml.common.Optional;
-
 public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
+	
+	public static TileEntityType<TileEntityBiometricScanner> TYPE;
 	
 	// persistent properties
 	private UUID uuidLastPlayer = null;
@@ -39,7 +40,7 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 	private int tickScanning = -1; // < 0 when IDLE, >= 0 when SCANNING
 	
 	public TileEntityBiometricScanner() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveBiometricScanner";
 		addMethods(new String[] {
@@ -49,12 +50,13 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		
-		final IBlockState blockState = world.getBlockState(pos);
+		assert world != null;
+		final BlockState blockState = world.getBlockState(pos);
 		if (blockState.getBlock() instanceof BlockBiometricScanner) {
-			final EnumFacing enumFacing = blockState.getValue(BlockProperties.FACING);
+			final Direction enumFacing = blockState.get(BlockProperties.FACING);
 			final float radius = WarpDriveConfig.BIOMETRIC_SCANNER_RANGE_BLOCKS / 2.0F;
 			final Vector3 v3Center = new Vector3(
 					pos.getX() + 0.5F + (radius + 0.5F) * enumFacing.getXOffset(),
@@ -67,10 +69,11 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -78,7 +81,7 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 		if (tickUpdate < 0) {
 			tickUpdate = WarpDriveConfig.G_PARAMETERS_UPDATE_INTERVAL_TICKS;
 			
-			final IBlockState blockState = world.getBlockState(pos);
+			final BlockState blockState = world.getBlockState(pos);
 			updateBlockState(blockState, BlockProperties.ACTIVE, isEnabled);
 		}
 		
@@ -87,19 +90,19 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 			tickScanning--;
 			
 			// check for exclusive player presence
-			final List<EntityPlayerMP> playersInRange = world.getEntitiesWithinAABB(EntityPlayerMP.class, aabbRange,
-			                                                                        entityPlayerMP -> entityPlayerMP != null
-			                                                                                       && entityPlayerMP.isEntityAlive()
-			                                                                                       && !entityPlayerMP.isSpectator() );
+			final List<ServerPlayerEntity> playersInRange = world.getEntitiesWithinAABB(ServerPlayerEntity.class, aabbRange,
+			                                                                        entityServerPlayer -> entityServerPlayer != null
+			                                                                                       && entityServerPlayer.isAlive()
+			                                                                                       && !entityServerPlayer.isSpectator());
 			boolean isJammed = false;
 			boolean isPresent = false;
-			for (final EntityPlayerMP entityPlayerMP : playersInRange) {
-				if (entityPlayerMP.getUniqueID().equals(uuidLastPlayer)) {
+			for (final ServerPlayerEntity entityServerPlayer : playersInRange) {
+				if (entityServerPlayer.getUniqueID().equals(uuidLastPlayer)) {
 					isPresent = true;
 				} else {
 					isJammed = true;
 					PacketHandler.sendSpawnParticlePacket(world, "jammed", (byte) 5,
-					                                      new Vector3(entityPlayerMP.posX, entityPlayerMP.posY, entityPlayerMP.posZ),
+					                                      new Vector3(entityServerPlayer.getPosX(), entityServerPlayer.getPosY(), entityServerPlayer.getPosZ()),
 					                                      new Vector3(0.0D, 0.0D, 0.0D),
 					                                      1.0F, 1.0F, 1.0F,
 					                                      1.0F, 1.0F, 1.0F,
@@ -132,7 +135,7 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 		}
 	}
 	
-	public boolean startScanning(@Nonnull final EntityPlayer entityPlayer, @Nonnull final WarpDriveText textReason) {
+	public boolean startScanning(@Nonnull final PlayerEntity entityPlayer, @Nonnull final WarpDriveText textReason) {
 		if (!isEnabled) {
 			textReason.append(Commons.getStyleWarning(), "warpdrive.machine.is_enabled.get.disabled",
 			                  (int) Math.ceil(tickScanning / 20.0F) );
@@ -145,15 +148,15 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 		}
 		
 		uuidLastPlayer = entityPlayer.getUniqueID();
-		nameLastPlayer = entityPlayer.getName();
+		nameLastPlayer = entityPlayer.getName().getUnformattedComponentText();
 		tickScanning = WarpDriveConfig.BIOMETRIC_SCANNER_DURATION_TICKS;
 		textReason.append(Commons.getStyleCorrect(), "warpdrive.biometric_scanner.start_scanning.started");
 		return true;
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
 		if (tagCompound.hasUniqueId("uuidLastPlayer")) {
 			uuidLastPlayer = tagCompound.getUniqueId("uuidLastPlayer");
@@ -166,19 +169,19 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
 		// only save if scanning has concluded
 		if ( tickScanning < 0
 		  && uuidLastPlayer != null
 		  && uuidLastPlayer.getMostSignificantBits() != 0L
 		  && uuidLastPlayer.getLeastSignificantBits() != 0L ) {
-			tagCompound.setUniqueId("uuidLastPlayer", uuidLastPlayer);
-			tagCompound.setString("nameLastPlayer", nameLastPlayer);
+			tagCompound.putUniqueId("uuidLastPlayer", uuidLastPlayer);
+			tagCompound.putString("nameLastPlayer", nameLastPlayer);
 		} else {
-			tagCompound.removeTag("uuidLastPlayer");
-			tagCompound.removeTag("nameLastPlayer");
+			tagCompound.remove("uuidLastPlayer");
+			tagCompound.remove("nameLastPlayer");
 		}
 		
 		return tagCompound;
@@ -201,7 +204,7 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 	@Override
 	public WarpDriveText getStatus() {
 		final WarpDriveText textScanStatus = getScanStatus();
-		if (textScanStatus.getUnformattedText().isEmpty()) {
+		if (textScanStatus.getUnformattedComponentText().isEmpty()) {
 			return super.getStatus();
 		} else {
 			return super.getStatus()
@@ -222,15 +225,13 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getScanResults(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getScanResults();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "getScanResults":

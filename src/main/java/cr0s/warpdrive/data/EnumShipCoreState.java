@@ -7,14 +7,10 @@ import net.minecraft.util.IStringSerializable;
 
 public enum EnumShipCoreState implements IStringSerializable {
 	
-	// DISCONNECTED  (0, "disconnected"),   // Not connected to controller
-	IDLE          (1, "idle"),           // Ready for next command
-	// SCANNING      (2, "scanning"),       // Ready for next command
-	ONLINE        (3, "online"),         // Computing parameters
-	WARMING_UP    (4, "warming_up");     // Warm up phase
-	// COOLING_DOWN  (5, "cooling_down");   // Pending cool down
+	IDLE          ("idle"),           // Ready for next command
+	ONLINE        ("online"),         // Computing parameters
+	WARMING_UP    ("warming_up");     // Warm up phase
 	
-	private final int metadata;
 	private final String name;
 	
 	// cached values
@@ -28,13 +24,8 @@ public enum EnumShipCoreState implements IStringSerializable {
 		}
 	}
 	
-	EnumShipCoreState(final int metadata, final String name) {
-		this.metadata = metadata;
+	EnumShipCoreState(final String name) {
 		this.name = name;
-	}
-	
-	public int getMetadata() {
-		return metadata;
 	}
 	
 	public static EnumShipCoreState get(final int id) {

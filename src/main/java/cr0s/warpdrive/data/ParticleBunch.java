@@ -13,15 +13,16 @@ import java.util.List;
 import java.util.Map;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.world.Explosion.Mode;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 
 public class ParticleBunch extends Vector3 {
 	
@@ -34,7 +35,7 @@ public class ParticleBunch extends Vector3 {
 	// persistent properties
 	public int id;
 	public double energy = TileEntityAcceleratorCore.PARTICLE_BUNCH_ENERGY_MINIMUM[0];
-	public EnumFacing directionCurrentMotion = null;
+	public Direction directionCurrentMotion = null;
 	public Vector3 vectorCurrentMotion = new Vector3(0.0D, 0.0D, 0.0D);
 	public Vector3 vectorTurningPoint = null;
 	private int tickFreeFlight = 0;
@@ -46,23 +47,23 @@ public class ParticleBunch extends Vector3 {
 	private TrajectoryPoint trajectoryPointCurrent = null;
 	private boolean isDead = false;
 	
-	public ParticleBunch(final int x, final int y, final int z, final EnumFacing directionCurrentMotion, final Vector3 vectorCurrentMotion) {
+	public ParticleBunch(final int x, final int y, final int z, final Direction directionCurrentMotion, final Vector3 vectorCurrentMotion) {
 		super(x + 0.5D, y + 0.5D, z + 0.5D);
 		this.id = (int) System.nanoTime();
 		this.directionCurrentMotion = directionCurrentMotion;
 		this.vectorCurrentMotion = vectorCurrentMotion;
 	}
 	
-	public ParticleBunch(final NBTTagCompound tagCompound) {
+	public ParticleBunch(final CompoundNBT tagCompound) {
 		super(0.0D, 0.0D, 0.0D);
-		readFromNBT(tagCompound);
+		read(tagCompound);
 	}
 	
 	public boolean onUpdate(final World world, final Map<Integer, AcceleratorControlParameter> mapParameters, final AcceleratorSetup acceleratorSetup) {
 		// clear dead entities
 		if (entityId >= 0) {
 			final Entity entity = world.getEntityByID(entityId);
-			if (entity == null || entity.isDead) {
+			if (entity == null || !entity.isAlive()) {
 				entityId = -1;
 			}
 		}
@@ -82,13 +83,13 @@ public class ParticleBunch extends Vector3 {
 		if (entityId < 0 && isChunkLoaded && !isDead) {
 			entity = new EntityParticleBunch(world, x, y, z);
 			entityId = entity.getEntityId();
-			world.spawnEntity(entity);
+			world.addEntity(entity);
 		} else if (entityId > 0) {
 			entity = world.getEntityByID(entityId);
 			if (entity == null) {
 				entityId = -1;
 			} else if (!isChunkLoaded || isDead) {
-				entity.setDead();
+				entity.remove();
 				entity = null;
 				entityId = -1;
 			}
@@ -178,7 +179,7 @@ public class ParticleBunch extends Vector3 {
 		}
 		
 		// get new orientation and turning point, as applicable
-		EnumFacing directionNewMotion = null;
+		Direction directionNewMotion = null;
 		Vector3 vectorNewMotion = null;
 		Vector3 vectorNewTurningPoint = null;
 		boolean isTurning = false;
@@ -247,7 +248,7 @@ public class ParticleBunch extends Vector3 {
 			}
 			
 		} else {// (no trajectory point => free flight)
-			final IBlockState blockStateCurrent = vCurrentBlock.getBlockState(world);
+			final BlockState blockStateCurrent = vCurrentBlock.getBlockState(world);
 			final Block blockCurrent = blockStateCurrent.getBlock();
 			if (!(blockCurrent instanceof BlockVoidShellPlain)) {
 				if (vectorFreeFlightStart == null) {
@@ -258,7 +259,7 @@ public class ParticleBunch extends Vector3 {
 				}
 				tickFreeFlight++;
 				if (!blockCurrent.isAir(blockStateCurrent, world, vCurrentBlock.getBlockPos())) {
-					if (blockStateCurrent.isOpaqueCube()) {
+					if (blockStateCurrent.isOpaqueCube(world, vCurrentBlock.getBlockPos())) {
 						doExplosion(world, "Opaque cube");
 						return false;
 					}
@@ -339,9 +340,9 @@ public class ParticleBunch extends Vector3 {
 		y = vectorNewPosition.y;
 		z = vectorNewPosition.z;
 		
-		return Commons.isChunkLoaded(world, vCurrentBlock.x, vCurrentBlock.z)
+		return Commons.isChunkLoaded(world, vCurrentBlock.getBlockPos())
 		    && ( vCurrentBlock == vNewBlock
-		      || Commons.isChunkLoaded(world, vNewBlock.x, vNewBlock.z) );
+		      || Commons.isChunkLoaded(world, vNewBlock.getBlockPos()) );
 	}
 	
 	private static double getSpeedFromEnergy(final double energy) {
@@ -355,8 +356,8 @@ public class ParticleBunch extends Vector3 {
 		final AxisAlignedBB axisAlignedBB = new AxisAlignedBB(
 			x + 0.5D - radius, y + 0.5D - radius, z + 0.5D - radius,
 			x + 0.5D + radius, y + 0.5D + radius, z + 0.5D + radius);
-		final List<EntityLivingBase> listEntityLivingBase = world.getEntitiesWithinAABB(EntityLivingBase.class, axisAlignedBB);
-		for (final EntityLivingBase entityLivingBase : listEntityLivingBase) {
+		final List<LivingEntity> listEntityLivingBase = world.getEntitiesWithinAABB(LivingEntity.class, axisAlignedBB);
+		for (final LivingEntity entityLivingBase : listEntityLivingBase) {
 			WarpDrive.damageIrradiation.onEntityEffect(strength, world, this, entityLivingBase);
 		}
 	}
@@ -364,49 +365,49 @@ public class ParticleBunch extends Vector3 {
 	private void doExplosion(final World world, final String reason) {
 		WarpDrive.logger.info(String.format("Particle bunch explosion due to %s %s",
 		                                    reason, Commons.format(world, x, y, z) ));
-		if (world instanceof WorldServer) {
+		if (world instanceof ServerWorld) {
 			final double explosionStrength = Commons.interpolate(
 					TileEntityAcceleratorCore.PARTICLE_BUNCH_ENERGY_TO_EXPLOSION_STRENGTH_X,
 					TileEntityAcceleratorCore.PARTICLE_BUNCH_ENERGY_TO_EXPLOSION_STRENGTH_Y,
 					energy); 
-			final EntityPlayer entityPlayer = CommonProxy.getFakePlayer(null, (WorldServer) world, getBlockPos());
-			world.newExplosion(entityPlayer, x, y, z, (float) explosionStrength, true, true);
+			final PlayerEntity entityPlayer = CommonProxy.getFakePlayer(null, (ServerWorld) world, getBlockPos());
+			world.createExplosion(entityPlayer, x, y, z, (float) explosionStrength, true, Mode.BREAK);
 			doIrradiation(world, explosionStrength, (float) explosionStrength);
 			isDead = true;
 		}
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
-		id = tagCompound.getInteger("id");
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
+		id = tagCompound.getInt("id");
 		try {
-			directionCurrentMotion = EnumFacing.valueOf(tagCompound.getString("direction"));
+			directionCurrentMotion = Direction.valueOf(tagCompound.getString("direction"));
 		} catch (final Exception exception) {
 			WarpDrive.logger.error(String.format("Invalid direction %s in ParticleBunch NBT %s", tagCompound.getString("direction"), tagCompound));
 		}
-		vectorCurrentMotion = Vector3.createFromNBT(tagCompound.getCompoundTag("vector"));
+		vectorCurrentMotion = Vector3.createFromNBT(tagCompound.getCompound("vector"));
 		energy = tagCompound.getDouble("energy");
 		
-		tickFreeFlight = tagCompound.getInteger("freeFlight_ticks");
-		if (tagCompound.hasKey("freeFlightStart")) {
-			vectorFreeFlightStart = Vector3.createFromNBT(tagCompound.getCompoundTag("freeFlightStart"));
+		tickFreeFlight = tagCompound.getInt("freeFlight_ticks");
+		if (tagCompound.contains("freeFlightStart")) {
+			vectorFreeFlightStart = Vector3.createFromNBT(tagCompound.getCompound("freeFlightStart"));
 		} else {
 			vectorFreeFlightStart = null;
 		}
 	}
 	
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.writeToNBT(tagCompound);
-		tagCompound.setInteger("id", id);
-		tagCompound.setString("direction", directionCurrentMotion.name());
-		tagCompound.setTag("vector", vectorCurrentMotion.writeToNBT(new NBTTagCompound()));
-		tagCompound.setDouble("energy", energy);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		super.write(tagCompound);
+		tagCompound.putInt("id", id);
+		tagCompound.putString("direction", directionCurrentMotion.name());
+		tagCompound.put("vector", vectorCurrentMotion.write(new CompoundNBT()));
+		tagCompound.putDouble("energy", energy);
 		
-		tagCompound.setInteger("freeFlight_ticks", tickFreeFlight);
+		tagCompound.putInt("freeFlight_ticks", tickFreeFlight);
 		if (vectorFreeFlightStart != null) {
-			tagCompound.setTag("freeFlightStart", vectorFreeFlightStart.writeToNBT(new NBTTagCompound()));
+			tagCompound.put("freeFlightStart", vectorFreeFlightStart.write(new CompoundNBT()));
 		}
 		return tagCompound;
 	}

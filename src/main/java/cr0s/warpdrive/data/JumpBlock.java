@@ -9,7 +9,6 @@ import cr0s.warpdrive.api.ITransformation;
 import cr0s.warpdrive.api.computer.ICoreSignature;
 import cr0s.warpdrive.block.energy.BlockCapacitor;
 import cr0s.warpdrive.block.movement.BlockShipCore;
-import cr0s.warpdrive.compat.CompatForgeMultipart;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.config.Filler;
 import cr0s.warpdrive.config.WarpDriveDataFixer;
@@ -18,78 +17,74 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map.Entry;
 
+import net.minecraft.block.AbstractRailBlock;
+import net.minecraft.block.AbstractSignBlock;
+import net.minecraft.block.AnvilBlock;
+import net.minecraft.block.BedBlock;
+import net.minecraft.block.AbstractButtonBlock;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockAnvil;
-import net.minecraft.block.BlockBed;
-import net.minecraft.block.BlockButton;
-import net.minecraft.block.BlockChest;
-import net.minecraft.block.BlockCocoa;
-import net.minecraft.block.BlockDispenser;
-import net.minecraft.block.BlockDoor;
-import net.minecraft.block.BlockEndPortalFrame;
-import net.minecraft.block.BlockEnderChest;
-import net.minecraft.block.BlockFenceGate;
-import net.minecraft.block.BlockFurnace;
-import net.minecraft.block.BlockHopper;
-import net.minecraft.block.BlockHugeMushroom;
-import net.minecraft.block.BlockLadder;
-import net.minecraft.block.BlockLever;
-import net.minecraft.block.BlockLog;
-import net.minecraft.block.BlockPistonBase;
-import net.minecraft.block.BlockPistonExtension;
-import net.minecraft.block.BlockPistonMoving;
-import net.minecraft.block.BlockPortal;
-import net.minecraft.block.BlockPumpkin;
-import net.minecraft.block.BlockRailBase;
-import net.minecraft.block.BlockRedstoneDiode;
-import net.minecraft.block.BlockSign;
-import net.minecraft.block.BlockSkull;
-import net.minecraft.block.BlockStairs;
-import net.minecraft.block.BlockTorch;
-import net.minecraft.block.BlockTrapDoor;
-import net.minecraft.block.BlockTripWireHook;
-import net.minecraft.block.BlockVine;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.ChestBlock;
+import net.minecraft.block.CocoaBlock;
+import net.minecraft.block.DispenserBlock;
+import net.minecraft.block.DoorBlock;
+import net.minecraft.block.EndPortalFrameBlock;
+import net.minecraft.block.EnderChestBlock;
+import net.minecraft.block.FenceGateBlock;
+import net.minecraft.block.FurnaceBlock;
+import net.minecraft.block.HopperBlock;
+import net.minecraft.block.HugeMushroomBlock;
+import net.minecraft.block.LadderBlock;
+import net.minecraft.block.LeverBlock;
+import net.minecraft.block.LogBlock;
+import net.minecraft.block.NetherPortalBlock;
+import net.minecraft.block.PistonBlock;
+import net.minecraft.block.PistonHeadBlock;
+import net.minecraft.block.MovingPistonBlock;
+import net.minecraft.block.PumpkinBlock;
+import net.minecraft.block.RedstoneDiodeBlock;
+import net.minecraft.block.SkullBlock;
+import net.minecraft.block.StairsBlock;
+import net.minecraft.block.TorchBlock;
+import net.minecraft.block.TrapDoorBlock;
+import net.minecraft.block.TripWireHookBlock;
+import net.minecraft.block.VineBlock;
+import net.minecraft.block.WallSignBlock;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.NBTDynamicOps;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.Constants.NBT;
-import net.minecraftforge.fml.relauncher.Side;
 
-import ic2.api.network.INetworkDataProvider;
-import ic2.api.network.INetworkManager;
-import ic2.api.network.NetworkHelper;
+import com.mojang.datafixers.Dynamic;
 
 public class JumpBlock {
 	
-	public Block block;
-	public int blockMeta;
+	public BlockState blockState;
 	public boolean hasTileEntity;
 	public WeakReference<TileEntity> weakTileEntity;
-	public NBTTagCompound blockNBT;
+	public CompoundNBT blockNBT;
 	public int x;
 	public int y;
 	public int z;
-	public HashMap<String, NBTBase> externals;
+	public HashMap<String, INBT> externals;
 	
 	public JumpBlock() {
 	}
 	
-	public JumpBlock(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState, @Nullable final TileEntity tileEntity) {
+	public JumpBlock(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final BlockState blockState, @Nullable final TileEntity tileEntity) {
 		this.x = blockPos.getX();
 		this.y = blockPos.getY();
 		this.z = blockPos.getZ();
-		this.block = blockState.getBlock();
-		this.blockMeta = blockState.getBlock().getMetaFromState(blockState);
+		this.blockState = blockState;
 		if (tileEntity == null) {
 			hasTileEntity = false;
 			weakTileEntity = null;
@@ -97,8 +92,8 @@ public class JumpBlock {
 		} else {
 			hasTileEntity = true;
 			weakTileEntity = new WeakReference<>(tileEntity);
-			blockNBT = new NBTTagCompound();
-			tileEntity.writeToNBT(blockNBT);
+			blockNBT = new CompoundNBT();
+			tileEntity.write(blockNBT);
 			if (WarpDriveConfig.LOGGING_JUMPBLOCKS) {
 				WarpDrive.logger.info(String.format("Saving from (%d %d %d) with TileEntity %s",
 				                                    x, y, z, blockNBT));
@@ -107,8 +102,8 @@ public class JumpBlock {
 		
 		// save externals
 		for (final Entry<String, IBlockTransformer> entryBlockTransformer : WarpDriveConfig.blockTransformers.entrySet()) {
-			if (entryBlockTransformer.getValue().isApplicable(block, blockMeta, tileEntity)) {
-				final NBTBase nbtBase = entryBlockTransformer.getValue().saveExternals(world, x, y, z, block, blockMeta, tileEntity);
+			if (entryBlockTransformer.getValue().isApplicable(blockState, tileEntity)) {
+				final INBT nbtBase = entryBlockTransformer.getValue().saveExternals(world, x, y, z, blockState, tileEntity);
 				// (we always save, even if null as a reminder on which transformer applies to this block)
 				setExternal(entryBlockTransformer.getKey(), nbtBase);
 			}
@@ -116,13 +111,12 @@ public class JumpBlock {
 	}
 	
 	public JumpBlock(@Nonnull final Filler filler, final int x, final int y, final int z) {
-		if (filler.block == null) {
-			WarpDrive.logger.info(String.format("Forcing glass for invalid filler with null block at (%d %d %d)",
-			                                    x, y, z));
-			filler.block = Blocks.GLASS;
+		if (filler.blockState == null) {
+			WarpDrive.logger.warn(String.format("Forcing glass for invalid filler with null block at (%d %d %d)",
+			                                    x, y, z ));
+			filler.blockState = Blocks.GLASS.getDefaultState();
 		}
-		block = filler.block;
-		blockMeta = filler.metadata;
+		blockState = filler.blockState;
 		hasTileEntity = false;
 		weakTileEntity = null;
 		blockNBT = (filler.tagCompound != null) ? filler.tagCompound.copy() : null;
@@ -133,21 +127,15 @@ public class JumpBlock {
 	
 	public void refreshSource(@Nonnull final World worldSource) {
 		final BlockPos blockPos = new BlockPos(x, y, z);
-		final IBlockState blockState = worldSource.getBlockState(blockPos);
-		if (blockState.getBlock() != block) {
+		final BlockState blockState = worldSource.getBlockState(blockPos);
+		if (blockState != this.blockState) {
 			WarpDrive.logger.error(String.format("Source block has changed to %s, updating in %s",
 			                                     blockState, this ));
-			block = blockState.getBlock();
-			blockMeta = block.getMetaFromState(blockState);
+			this.blockState = blockState;
 			hasTileEntity = false;
 			weakTileEntity = null;
 			blockNBT = null;
 			return;
-		}
-		if (block.getMetaFromState(blockState) != blockMeta) {
-			WarpDrive.logger.error(String.format("Source block variation has changed to %s, updating in %s",
-			                                     blockState, this ));
-			blockMeta = block.getMetaFromState(blockState);
 		}
 		final TileEntity tileEntity = worldSource.getTileEntity(blockPos);
 		if ( (hasTileEntity && tileEntity == null)
@@ -180,7 +168,7 @@ public class JumpBlock {
 	}
 	
 	@Nullable
-	private NBTTagCompound getBlockNBT(@Nonnull final World worldSource) {
+	private CompoundNBT getBlockNBT(@Nonnull final World worldSource) {
 		if (!hasTileEntity) {
 			return blockNBT == null ? null : blockNBT.copy();
 		}
@@ -190,16 +178,16 @@ public class JumpBlock {
 			                                     this ));
 			return null;
 		}
-		final NBTTagCompound tagCompound = new NBTTagCompound();
-		tileEntity.writeToNBT(tagCompound);
+		final CompoundNBT tagCompound = new CompoundNBT();
+		tileEntity.write(tagCompound);
 		return tagCompound;
 	}
 	
-	public NBTBase getExternal(final String modId) {
+	public INBT getExternal(final String modId) {
 		if (externals == null) {
 			return null;
 		}
-		final NBTBase nbtExternal = externals.get(modId);
+		final INBT nbtExternal = externals.get(modId);
 		if (WarpDriveConfig.LOGGING_JUMPBLOCKS) {
 			WarpDrive.logger.info(String.format("Returning externals from (%d %d %d) of %s: %s",
 			                                    x, y, z, modId, nbtExternal));
@@ -210,7 +198,7 @@ public class JumpBlock {
 		return nbtExternal.copy();
 	}
 	
-	private void setExternal(final String modId, final NBTBase nbtExternal) {
+	private void setExternal(final String modId, final INBT nbtExternal) {
 		if (externals == null) {
 			externals = new HashMap<>();
 		}
@@ -243,74 +231,77 @@ public class JumpBlock {
 	private static final byte[] mrotWoodLog        = {  0,  1,  2,  3,  8,  9, 10, 11,  4,  5,  6,  7, 12, 13, 14, 15 };
 	
 	// Return updated metadata from rotating a vanilla block
-	private int getMetadataRotation(final NBTTagCompound nbtTileEntity, final byte rotationSteps) {
+	private BlockState getRotatedBlockState(final CompoundNBT nbtTileEntity, final byte rotationSteps) {
 		if (rotationSteps == 0) {
-			return blockMeta;
+			return blockState;
 		}
 		
+		return blockState;
+		/* TODO MC1.15 vanilla rotation
+		final Block block = blockState.getBlock();
 		byte[] mrot = mrotNone;
-		if (block instanceof BlockRailBase) {
+		if (block instanceof AbstractRailBlock) {
 			mrot = mrotRail;
-		} else if (block instanceof BlockAnvil) {
+		} else if (block instanceof AnvilBlock) {
 			mrot = mrotAnvil;
-		} else if (block instanceof BlockFenceGate) {
+		} else if (block instanceof FenceGateBlock) {
 			mrot = mrotFenceGate;
-		} else if (block instanceof BlockPumpkin || block instanceof BlockTripWireHook) {
+		} else if (block instanceof PumpkinBlock || block instanceof TripWireHookBlock) {
 			mrot = mrotPumpkin;
-		} else if (block instanceof BlockEndPortalFrame || block instanceof BlockDoor) {
+		} else if (block instanceof EndPortalFrameBlock || block instanceof DoorBlock) {
 			mrot = mrotEndPortalFrame;
-		} else if (block instanceof BlockCocoa) {
+		} else if (block instanceof CocoaBlock) {
 			mrot = mrotCocoa;
-		} else if (block instanceof BlockRedstoneDiode) {
+		} else if (block instanceof RedstoneDiodeBlock) {
 			mrot = mrotRepeater;
-		} else if (block instanceof BlockBed) {
+		} else if (block instanceof BedBlock) {
 			mrot = mrotBed;
-		} else if (block instanceof BlockStairs) {
+		} else if (block instanceof StairsBlock) {
 			mrot = mrotStair;
-		} else if (block instanceof BlockSign) {
-			if (block == Blocks.WALL_SIGN) {
+		} else if (block instanceof AbstractSignBlock) {
+			if (block instanceof WallSignBlock) {
 				mrot = mrotForgeDirection;
 			} else {
 				mrot = mrotSign;
 			}
-		} else if (block instanceof BlockTrapDoor) {
+		} else if (block instanceof TrapDoorBlock) {
 			mrot = mrotTrapDoor;
-		} else if (block instanceof BlockLever) {
+		} else if (block instanceof LeverBlock) {
 			mrot = mrotLever;
-		} else if (block instanceof BlockPortal) {
+		} else if (block instanceof NetherPortalBlock) {
 			mrot = mrotNetherPortal;
-		} else if (block instanceof BlockVine) {
+		} else if (block instanceof VineBlock) {
 			mrot = mrotVine;
-		} else if (block instanceof BlockButton || block instanceof BlockTorch) {
+		} else if (block instanceof AbstractButtonBlock || block instanceof TorchBlock) {
 			mrot = mrotButton;
-		} else if (block instanceof BlockHugeMushroom) {
+		} else if (block instanceof HugeMushroomBlock) {
 			mrot = mrotMushroom;
-		} else if (block instanceof BlockFurnace || block instanceof BlockDispenser || block instanceof BlockHopper
-				|| block instanceof BlockChest || block instanceof BlockEnderChest || block instanceof BlockLadder) {
+		} else if (block instanceof FurnaceBlock || block instanceof DispenserBlock || block instanceof HopperBlock
+		           || block instanceof ChestBlock || block instanceof EnderChestBlock || block instanceof LadderBlock) {
 			mrot = mrotForgeDirection;
-		} else if (block instanceof BlockPistonBase || block instanceof BlockPistonExtension || block instanceof BlockPistonMoving) {
+		} else if (block instanceof PistonBlock || block instanceof PistonHeadBlock || block instanceof MovingPistonBlock) {
 			mrot = mrotPiston;
-		} else if (block instanceof BlockLog) {
+		} else if (block instanceof LogBlock) {
 			mrot = mrotWoodLog;
-		} else if (block instanceof BlockSkull) {
+		} else if (block instanceof SkullBlock) {
 			// mrot = mrotNone;
 			final byte facing = nbtTileEntity.getByte("Rot");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setByte("Rot", mrotSign[facing]);
+				nbtTileEntity.putByte("Rot", mrotSign[facing]);
 				break;
 			case 2:
-				nbtTileEntity.setByte("Rot", mrotSign[mrotSign[facing]]);
+				nbtTileEntity.putByte("Rot", mrotSign[mrotSign[facing]]);
 				break;
 			case 3:
-				nbtTileEntity.setByte("Rot", mrotSign[mrotSign[mrotSign[facing]]]);
+				nbtTileEntity.putByte("Rot", mrotSign[mrotSign[mrotSign[facing]]]);
 				break;
 			default:
 				break;
 			}
 		} else {
 			// apply default transformer
-			return IBlockTransformer.rotateFirstEnumFacingProperty(block, blockMeta, rotationSteps);
+			return IBlockTransformer.rotateFirstDirectionProperty(blockState, rotationSteps);
 		}
 		
 		switch (rotationSteps) {
@@ -323,61 +314,42 @@ public class JumpBlock {
 		default:
 			return blockMeta;
 		}
+		*/
 	}
 	
 	@Nullable
 	public BlockPos deploy(final World worldSource, final World worldTarget, final ITransformation transformation) {
 		try {
-			final NBTTagCompound nbtToDeploy = getBlockNBT(worldSource);
-			int newBlockMeta = blockMeta;
+			final CompoundNBT nbtToDeploy = getBlockNBT(worldSource);
+			BlockState blockStateNew = blockState;
 			if (externals != null) {
-				for (final Entry<String, NBTBase> external : externals.entrySet()) {
+				for (final Entry<String, INBT> external : externals.entrySet()) {
 					final IBlockTransformer blockTransformer = WarpDriveConfig.blockTransformers.get(external.getKey());
 					if (blockTransformer != null) {
-						newBlockMeta = blockTransformer.rotate(block, blockMeta, nbtToDeploy, transformation);
+						blockStateNew = blockTransformer.rotate(blockState, nbtToDeploy, transformation);
 					}
 				}
 			} else {
-				newBlockMeta = getMetadataRotation(nbtToDeploy, transformation.getRotationSteps());
+				blockStateNew = getRotatedBlockState(nbtToDeploy, transformation.getRotationSteps());
 			}
 			final BlockPos target = transformation.apply(x, y, z);
 			if (WarpDriveConfig.LOGGING_JUMPBLOCKS) {
-				WarpDrive.logger.info(String.format("Deploying to (%d %d %d) of %s@%d: %s",
+				WarpDrive.logger.info(String.format("Deploying to (%d %d %d) of %s with NBT %s",
 				                                    target.getX(), target.getY(), target.getZ(),
-				                                    block, newBlockMeta, nbtToDeploy));
+				                                    blockStateNew, nbtToDeploy ));
 			}
-			final IBlockState blockState = block.getStateFromMeta(newBlockMeta);
-			FastSetBlockState.setBlockStateNoLight(worldTarget, target, blockState, 2);
+			FastSetBlockState.setBlockStateNoLight(worldTarget, target, blockStateNew, 2);
 			
 			if (nbtToDeploy != null) {
-				nbtToDeploy.setInteger("x", target.getX());
-				nbtToDeploy.setInteger("y", target.getY());
-				nbtToDeploy.setInteger("z", target.getZ());
-				
-				if (nbtToDeploy.hasKey("screenData")) {// IC2NuclearControl 2.2.5a
-					final NBTTagCompound nbtScreenData = nbtToDeploy.getCompoundTag("screenData");
-					if ( nbtScreenData.hasKey("minX") && nbtScreenData.hasKey("minY") && nbtScreenData.hasKey("minZ")
-					  && nbtScreenData.hasKey("maxX") && nbtScreenData.hasKey("maxY") && nbtScreenData.hasKey("maxZ") ) {
-						if (WarpDriveConfig.LOGGING_JUMPBLOCKS) {
-							WarpDrive.logger.info(String.format("%s deploy: TileEntity has screenData.min/maxXYZ",
-							                                    this ));
-						}
-						final BlockPos minTarget = transformation.apply(nbtScreenData.getInteger("minX"), nbtScreenData.getInteger("minY"), nbtScreenData.getInteger("minZ"));
-						nbtScreenData.setInteger("minX", minTarget.getX());
-						nbtScreenData.setInteger("minY", minTarget.getY());
-						nbtScreenData.setInteger("minZ", minTarget.getZ());
-						final BlockPos maxTarget = transformation.apply(nbtScreenData.getInteger("maxX"), nbtScreenData.getInteger("maxY"), nbtScreenData.getInteger("maxZ"));
-						nbtScreenData.setInteger("maxX", maxTarget.getX());
-						nbtScreenData.setInteger("maxY", maxTarget.getY());
-						nbtScreenData.setInteger("maxZ", maxTarget.getZ());
-						nbtToDeploy.setTag("screenData", nbtScreenData);
-					}
-				}
+				nbtToDeploy.putInt("x", target.getX());
+				nbtToDeploy.putInt("y", target.getY());
+				nbtToDeploy.putInt("z", target.getZ());
 				
 				TileEntity newTileEntity = null;
 				boolean isForgeMultipart = false;
+				/* MC1.15 compatibility classes
 				if ( WarpDriveConfig.isForgeMultipartLoaded
-				  && nbtToDeploy.hasKey("id")
+				  && nbtToDeploy.contains("id")
 				  && nbtToDeploy.getString("id").equals("savedMultipart") ) {
 					isForgeMultipart = true;
 					if (WarpDriveConfig.LOGGING_JUMPBLOCKS) {
@@ -386,12 +358,13 @@ public class JumpBlock {
 					}
 					newTileEntity = (TileEntity) CompatForgeMultipart.methodMultipartHelper_createTileFromNBT.invoke(null, worldTarget, nbtToDeploy);
 				}
+				*/
 				
 				if (newTileEntity == null) {
-					newTileEntity = TileEntity.create(worldTarget, nbtToDeploy);
+					newTileEntity = TileEntity.create(nbtToDeploy);
 					if (newTileEntity == null) {
-						WarpDrive.logger.error(String.format("%s deploy failed to create new tile entity %s block %s:%d",
-						                                     this, Commons.format(worldTarget, x, y, z), block, blockMeta ));
+						WarpDrive.logger.error(String.format("%s deploy failed to create new tile entity %s block %s",
+						                                     this, Commons.format(worldTarget, x, y, z), blockStateNew ));
 						WarpDrive.logger.error(String.format("NBT data was %s",
 						                                     nbtToDeploy ));
 					}
@@ -399,10 +372,12 @@ public class JumpBlock {
 				
 				if (newTileEntity != null) {
 					worldTarget.setTileEntity(target, newTileEntity);
+					/* MC1.15 compatibility classes
 					if (isForgeMultipart) {
 						CompatForgeMultipart.methodTileMultipart_onChunkLoad.invoke(newTileEntity);
 						CompatForgeMultipart.methodMultipartHelper_sendDescPacket.invoke(null, worldTarget, newTileEntity);
 					}
+					*/
 					
 					// see https://github.com/MinecraftForge/MinecraftForge/issues/5061
 					newTileEntity.onLoad();
@@ -414,8 +389,8 @@ public class JumpBlock {
 			
 		} catch (final Exception exception) {
 			exception.printStackTrace(WarpDrive.printStreamError);
-			WarpDrive.logger.error(String.format("Deploy failed from (%d %d %d) of %s:%d",
-			                                     x, y, z, block, blockMeta));
+			WarpDrive.logger.error(String.format("Deploy failed from (%d %d %d) of %s",
+			                                     x, y, z, blockState ));
 		}
 		return null;
 	}
@@ -434,6 +409,7 @@ public class JumpBlock {
 			// is it required?
 			tileEntity.updateContainingBlockInfo();
 			
+			/* TODO MC1.15 enable IC2 support once it's updated
 			final String className = teClass.getName();
 			try {
 				if (WarpDriveConfig.isIndustrialCraft2Loaded) {
@@ -458,78 +434,82 @@ public class JumpBlock {
 				WarpDrive.logger.info(String.format("Exception involving TileEntity %s %s",
 				                                    className, Commons.format(world, blockPos)));
 			}
+			*/
 		}
 	}
 	
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		final String blockName = tagCompound.getString("block");
-		blockMeta = tagCompound.getByte("blockMeta");
-		final String stringBlockState = String.format("%s@%d", blockName, blockMeta);
-		final IBlockState blockState = WarpDriveDataFixer.getBlockState(stringBlockState);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		final String stringBlockState;
+		if (tagCompound.contains("state")) {
+			stringBlockState = tagCompound.getString("state");
+			blockState = Commons.readBlockStateFromNBT(tagCompound.get("state"));
+		} else {
+			final String blockName = tagCompound.getString("block");
+			final int blockMeta = tagCompound.getByte("blockMeta");
+			stringBlockState = String.format("%s@%d", blockName, blockMeta);
+		}
+		blockState = WarpDriveDataFixer.getBlockState(stringBlockState);
 		if (blockState == null) {
 			if (WarpDriveConfig.LOGGING_BUILDING) {
 				WarpDrive.logger.warn(String.format("Ignoring unknown blockstate %s from tag %s, consider updating your warpdrive/dataFixer.yml",
-				                                    stringBlockState, tagCompound));
+				                                    stringBlockState, tagCompound ));
 			}
-			block = Blocks.AIR;
+			blockState = Blocks.AIR.getDefaultState();
 			return;
 		}
-		block = blockState.getBlock();
-		blockMeta = blockState.getBlock().getMetaFromState(blockState);
 		
 		hasTileEntity = false;
 		weakTileEntity = null;
-		if (tagCompound.hasKey("blockNBT")) {
-			blockNBT = tagCompound.getCompoundTag("blockNBT");
+		if (tagCompound.contains("blockNBT")) {
+			blockNBT = tagCompound.getCompound("blockNBT");
 			
 			// Clear computer IDs
-			if (blockNBT.hasKey("computerID")) {
-				blockNBT.removeTag("computerID");
+			if (blockNBT.contains("computerID")) {
+				blockNBT.remove("computerID");
 			}
-			if (blockNBT.hasKey("oc:computer")) {
-				final NBTTagCompound tagComputer = blockNBT.getCompoundTag("oc:computer");
-				tagComputer.removeTag("components");
-				tagComputer.removeTag("node");
-				blockNBT.setTag("oc:computer", tagComputer);
+			if (blockNBT.contains("oc:computer")) {
+				final CompoundNBT tagComputer = blockNBT.getCompound("oc:computer");
+				tagComputer.remove("components");
+				tagComputer.remove("node");
+				blockNBT.put("oc:computer", tagComputer);
 			}
 		} else {
 			blockNBT = null;
 		}
-		x = tagCompound.getInteger("x");
-		y = tagCompound.getInteger("y");
-		z = tagCompound.getInteger("z");
-		if (tagCompound.hasKey("externals")) {
-			final NBTTagCompound tagCompoundExternals = tagCompound.getCompoundTag("externals");
+		x = tagCompound.getInt("x");
+		y = tagCompound.getInt("y");
+		z = tagCompound.getInt("z");
+		if (tagCompound.contains("externals")) {
+			final CompoundNBT tagCompoundExternals = tagCompound.getCompound("externals");
 			externals = new HashMap<>();
-			for (final Object key : tagCompoundExternals.getKeySet()) {
+			for (final Object key : tagCompoundExternals.keySet()) {
 				assert key instanceof String;
-				externals.put((String) key, tagCompoundExternals.getTag((String) key));
+				externals.put((String) key, tagCompoundExternals.get((String) key));
 			}
 		} else {
 			externals = null;
 		}
 	}
 	
-	public void writeToNBT(@Nonnull final World worldSource, @Nonnull final NBTTagCompound tagCompound) {
-		tagCompound.setString("block", Block.REGISTRY.getNameForObject(block).toString());
-		tagCompound.setByte("blockMeta", (byte) blockMeta);
-		final NBTTagCompound nbtTileEntity = getBlockNBT(worldSource);
+	public void write(@Nonnull final World worldSource, @Nonnull final CompoundNBT tagCompound) {
+		tagCompound.put("state", Commons.writeBlockStateToNBT(blockState));
+		final CompoundNBT nbtTileEntity = getBlockNBT(worldSource);
 		if (nbtTileEntity != null) {
-			tagCompound.setTag("blockNBT", nbtTileEntity);
+			tagCompound.put("blockNBT", nbtTileEntity);
 		}
-		tagCompound.setInteger("x", x);
-		tagCompound.setInteger("y", y);
-		tagCompound.setInteger("z", z);
+		tagCompound.putInt("x", x);
+		tagCompound.putInt("y", y);
+		tagCompound.putInt("z", z);
 		if (externals != null && !externals.isEmpty()) {
-			final NBTTagCompound tagCompoundExternals = new NBTTagCompound();
-			for (final Entry<String, NBTBase> entry : externals.entrySet()) {
+			final CompoundNBT tagCompoundExternals = new CompoundNBT();
+			for (final Entry<String, INBT> entry : externals.entrySet()) {
 				if (entry.getValue() == null) {
-					tagCompoundExternals.setString(entry.getKey(), "");
+					tagCompoundExternals.putString(entry.getKey(), "");
 				} else {
-					tagCompoundExternals.setTag(entry.getKey(), entry.getValue());
+					tagCompoundExternals.put(entry.getKey(), entry.getValue());
 				}
 			}
-			tagCompound.setTag("externals", tagCompoundExternals);
+			tagCompound.put("externals", tagCompoundExternals);
 		}
 	}
 	
@@ -537,128 +517,128 @@ public class JumpBlock {
 		removeUniqueIDs(blockNBT);
 	}
 	
-	public static void removeUniqueIDs(final NBTTagCompound tagCompound) {
+	public static void removeUniqueIDs(final CompoundNBT tagCompound) {
 		if (tagCompound == null) {
 			return;
 		}
 		
 		// ComputerCraft computer
-		if (tagCompound.hasKey("computerID")) {
-			tagCompound.removeTag("computerID");
-			tagCompound.removeTag("label");
+		if (tagCompound.contains("computerID")) {
+			tagCompound.remove("computerID");
+			tagCompound.remove("label");
 		}
 		
 		// WarpDrive machine signature UUID
-		if (tagCompound.hasKey(ICoreSignature.UUID_MOST_TAG)) {
-			tagCompound.removeTag(ICoreSignature.UUID_MOST_TAG);
-			tagCompound.removeTag(ICoreSignature.UUID_LEAST_TAG);
+		if (tagCompound.contains(ICoreSignature.UUID_MOST_TAG)) {
+			tagCompound.remove(ICoreSignature.UUID_MOST_TAG);
+			tagCompound.remove(ICoreSignature.UUID_LEAST_TAG);
 		}
 		
 		// WarpDrive any OC connected tile
-		if (tagCompound.hasKey("oc:node")) {
-			tagCompound.removeTag("oc:node");
+		if (tagCompound.contains("oc:node")) {
+			tagCompound.remove("oc:node");
 		}
 		
 		// OpenComputers case
-		if (tagCompound.hasKey("oc:computer")) {
-			final NBTTagCompound tagComputer = tagCompound.getCompoundTag("oc:computer");
-			tagComputer.removeTag("chunkX");
-			tagComputer.removeTag("chunkZ");
-			tagComputer.removeTag("components");
-			tagComputer.removeTag("dimension");
-			tagComputer.removeTag("node");
-			tagCompound.setTag("oc:computer", tagComputer);
+		if (tagCompound.contains("oc:computer")) {
+			final CompoundNBT tagComputer = tagCompound.getCompound("oc:computer");
+			tagComputer.remove("chunkX");
+			tagComputer.remove("chunkZ");
+			tagComputer.remove("components");
+			tagComputer.remove("dimension");
+			tagComputer.remove("node");
+			tagCompound.put("oc:computer", tagComputer);
 		}
 		
 		// OpenComputers case
-		if (tagCompound.hasKey("oc:items")) {
-			final NBTTagList tagListItems = tagCompound.getTagList("oc:items", Constants.NBT.TAG_COMPOUND);
-			for (int indexItemSlot = 0; indexItemSlot < tagListItems.tagCount(); indexItemSlot++) {
-				final NBTTagCompound tagCompoundItemSlot = tagListItems.getCompoundTagAt(indexItemSlot);
-				final NBTTagCompound tagCompoundItem = tagCompoundItemSlot.getCompoundTag("item");
-				final NBTTagCompound tagCompoundTag = tagCompoundItem.getCompoundTag("tag");
-				final NBTTagCompound tagCompoundOCData = tagCompoundTag.getCompoundTag("oc:data");
-				final NBTTagCompound tagCompoundNode = tagCompoundOCData.getCompoundTag("node");
-				if (tagCompoundNode.hasKey("address")) {
-					tagCompoundNode.removeTag("address");
+		if (tagCompound.contains("oc:items")) {
+			final ListNBT tagListItems = tagCompound.getList("oc:items", Constants.NBT.TAG_COMPOUND);
+			for (int indexItemSlot = 0; indexItemSlot < tagListItems.size(); indexItemSlot++) {
+				final CompoundNBT tagCompoundItemSlot = tagListItems.getCompound(indexItemSlot);
+				final CompoundNBT tagCompoundItem = tagCompoundItemSlot.getCompound("item");
+				final CompoundNBT tagCompoundTag = tagCompoundItem.getCompound("tag");
+				final CompoundNBT tagCompoundOCData = tagCompoundTag.getCompound("oc:data");
+				final CompoundNBT tagCompoundNode = tagCompoundOCData.getCompound("node");
+				if (tagCompoundNode.contains("address")) {
+					tagCompoundNode.remove("address");
 				}
 			}
 		}
 		
 		// OpenComputers keyboard
-		if (tagCompound.hasKey("oc:keyboard")) {
-			final NBTTagCompound tagCompoundKeyboard = tagCompound.getCompoundTag("oc:keyboard");
-			tagCompoundKeyboard.removeTag("node");
+		if (tagCompound.contains("oc:keyboard")) {
+			final CompoundNBT tagCompoundKeyboard = tagCompound.getCompound("oc:keyboard");
+			tagCompoundKeyboard.remove("node");
 		}
 		
 		// OpenComputers screen
-		if (tagCompound.hasKey("oc:hasPower")) {
-			tagCompound.removeTag("node");
+		if (tagCompound.contains("oc:hasPower")) {
+			tagCompound.remove("node");
 		}
 		
 		// Immersive Engineering & Thermal Expansion
-		if (tagCompound.hasKey("Owner")) {
-			tagCompound.setString("Owner", "None");
+		if (tagCompound.contains("Owner")) {
+			tagCompound.putString("Owner", "None");
 		}
-		if (tagCompound.hasKey("OwnerUUID")) {
-			tagCompound.removeTag("OwnerUUID");
+		if (tagCompound.contains("OwnerUUID")) {
+			tagCompound.remove("OwnerUUID");
 		}
 		
 		// Mekanism
-		if (tagCompound.hasKey("owner")) {
-			tagCompound.setString("owner", "None");
+		if (tagCompound.contains("owner")) {
+			tagCompound.putString("owner", "None");
 		}
-		if (tagCompound.hasKey("ownerUUID")) {
-			tagCompound.removeTag("ownerUUID");
+		if (tagCompound.contains("ownerUUID")) {
+			tagCompound.remove("ownerUUID");
 		}
 	}
 	
-	public static void emptyEnergyStorage(@Nonnull final NBTTagCompound tagCompound) {
+	public static void emptyEnergyStorage(@Nonnull final CompoundNBT tagCompound) {
 		// BuildCraft
-		if (tagCompound.hasKey("battery", NBT.TAG_COMPOUND)) {
-			final NBTTagCompound tagCompoundBattery = tagCompound.getCompoundTag("battery");
-			if (tagCompoundBattery.hasKey("energy", NBT.TAG_INT)) {
-				tagCompoundBattery.setInteger("energy", 0);
+		if (tagCompound.contains("battery", NBT.TAG_COMPOUND)) {
+			final CompoundNBT tagCompoundBattery = tagCompound.getCompound("battery");
+			if (tagCompoundBattery.contains("energy", NBT.TAG_INT)) {
+				tagCompoundBattery.putInt("energy", 0);
 			}
 		}
 		
 		// Gregtech
-		if (tagCompound.hasKey("mStoredEnergy", NBT.TAG_INT)) {
-			tagCompound.setInteger("mStoredEnergy", 0);
+		if (tagCompound.contains("mStoredEnergy", NBT.TAG_INT)) {
+			tagCompound.putInt("mStoredEnergy", 0);
 		}
 		
 		// IC2
-		if (tagCompound.hasKey("energy", NBT.TAG_DOUBLE)) {
+		if (tagCompound.contains("energy", NBT.TAG_DOUBLE)) {
 			// energy_consume((int)Math.round(blockNBT.getDouble("energy")), true);
-			tagCompound.setDouble("energy", 0);
+			tagCompound.putDouble("energy", 0);
 		}
 		
 		// Immersive Engineering & Thermal Expansion
-		if (tagCompound.hasKey("Energy", NBT.TAG_INT)) {
-			// energy_consume(blockNBT.getInteger("Energy"), true);
-			tagCompound.setInteger("Energy", 0);
+		if (tagCompound.contains("Energy", NBT.TAG_INT)) {
+			// energy_consume(blockNBT.getInt("Energy"), true);
+			tagCompound.putInt("Energy", 0);
 		}
 		
 		// Mekanism
-		if (tagCompound.hasKey("electricityStored", NBT.TAG_DOUBLE)) {
-			tagCompound.setDouble("electricityStored", 0);
+		if (tagCompound.contains("electricityStored", NBT.TAG_DOUBLE)) {
+			tagCompound.putDouble("electricityStored", 0);
 		}
 		
 		// WarpDrive
-		if (tagCompound.hasKey("energy", NBT.TAG_LONG)) {
-			tagCompound.setLong("energy", 0L);
+		if (tagCompound.contains("energy", NBT.TAG_LONG)) {
+			tagCompound.putLong("energy", 0L);
 		}
 	}
 	
 	public void fillEnergyStorage() {
-		if (block instanceof IBlockBase) {
-			final EnumTier enumTier = ((IBlockBase) block).getTier(null);
+		if (blockState.getBlock() instanceof IBlockBase) {
+			final EnumTier enumTier = ((IBlockBase) blockState.getBlock()).getTier();
 			if (enumTier != EnumTier.CREATIVE) {
-				if (block instanceof BlockShipCore) {
-					blockNBT.setLong(EnergyWrapper.TAG_ENERGY, WarpDriveConfig.SHIP_MAX_ENERGY_STORED_BY_TIER[enumTier.getIndex()]);
+				if (blockState.getBlock() instanceof BlockShipCore) {
+					blockNBT.putLong(EnergyWrapper.TAG_ENERGY, WarpDriveConfig.SHIP_MAX_ENERGY_STORED_BY_TIER[enumTier.getIndex()]);
 				}
-				if (block instanceof BlockCapacitor) {
-					blockNBT.setLong(EnergyWrapper.TAG_ENERGY, WarpDriveConfig.CAPACITOR_MAX_ENERGY_STORED_BY_TIER[enumTier.getIndex()]);
+				if (blockState.getBlock() instanceof BlockCapacitor) {
+					blockNBT.putLong(EnergyWrapper.TAG_ENERGY, WarpDriveConfig.CAPACITOR_MAX_ENERGY_STORED_BY_TIER[enumTier.getIndex()]);
 				}
 			}
 		}
@@ -666,11 +646,11 @@ public class JumpBlock {
 	
 	@Override
 	public String toString() {
-		return String.format("%s @ (%d %d %d) %s:%d %s nbt %s",
+		return String.format("%s @ (%d %d %d) %s %s nbt %s",
 		                     getClass().getSimpleName(),
 		                     x, y, z,
-		                     block.getRegistryName(), blockMeta,
+		                     blockState,
 		                     weakTileEntity == null ? null : weakTileEntity.get(),
-		                     blockNBT);
+		                     blockNBT );
 	}
 }

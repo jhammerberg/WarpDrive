@@ -8,11 +8,14 @@ import cr0s.warpdrive.data.EnergyWrapper;
 import cr0s.warpdrive.data.StateAir;
 import cr0s.warpdrive.event.ChunkHandler;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.block.BlockState;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 
 public class TileEntityAirGeneratorTiered extends TileEntityAbstractEnergyConsumer {
+	
+	public static TileEntityType<TileEntityAirGeneratorTiered> TYPE;
 	
 	// persistent properties
 	// (none)
@@ -21,7 +24,7 @@ public class TileEntityAirGeneratorTiered extends TileEntityAbstractEnergyConsum
 	private int tickUpdate;
 	
 	public TileEntityAirGeneratorTiered() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveAirGenerator";
 		doRequireUpgradeToInterface();
@@ -37,17 +40,19 @@ public class TileEntityAirGeneratorTiered extends TileEntityAbstractEnergyConsum
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		
+		assert world != null;
 		tickUpdate = world.rand.nextInt(WarpDriveConfig.BREATHING_AIR_GENERATION_TICKS);
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -58,17 +63,18 @@ public class TileEntityAirGeneratorTiered extends TileEntityAbstractEnergyConsum
 		tickUpdate = WarpDriveConfig.BREATHING_AIR_GENERATION_TICKS;
 		
 		// Air generator works only in space & hyperspace
-		final IBlockState blockState = world.getBlockState(pos);
+		final BlockState blockState = world.getBlockState(pos);
 		if (CelestialObjectManager.hasAtmosphere(world, pos.getX(), pos.getZ())) {
 			updateBlockState(blockState, BlockProperties.ACTIVE, false);
 			return;
 		}
 		
-		final boolean isActive = releaseAir(blockState.getValue(BlockProperties.FACING));
+		final boolean isActive = releaseAir(blockState.get(BlockProperties.FACING));
 		updateBlockState(blockState, BlockProperties.ACTIVE, isActive);
 	}
 	
-	private boolean releaseAir(final EnumFacing direction) {
+	private boolean releaseAir(final Direction direction) {
+		assert world != null;
 		final BlockPos posDirection = pos.offset(direction);
 		
 		// reject cables or signs in front of the fan (it's inconsistent and not really supported)
@@ -110,7 +116,7 @@ public class TileEntityAirGeneratorTiered extends TileEntityAbstractEnergyConsum
 	}
 	
 	@Override
-	public boolean energy_canInput(final EnumFacing from) {
+	public boolean energy_canInput(final Direction from) {
 		return true;
 	}
 	

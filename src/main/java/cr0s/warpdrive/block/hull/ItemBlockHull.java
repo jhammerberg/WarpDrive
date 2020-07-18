@@ -1,42 +1,41 @@
 package cr0s.warpdrive.block.hull;
 
+import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.block.ItemBlockAbstractBase;
 
 import javax.annotation.Nonnull;
 
 import net.minecraft.block.Block;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.item.EnumDyeColor;
+import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class ItemBlockHull extends ItemBlockAbstractBase {
 	
-	ItemBlockHull(final Block block) {
-		super(block, true, false);
+	@Nonnull
+	protected static Item.Properties getDefaultProperties() {
+		return ItemBlockAbstractBase.getDefaultProperties()
+				       .group(WarpDrive.itemGroupHull);
+	}
+	
+	public <T extends Block & IBlockBase> ItemBlockHull(final T block) {
+		super(block, getDefaultProperties());
 	}
 	
 	@Nonnull
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	@Override
 	public ModelResourceLocation getModelResourceLocation(final ItemStack itemStack) {
-		if (block instanceof BlockHullStairs) {
+		if (getBlock() instanceof BlockHullStairs) {
 			final ResourceLocation resourceLocation = getRegistryName();
 			assert resourceLocation != null;
 			final String variant = "facing=east,half=bottom,shape=straight";
 			return new ModelResourceLocation(resourceLocation, variant);
 		}
 		return super.getModelResourceLocation(itemStack);
-	}
-	
-	@Nonnull
-	@Override
-	public String getTranslationKey(@Nonnull final ItemStack itemStack) {
-		if (block instanceof BlockHullStairs) {
-			return getTranslationKey();
-		}
-		return getTranslationKey() + EnumDyeColor.byMetadata( itemStack.getItemDamage() ).getTranslationKey();
 	}
 }

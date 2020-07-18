@@ -12,52 +12,52 @@ import cr0s.warpdrive.render.ClientCameraHandler;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
 public class BlockMonitor extends BlockAbstractRotatingContainer {
 	
-	public BlockMonitor(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier, Material.IRON);
-		
-		setTranslationKey("warpdrive.detection.monitor");
+	public BlockMonitor(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(getDefaultProperties(null), registryName, enumTier);
 	}
 
 	@Nonnull
 	@Override
-	public TileEntity createNewTileEntity(@Nonnull final World world, final int metadata) {
+	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
 		return new TileEntityMonitor();
 	}
-
+	
+	@Nonnull
 	@Override
-	public boolean onBlockActivated(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState,
-	                                @Nonnull final EntityPlayer entityPlayer, @Nonnull final EnumHand enumHand,
-	                                @Nonnull final EnumFacing enumFacing, final float hitX, final float hitY, final float hitZ) {
+	public ActionResultType onBlockActivated(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,
+	                                         @Nonnull final PlayerEntity entityPlayer, @Nonnull final Hand enumHand,
+	                                         @Nonnull final BlockRayTraceResult blockRaytraceResult) {
 		// Monitor is only reacting client side
-		if ( !world.isRemote
-		  || enumHand != EnumHand.MAIN_HAND ) {
-			return super.onBlockActivated(world, blockPos, blockState, entityPlayer, enumHand, enumFacing, hitX, hitY, hitZ);
+		if ( !world.isRemote()
+		  || enumHand != Hand.MAIN_HAND ) {
+			return super.onBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
 		}
 		
 		// get context
 		final ItemStack itemStackHeld = entityPlayer.getHeldItem(enumHand);
 		
 		if ( itemStackHeld.isEmpty()
-		  && enumFacing == blockState.getValue(BlockProperties.FACING) ) {
+		  && blockRaytraceResult.getFace() == blockState.get(BlockProperties.FACING) ) {
 			final TileEntity tileEntity = world.getTileEntity(blockPos);
 			if (tileEntity instanceof TileEntityMonitor) {
 				// validate video channel
 				final int videoChannel = ((TileEntityMonitor) tileEntity).getVideoChannel();
 				if ( !IVideoChannel.isValid(videoChannel) ) {
 					Commons.addChatMessage(entityPlayer, ((TileEntityMonitor) tileEntity).getStatus());
-					return true;
+					return ActionResultType.CONSUME;
 				}
 				
 				// validate camera
@@ -65,7 +65,7 @@ public class BlockMonitor extends BlockAbstractRotatingContainer {
 				if ( camera == null
 				  || entityPlayer.isSneaking() ) {
 					Commons.addChatMessage(entityPlayer, ((TileEntityMonitor) tileEntity).getStatus());
-					return true;
+					return ActionResultType.CONSUME;
 				}
 				
 				Commons.addChatMessage(entityPlayer, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.monitor.viewing_camera",
@@ -77,10 +77,10 @@ public class BlockMonitor extends BlockAbstractRotatingContainer {
 						camera.type, entityPlayer, entityPlayer.rotationYaw, entityPlayer.rotationPitch,
 						blockPos, blockState,
 						camera.blockPos, world.getBlockState(camera.blockPos));
-				return true;
+				return ActionResultType.CONSUME;
 			}
 		}
 		
-		return super.onBlockActivated(world, blockPos, blockState, entityPlayer, enumHand, enumFacing, hitX, hitY, hitZ);
+		return super.onBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
 	}
 }

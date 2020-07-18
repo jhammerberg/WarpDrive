@@ -4,7 +4,6 @@ import cr0s.warpdrive.CommonProxy;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IItemBase;
-import cr0s.warpdrive.block.breathing.BlockColorAirShield;
 import cr0s.warpdrive.entity.EntityNPC;
 import cr0s.warpdrive.entity.EntityOfflineAvatar;
 import cr0s.warpdrive.entity.EntityParticleBunch;
@@ -24,62 +23,65 @@ import javax.annotation.Nonnull;
 import java.util.Collection;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.client.renderer.entity.Render;
-import net.minecraft.client.renderer.entity.RenderManager;
-import net.minecraft.entity.Entity;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.renderer.entity.EntityRendererManager;
+import net.minecraft.client.renderer.model.ModelResourceLocation;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.util.InputMappings;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
+import net.minecraft.state.IProperty;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.ModelLoader;
-import net.minecraftforge.client.model.obj.OBJLoader;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.client.registry.IRenderFactory;
 import net.minecraftforge.fml.client.registry.RenderingRegistry;
 
 public class ClientProxy extends CommonProxy {
 	
-	@Override
-	public boolean isDedicatedServer() {
-		return false;
-	}
+	public static final KeyBinding keyBindingCameraCenter  = new KeyBinding("key.camera.center.name"  , InputMappings.Type.MOUSE, 3, WarpDrive.MODID);
+	public static final KeyBinding keyBindingCameraShoot   = new KeyBinding("key.camera.shoot.name"   , 32, WarpDrive.MODID);
+	public static final KeyBinding keyBindingCameraZoomIn  = new KeyBinding("key.camera.zoom_in.name" , InputMappings.Type.MOUSE, 0, WarpDrive.MODID);
+	public static final KeyBinding keyBindingCameraZoomOut = new KeyBinding("key.camera.zoom_out.name", InputMappings.Type.MOUSE, 1, WarpDrive.MODID);
 	
 	@Override
 	public void onForgePreInitialisation() {
 		super.onForgePreInitialisation();
 		
-		OBJLoader.INSTANCE.addDomain(WarpDrive.MODID);
-		
 		MinecraftForge.EVENT_BUS.register(ModelBakeEventHandler.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(SpriteManager.INSTANCE);
 		
 		// entity rendering
-		RenderingRegistry.registerEntityRenderingHandler(EntityNPC.class, new IRenderFactory<EntityNPC>() {
+		RenderingRegistry.registerEntityRenderingHandler(EntityNPC.TYPE, new IRenderFactory<EntityNPC>() {
 			@Nonnull
 			@Override
-			public Render<EntityNPC> createRenderFor(final RenderManager manager) {
+			public EntityRenderer<EntityNPC> createRenderFor(final EntityRendererManager manager) {
 				return new RenderEntityNPC(manager);
 			}
 		});
-		RenderingRegistry.registerEntityRenderingHandler(EntityOfflineAvatar.class, new IRenderFactory<EntityOfflineAvatar>() {
+		RenderingRegistry.registerEntityRenderingHandler(EntityOfflineAvatar.TYPE, new IRenderFactory<EntityOfflineAvatar>() {
 			@Nonnull
 			@Override
-			public Render<EntityOfflineAvatar> createRenderFor(final RenderManager manager) {
+			public EntityRenderer<EntityOfflineAvatar> createRenderFor(final EntityRendererManager manager) {
 				return new RenderEntityOfflineAvatar(manager);
 			}
 		});
-		RenderingRegistry.registerEntityRenderingHandler(EntityParticleBunch.class, new IRenderFactory<EntityParticleBunch>() {
+		RenderingRegistry.registerEntityRenderingHandler(EntityParticleBunch.TYPE, new IRenderFactory<EntityParticleBunch>() {
 			@Nonnull
 			@Override
-			public Render<Entity> createRenderFor(final RenderManager manager) {
+			public EntityRenderer<EntityParticleBunch> createRenderFor(final EntityRendererManager manager) {
 				return new RenderEntityParticleBunch(manager);
 			}
 		});
+		
+		// Key bindings
+		ClientRegistry.registerKeyBinding(keyBindingCameraCenter);
+		ClientRegistry.registerKeyBinding(keyBindingCameraShoot);
+		ClientRegistry.registerKeyBinding(keyBindingCameraZoomIn);
+		ClientRegistry.registerKeyBinding(keyBindingCameraZoomOut);
 	}
 	
 	@Override
@@ -91,9 +93,10 @@ public class ClientProxy extends CommonProxy {
 		MinecraftForge.EVENT_BUS.register(new TooltipHandler());
 		
 		// color handlers
-		// final Item itemAirShield = Item.getItemFromBlock(blockAirShield);
-		// Minecraft.getMinecraft().getItemColors().registerItemColorHandler((IItemColor) itemAirShield, itemAirShield);
-		Minecraft.getMinecraft().getBlockColors().registerBlockColorHandler(new BlockColorAirShield(), WarpDrive.blockAirShield);
+		// final Item itemAirShield = Item.getItemFromBlock(WarpDrive.blockAirShields);
+		// Minecraft.getInstance().getItemColors().registerItemColorHandler((IItemColor) itemAirShield, itemAirShield);
+		// TODO MC1.15 air shield colors
+		// Minecraft.getInstance().getBlockColors().registerBlockColorHandler(new BlockColorAirShield(), WarpDrive.blockAirShields);
 		
 		// generic rendering
 		// MinecraftForge.EVENT_BUS.register(new WarpDriveKeyBindings());
@@ -124,27 +127,6 @@ public class ClientProxy extends CommonProxy {
 		ResourceLocation resourceLocation = item.getRegistryName();
 		assert resourceLocation != null;
 		
-		// reuse blockstate rendering for ItemBlocks when their blockstate have at least one property (typically colored blocks)
-		if (item instanceof ItemBlock) {
-			final int damage = itemStack.getItemDamage();
-			if (damage < 0 || damage > 15) {
-				throw new IllegalArgumentException(String.format("Invalid damage %d for %s",
-				                                                 damage, itemStack.getItem()));
-			}
-			final Block block = ((ItemBlock) item).getBlock();
-			final IBlockState blockState = block.getStateFromMeta(damage);
-			final Collection<IProperty<?>> properties = blockState.getPropertyKeys();
-			if (!properties.isEmpty()) {// reuse defined properties
-				final String[] blockStateStrings = blockState.toString().split("[\\[\\]]");
-				final String variant = blockStateStrings[1];
-				return new ModelResourceLocation(resourceLocation, variant);
-			}
-		}
-		
-		// use damage value as suffix otherwise
-		if (item.getHasSubtypes()) {
-			resourceLocation = new ResourceLocation(resourceLocation.getNamespace(), resourceLocation.getPath() + "-" + itemStack.getItemDamage());
-		}
 		// defaults to inventory variant
 		return new ModelResourceLocation(resourceLocation, "inventory");
 	}
@@ -155,18 +137,8 @@ public class ClientProxy extends CommonProxy {
 			                                         item));
 		}
 		
-		if (!item.getHasSubtypes()) {
-			final ModelResourceLocation modelResourceLocation = ((IItemBase) item).getModelResourceLocation(new ItemStack(item));
-			ModelLoader.setCustomModelResourceLocation(item, 0, modelResourceLocation);
-			
-		} else {
-			final NonNullList<ItemStack> listItemStacks = NonNullList.create();
-			assert item.getCreativeTab() != null;
-			item.getSubItems(item.getCreativeTab(), listItemStacks);
-			for (final ItemStack itemStack : listItemStacks) {
-				final ModelResourceLocation modelResourceLocation = ((IItemBase) item).getModelResourceLocation(itemStack);
-				ModelLoader.setCustomModelResourceLocation(item, itemStack.getMetadata(), modelResourceLocation);
-			}
-		}
+		final ModelResourceLocation modelResourceLocation = ((IItemBase) item).getModelResourceLocation(new ItemStack(item));
+		// TODO MC1.15 item rendering
+		// ModelLoader.setCustomModelResourceLocation(item, 0, modelResourceLocation);
 	}
 }

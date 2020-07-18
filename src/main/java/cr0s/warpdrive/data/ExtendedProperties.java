@@ -2,8 +2,9 @@ package cr0s.warpdrive.data;
 
 import cr0s.warpdrive.WarpDrive;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
 import java.io.ByteArrayInputStream;
@@ -16,7 +17,7 @@ public class ExtendedProperties {
 	
 	public static final String IDENTIFIER = WarpDrive.MODID;
 	
-	private EntityLivingBase entityLivingBase;
+	private LivingEntity entityLivingBase;
 	
 	private GlobalPosition globalPositionHome;
 	
@@ -30,35 +31,35 @@ public class ExtendedProperties {
 	public ExtendedProperties() {
 	}
 	
-	public static ExtendedProperties For(final EntityLivingBase entityLivingBase) {
+	public static ExtendedProperties For(final LivingEntity entityLivingBase) {
 		return null; // (ExtendedProperties) entityLivingBase.getExtendedProperties(IDENTIFIER);
 	}
 	
-	public void saveNBTData(final NBTTagCompound tagCompound) {
+	public void saveNBTData(final CompoundNBT tagCompound) {
 		if (globalPositionHome != null) {
-			final NBTTagCompound nbtHome = new NBTTagCompound();
-			globalPositionHome.writeToNBT(nbtHome);
-			tagCompound.setTag("home", nbtHome);
+			final CompoundNBT nbtHome = new CompoundNBT();
+			globalPositionHome.write(nbtHome);
+			tagCompound.put("home", nbtHome);
 		}
 	}
 	
-	public void loadNBTData(final NBTTagCompound tagCompound) {
-		if (tagCompound.hasKey("home")) {
-			final NBTTagCompound nbtHome = tagCompound.getCompoundTag("home");
+	public void loadNBTData(final CompoundNBT tagCompound) {
+		if (tagCompound.contains("home")) {
+			final CompoundNBT nbtHome = tagCompound.getCompound("home");
 			globalPositionHome = new GlobalPosition(nbtHome);
 		}
 	}
 	
 	public void init(final Entity entity, final World world) {
 		if ( world == null
-		  || !(entity instanceof EntityLivingBase)
+		  || !(entity instanceof LivingEntity)
 		  || entity.world == null ) {
 			WarpDrive.logger.error(String.format("Invalid parameters to ExtendedProperty.init(%s, %s)",
 				entity, world));
 			return;
 		}
 		
-		entityLivingBase = (EntityLivingBase) entity;
+		entityLivingBase = (LivingEntity) entity;
 		
 		globalPositionHome = null;
 		
@@ -69,7 +70,7 @@ public class ExtendedProperties {
 	
 	// home
 	
-	public void setHome(final int dimensionId, final int x, final int y, final int z) {
+	public void setHome(final ResourceLocation dimensionId, final int x, final int y, final int z) {
 		setHome(new GlobalPosition(dimensionId, x, y, z));
 	}
 	
@@ -112,7 +113,7 @@ public class ExtendedProperties {
 			if ((updateFlags_save & UPDATE_FLAG_HOME) != 0) {
 				dataOutputStream.writeBoolean(globalPositionHome != null);
 				if (globalPositionHome != null) {
-					dataOutputStream.writeInt(globalPositionHome.dimensionId);
+//					dataOutputStream.writeInt(globalPositionHome.dimensionId);
 					dataOutputStream.writeInt(globalPositionHome.x);
 					dataOutputStream.writeInt(globalPositionHome.y);
 					dataOutputStream.writeInt(globalPositionHome.z);
@@ -143,11 +144,11 @@ public class ExtendedProperties {
 			if ((updateFlags_read & UPDATE_FLAG_HOME) != 0) {
 				final boolean isHomeSet = dataInputStream.readBoolean();
 				if (isHomeSet) {
-					final int dimensionId = dataInputStream.readInt();
+					final int dimensionId = 0; // dataInputStream.readInt();
 					final int x = dataInputStream.readInt();
 					final int y = dataInputStream.readInt();
 					final int z = dataInputStream.readInt();
-					globalPositionHome = new GlobalPosition(dimensionId, x, y, z);
+					globalPositionHome = new GlobalPosition(new ResourceLocation("minecraft:overworld"), x, y, z);
 				} else {
 					globalPositionHome = null;
 				}
@@ -163,7 +164,7 @@ public class ExtendedProperties {
 	}
 	
 	public void handleSynchronization() {
-		if (entityLivingBase.world.isRemote) {
+		if (entityLivingBase.world.isRemote()) {
 			return;
 		}
 		

@@ -9,10 +9,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -39,7 +38,7 @@ public class CompatMekanism implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
 		return tileEntityBasicBlock.isInstance(tileEntity)
 		    || tileEntityBoundingBlock.isInstance(tileEntity)
 		    || tileEntityGlowPanel.isInstance(tileEntity)
@@ -47,19 +46,20 @@ public class CompatMekanism implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -76,24 +76,24 @@ public class CompatMekanism implements IBlockTransformer {
 	}
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0 || nbtTileEntity == null) {
-			return metadata;
+			return blockState;
 		}
 		
 		// basic blocks
-		if (nbtTileEntity.hasKey("facing")) {
-			final int facing = nbtTileEntity.getInteger("facing");
+		if (nbtTileEntity.contains("facing")) {
+			final int facing = nbtTileEntity.getInt("facing");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setInteger("facing", rotFacing[facing]);
+				nbtTileEntity.putInt("facing", rotFacing[facing]);
 				break;
 			case 2:
-				nbtTileEntity.setInteger("facing", rotFacing[rotFacing[facing]]);
+				nbtTileEntity.putInt("facing", rotFacing[rotFacing[facing]]);
 				break;
 			case 3:
-				nbtTileEntity.setInteger("facing", rotFacing[rotFacing[rotFacing[facing]]]);
+				nbtTileEntity.putInt("facing", rotFacing[rotFacing[rotFacing[facing]]]);
 				break;
 			default:
 				break;
@@ -101,17 +101,17 @@ public class CompatMekanism implements IBlockTransformer {
 		}
 		
 		// glowstone panels
-		if (nbtTileEntity.hasKey("side")) {
-			final int side = nbtTileEntity.getInteger("side");
+		if (nbtTileEntity.contains("side")) {
+			final int side = nbtTileEntity.getInt("side");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setInteger("side", rotFacing[side]);
+				nbtTileEntity.putInt("side", rotFacing[side]);
 				break;
 			case 2:
-				nbtTileEntity.setInteger("side", rotFacing[rotFacing[side]]);
+				nbtTileEntity.putInt("side", rotFacing[rotFacing[side]]);
 				break;
 			case 3:
-				nbtTileEntity.setInteger("side", rotFacing[rotFacing[rotFacing[side]]]);
+				nbtTileEntity.putInt("side", rotFacing[rotFacing[rotFacing[side]]]);
 				break;
 			default:
 				break;
@@ -119,11 +119,11 @@ public class CompatMekanism implements IBlockTransformer {
 		}
 		
 		// sided pipes, including duct/pipe/cable/etc.
-		final HashMap<String, NBTBase> mapRotated = new HashMap<>(rotConnectionNames.size());
+		final HashMap<String, INBT> mapRotated = new HashMap<>(rotConnectionNames.size());
 		for (final String key : rotConnectionNames.keySet()) {
-			if (nbtTileEntity.hasKey(key)) {
-				final NBTBase nbtBase = nbtTileEntity.getTag(key);
-				nbtTileEntity.removeTag(key);
+			if (nbtTileEntity.contains(key)) {
+				final INBT nbtBase = nbtTileEntity.get(key);
+				nbtTileEntity.remove(key);
 				switch (rotationSteps) {
 				case 1:
 					mapRotated.put(rotConnectionNames.get(key), nbtBase);
@@ -140,27 +140,27 @@ public class CompatMekanism implements IBlockTransformer {
 				}
 			}
 		}
-		for (final Map.Entry<String, NBTBase> entry : mapRotated.entrySet()) {
-			nbtTileEntity.setTag(entry.getKey(), entry.getValue());
+		for (final Map.Entry<String, INBT> entry : mapRotated.entrySet()) {
+			nbtTileEntity.put(entry.getKey(), entry.getValue());
 		}
 		
 		// bounding blocks
-		if ( nbtTileEntity.hasKey("mainX")
-		  && nbtTileEntity.hasKey("mainY")
-		  && nbtTileEntity.hasKey("mainZ") ) {
-			final BlockPos mainTarget = transformation.apply(nbtTileEntity.getInteger("mainX"), nbtTileEntity.getInteger("mainY"), nbtTileEntity.getInteger("mainZ"));
-			nbtTileEntity.setInteger("mainX", mainTarget.getX());
-			nbtTileEntity.setInteger("mainY", mainTarget.getY());
-			nbtTileEntity.setInteger("mainZ", mainTarget.getZ());
+		if ( nbtTileEntity.contains("mainX")
+		  && nbtTileEntity.contains("mainY")
+		  && nbtTileEntity.contains("mainZ") ) {
+			final BlockPos mainTarget = transformation.apply(nbtTileEntity.getInt("mainX"), nbtTileEntity.getInt("mainY"), nbtTileEntity.getInt("mainZ"));
+			nbtTileEntity.putInt("mainX", mainTarget.getX());
+			nbtTileEntity.putInt("mainY", mainTarget.getY());
+			nbtTileEntity.putInt("mainZ", mainTarget.getZ());
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

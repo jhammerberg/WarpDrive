@@ -10,22 +10,27 @@ import org.lwjgl.opengl.GL11;
 import java.util.Random;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.GlStateManager.DestFactor;
-import net.minecraft.client.renderer.GlStateManager.SourceFactor;
+import net.minecraft.client.renderer.IRenderTypeBuffer;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.entity.RenderEntity;
-import net.minecraft.client.renderer.entity.RenderManager;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererManager;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.Entity;
+import net.minecraft.util.ResourceLocation;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-@SideOnly(Side.CLIENT)
-public class RenderEntityParticleBunch extends RenderEntity {
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.platform.GlStateManager.DestFactor;
+import com.mojang.blaze3d.platform.GlStateManager.SourceFactor;
+import com.mojang.blaze3d.systems.RenderSystem;
+
+@OnlyIn(Dist.CLIENT)
+public class RenderEntityParticleBunch extends EntityRenderer<EntityParticleBunch> {
+	
+	public static final ResourceLocation TEXTURE_LOCATION = new ResourceLocation("minecraft:dirt");
 	
 	public static final double[]  PARTICLE_BUNCH_ENERGY_TO_SIZE_X          = { 0.00,   0.8,   1.0,   8.0,  10.0,  80.0, 100.0 };
 	public static final double[]  PARTICLE_BUNCH_ENERGY_TO_SIZE_Y          = { 0.12, 0.080, 0.060, 0.050, 0.040, 0.030, 0.020 };
@@ -38,37 +43,31 @@ public class RenderEntityParticleBunch extends RenderEntity {
 	public static final double[]  PARTICLE_BUNCH_ENERGY_TO_GREEN_OUTSIDE_Y = { 0.80,  1.00,  0.90,  0.80,  0.60,  0.75,  1.00 };
 	public static final double[]  PARTICLE_BUNCH_ENERGY_TO_BLUE_OUTSIDE_Y  = { 0.20,  0.30,  0.50,  0.60,  0.60,  0.80,  0.90 };
 	
-	public RenderEntityParticleBunch(final RenderManager renderManagerIn) {
+	public RenderEntityParticleBunch(final EntityRendererManager renderManagerIn) {
 		super(renderManagerIn);
 	}
 	
+	@Nonnull
 	@Override
-	public void doRender(final Entity entity, final double x, final double y, final double z, final float rotation, final float partialTick) {
-		if (entity instanceof EntityParticleBunch) {
-			doRender((EntityParticleBunch) entity, x, y, z, rotation, partialTick);
-		}
+	public ResourceLocation getEntityTexture(@Nonnull final EntityParticleBunch entityParticleBunch) {
+		return TEXTURE_LOCATION;
 	}
 	
 	@Override
-	public void doRenderShadowAndFire(@Nonnull final Entity entity,
-	                                  final double x, final double y, final double z,
-	                                  final float rotation, final float partialTick) {
-		// super.doRenderShadowAndFire(entity, x, y, z, rotation, partialTick);
-	}
-	
-	public void doRender(final EntityParticleBunch entityParticleBunch,
-	                     final double x, final double y, final double z,
-	                     final float rotation, final float partialTick) {
+	public void render(@Nonnull final EntityParticleBunch entityParticleBunch, float entityYaw, final float partialTicks,
+	                   @Nonnull final MatrixStack matrixStack, @Nonnull final IRenderTypeBuffer buffer, final int packedLightIn) {
 		// adjust render distance
 		final int maxRenderDistanceSquared;
-		if (Minecraft.getMinecraft().gameSettings.fancyGraphics) {
+		if (Minecraft.getInstance().gameSettings.fancyGraphics) {
 			maxRenderDistanceSquared = 128 * 128;
 		} else {
 			maxRenderDistanceSquared = 20 * 20;
 		}
+		/* TODO MC1.15 particle bunch rendering
 		if ((x * x + y * y + z * z) > maxRenderDistanceSquared) {
 			return;
 		}
+		*/
 		
 		// compute parameters
 		final double energy = entityParticleBunch.getEnergy();
@@ -76,12 +75,13 @@ public class RenderEntityParticleBunch extends RenderEntity {
 		final int rayCount_base = 45;
 		
 		// common render parameters
-		GlStateManager.pushMatrix();
-		GlStateManager.translate(x, y, z);
-		GlStateManager.scale(size, size, size);
+		RenderSystem.pushMatrix();
+		// TODO MC1.15 particle bunch rendering
+		// RenderSystem.translated(x, y, z);
+		RenderSystem.scalef(size, size, size);
 		// lightmap already done by caller, see getBrightnessForRender()
 		
-		renderStar(entityParticleBunch.ticksExisted + partialTick, entityParticleBunch.getEntityId(), rayCount_base,
+		renderStar(entityParticleBunch.ticksExisted + partialTicks, entityParticleBunch.getEntityId(), rayCount_base,
 	        (int) (255.0F * Commons.interpolate(PARTICLE_BUNCH_ENERGY_TO_SIZE_X, PARTICLE_BUNCH_ENERGY_TO_RED_INSIDE_Y   , energy)),
 	        (int) (255.0F * Commons.interpolate(PARTICLE_BUNCH_ENERGY_TO_SIZE_X, PARTICLE_BUNCH_ENERGY_TO_GREEN_INSIDE_Y , energy)),
 	        (int) (255.0F * Commons.interpolate(PARTICLE_BUNCH_ENERGY_TO_SIZE_X, PARTICLE_BUNCH_ENERGY_TO_BLUE_INSIDE_Y  , energy)),
@@ -90,7 +90,7 @@ public class RenderEntityParticleBunch extends RenderEntity {
 	        (int) (255.0F * Commons.interpolate(PARTICLE_BUNCH_ENERGY_TO_SIZE_X, PARTICLE_BUNCH_ENERGY_TO_BLUE_OUTSIDE_Y , energy)) );
         
         // restore
-		GlStateManager.popMatrix();
+		RenderSystem.popMatrix();
 	}
 	
 	// Loosely based on ender dragon death effect
@@ -115,13 +115,13 @@ public class RenderEntityParticleBunch extends RenderEntity {
 		final Tessellator tessellator = Tessellator.getInstance();
 		final BufferBuilder vertexBuffer = tessellator.getBuffer();
 		RenderHelper.disableStandardItemLighting();
-		GlStateManager.disableTexture2D();
-		GlStateManager.shadeModel(GL11.GL_SMOOTH);
-		GlStateManager.enableBlend();
-		GlStateManager.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE);
-		GlStateManager.disableAlpha();
-		GlStateManager.enableCull();
-		GlStateManager.depthMask(false);
+		RenderSystem.disableTexture();
+		RenderSystem.shadeModel(GL11.GL_SMOOTH);
+		RenderSystem.enableBlend();
+		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE);
+		RenderSystem.disableAlphaTest();
+		RenderSystem.enableCull();
+		RenderSystem.depthMask(false);
 		
 		for (int i = 0; i < rayCount; i++) {
 			// compute boost pulsation cycle
@@ -137,12 +137,12 @@ public class RenderEntityParticleBunch extends RenderEntity {
 			}
 			
 			// compute branch orientation
-			GlStateManager.rotate(random.nextFloat() * 360.0F, 1.0F, 0.0F, 0.0F);
-			GlStateManager.rotate(random.nextFloat() * 360.0F, 0.0F, 1.0F, 0.0F);
-			GlStateManager.rotate(random.nextFloat() * 360.0F, 0.0F, 0.0F, 1.0F);
-			GlStateManager.rotate(random.nextFloat() * 360.0F, 1.0F, 0.0F, 0.0F);
-			GlStateManager.rotate(random.nextFloat() * 360.0F, 0.0F, 1.0F, 0.0F);
-			GlStateManager.rotate(random.nextFloat() * 360.0F + cycleRotation * 90F, 0.0F, 0.0F, 1.0F);
+			RenderSystem.rotatef(random.nextFloat() * 360.0F, 1.0F, 0.0F, 0.0F);
+			RenderSystem.rotatef(random.nextFloat() * 360.0F, 0.0F, 1.0F, 0.0F);
+			RenderSystem.rotatef(random.nextFloat() * 360.0F, 0.0F, 0.0F, 1.0F);
+			RenderSystem.rotatef(random.nextFloat() * 360.0F, 1.0F, 0.0F, 0.0F);
+			RenderSystem.rotatef(random.nextFloat() * 360.0F, 0.0F, 1.0F, 0.0F);
+			RenderSystem.rotatef(random.nextFloat() * 360.0F + cycleRotation * 90F, 0.0F, 0.0F, 1.0F);
 			vertexBuffer.begin(GL11.GL_TRIANGLE_FAN, DefaultVertexFormats.POSITION_COLOR);
 			final float rayLength = random.nextFloat() * 15.0F + 5.0F + boost *  5.0F;
 			final float rayWidth  = random.nextFloat() *  2.0F + 1.0F + boost *  1.0F;
@@ -155,12 +155,12 @@ public class RenderEntityParticleBunch extends RenderEntity {
 		}
 		
 		// drawing closure
-		GlStateManager.depthMask(true);
-		GlStateManager.disableCull();
-		GlStateManager.disableBlend();
-		GlStateManager.shadeModel(GL11.GL_FLAT);
-		GlStateManager.enableTexture2D();
-		GlStateManager.enableAlpha();
+		RenderSystem.depthMask(true);
+		RenderSystem.disableCull();
+		RenderSystem.disableBlend();
+		RenderSystem.shadeModel(GL11.GL_FLAT);
+		RenderSystem.enableTexture();
+		RenderSystem.enableAlphaTest();
 		RenderHelper.enableStandardItemLighting();
 	}
 }

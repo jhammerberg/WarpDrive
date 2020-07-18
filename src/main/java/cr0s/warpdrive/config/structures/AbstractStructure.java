@@ -12,18 +12,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.world.gen.feature.WorldGenerator;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IWorld;
+import net.minecraft.world.World;
+import net.minecraft.world.gen.ChunkGenerator;
+import net.minecraft.world.gen.GenerationSettings;
+import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.gen.feature.NoFeatureConfig;
 
 /**
  * @author Francesco, LemADEC
  *
  */
-public abstract class AbstractStructure extends WorldGenerator implements IXmlRepresentable {
+public abstract class AbstractStructure extends Feature<NoFeatureConfig> implements IXmlRepresentable {
 	protected String group;
 	protected String name;
 	protected HashMap<String,String> variables = new HashMap<>();
 	
 	public AbstractStructure(final String group, final String name) {
+		super(NoFeatureConfig::deserialize);
+		
 		this.group = group;
 		this.name = name;
 	}
@@ -53,4 +61,12 @@ public abstract class AbstractStructure extends WorldGenerator implements IXmlRe
 		
 		return true;
 	}
+	
+	@Override
+	public boolean place(@Nonnull final IWorld worldInterface, @Nonnull final ChunkGenerator<? extends GenerationSettings> generator, @Nonnull final Random rand,
+	                     @Nonnull final BlockPos blockPos, @Nonnull final NoFeatureConfig config) {
+		return place((World) worldInterface, rand, blockPos);
+	}
+	
+	abstract public boolean place(@Nonnull final World world, @Nonnull final Random rand, @Nonnull final BlockPos blockPos);
 }

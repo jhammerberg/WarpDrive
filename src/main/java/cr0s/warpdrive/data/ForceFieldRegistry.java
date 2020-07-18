@@ -14,9 +14,9 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 
-import gnu.trove.map.hash.TIntObjectHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 /**
  * Thread safe registry of all known force field blocks, grouped by frequency, for use in main and calculation threads
@@ -24,7 +24,7 @@ import gnu.trove.map.hash.TIntObjectHashMap;
  */
 public class ForceFieldRegistry {
 	
-	private static final TIntObjectHashMap<CopyOnWriteArraySet<RegistryEntry>> registry = new TIntObjectHashMap<>(16);
+	private static final Int2ObjectOpenHashMap<CopyOnWriteArraySet<RegistryEntry>> registry = new Int2ObjectOpenHashMap<>(16);
 	private static int countAdd = 0;
 	private static int countRemove = 0;
 	private static int countRead = 0;
@@ -70,7 +70,7 @@ public class ForceFieldRegistry {
 	}
 	
 	@Nonnull
-	public static Set<TileEntity> getTileEntities(final int beamFrequency, @Nullable final WorldServer world, @Nonnull final BlockPos blockPos) {
+	public static Set<TileEntity> getTileEntities(final int beamFrequency, @Nullable final ServerWorld world, @Nonnull final BlockPos blockPos) {
 		countRead++;
 		if (WarpDriveConfig.LOGGING_FORCE_FIELD_REGISTRY) {
 			if (countRead % 1000 == 0) {
@@ -104,7 +104,7 @@ public class ForceFieldRegistry {
 		Set<RegistryEntry> setRegistryEntryToIterate = new HashSet<>();
 		for (final RegistryEntry registryEntry : setRegistryEntries) {
 			// skip if it's in another dimension
-			if (registryEntry.globalPosition.dimensionId != world.provider.getDimension()) {
+			if (!registryEntry.globalPosition.dimensionId.equals(world.getDimension().getType().getRegistryName())) {
 				continue;
 			}
 			
@@ -268,7 +268,7 @@ public class ForceFieldRegistry {
 		WarpDrive.logger.info(String.format("Force field registry (%d entries after %s):",
 		                                    registry.size(), trigger ));
 		
-		registry.forEachEntry((beamFrequency, relayOrProjectors) -> {
+		registry.forEach((beamFrequency, relayOrProjectors) -> {
 			final StringBuilder message = new StringBuilder();
 			for (final RegistryEntry registryEntry : relayOrProjectors) {
 				if (message.length() > 0) {
@@ -280,7 +280,6 @@ public class ForceFieldRegistry {
 			                                    relayOrProjectors.size(),
 			                                    beamFrequency,
 			                                    message ));
-			return true;
 		});
 	}
 }

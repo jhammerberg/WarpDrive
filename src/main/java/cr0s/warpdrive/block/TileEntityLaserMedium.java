@@ -5,10 +5,13 @@ import cr0s.warpdrive.config.WarpDriveConfig;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 
 public class TileEntityLaserMedium extends TileEntityAbstractEnergy {
+	
+	public static TileEntityType<TileEntityLaserMedium> TYPE;
 	
 	private static final int BLOCKSTATE_REFRESH_PERIOD_TICKS = 20;
 	
@@ -19,7 +22,7 @@ public class TileEntityLaserMedium extends TileEntityAbstractEnergy {
 	private int ticks = BLOCKSTATE_REFRESH_PERIOD_TICKS;
 	
 	public TileEntityLaserMedium() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveLaserMedium";
 		doRequireUpgradeToInterface();
@@ -35,10 +38,11 @@ public class TileEntityLaserMedium extends TileEntityAbstractEnergy {
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -52,19 +56,19 @@ public class TileEntityLaserMedium extends TileEntityAbstractEnergy {
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		return super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		return super.write(tagCompound);
 	}
 	
 	// IEnergySink methods
 	@Override
-	public boolean energy_canInput(final EnumFacing from) {
+	public boolean energy_canInput(final Direction from) {
 		return true;
 	}
 	

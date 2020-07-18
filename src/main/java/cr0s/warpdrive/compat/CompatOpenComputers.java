@@ -8,10 +8,10 @@ import cr0s.warpdrive.config.WarpDriveConfig;
 import javax.annotation.Nonnull;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -53,24 +53,25 @@ public class CompatOpenComputers implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockSimpleBlock.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockSimpleBlock.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -177,15 +178,15 @@ public class CompatOpenComputers implements IBlockTransformer {
 	private static final byte[] mrotCase        = {  2,  3,  4,  5,  6,  7,  0,  1,  8,  9, 10, 11, 12, 13, 14, 15 };
 	
 	@Nonnull
-	private NBTTagList rotate_list(final byte rotationSteps, @Nonnull final NBTTagList listOldValues) {
-		final NBTTagList listNewValues = new NBTTagList();
+	private ListNBT rotate_list(final byte rotationSteps, @Nonnull final ListNBT listOldValues) {
+		final ListNBT listNewValues = new ListNBT();
 		// nota: we clone the list first so all indexes are already defined
-		for (int index = 0; index < listOldValues.tagCount(); index++) {
-			listNewValues.appendTag(listOldValues.get(index));
+		for (int index = 0; index < listOldValues.size(); index++) {
+			listNewValues.add(listOldValues.get(index));
 		}
 		// do rotate
-		for (int index = 0; index < listOldValues.tagCount(); index++) {
-			final NBTBase nbtValue = listOldValues.get(index);
+		for (int index = 0; index < listOldValues.size(); index++) {
+			final INBT nbtValue = listOldValues.get(index);
 			switch (rotationSteps) {
 			case 1:
 				listNewValues.set(rotFacing[index], nbtValue);
@@ -226,50 +227,50 @@ public class CompatOpenComputers implements IBlockTransformer {
 	}
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0) {
-			return metadata;
+			return blockState;
 		}
 		
 		// *** NBT data transformations
 		if (nbtTileEntity != null) {
 			// adapter blocks @TODO to be integrated
-			if (nbtTileEntity.hasKey("oc:adapter.blocks", NBT.TAG_LIST)) {
-				nbtTileEntity.setTag("oc:adapter.blocks", rotate_list(rotationSteps, nbtTileEntity.getTagList("oc:adapter.blocks", NBT.TAG_COMPOUND)));
+			if (nbtTileEntity.contains("oc:adapter.blocks", NBT.TAG_LIST)) {
+				nbtTileEntity.put("oc:adapter.blocks", rotate_list(rotationSteps, nbtTileEntity.getList("oc:adapter.blocks", NBT.TAG_COMPOUND)));
 			}
 			
 			// bundled and rednet signals
-			if (nbtTileEntity.hasKey("oc:rs.bundledInput", NBT.TAG_LIST)) {
-				nbtTileEntity.setTag("oc:rs.bundledInput", rotate_list(rotationSteps, nbtTileEntity.getTagList("oc:rs.bundledInput", NBT.TAG_INT_ARRAY)));
+			if (nbtTileEntity.contains("oc:rs.bundledInput", NBT.TAG_LIST)) {
+				nbtTileEntity.put("oc:rs.bundledInput", rotate_list(rotationSteps, nbtTileEntity.getList("oc:rs.bundledInput", NBT.TAG_INT_ARRAY)));
 			}
-			if (nbtTileEntity.hasKey("oc:rs.bundledOutput", NBT.TAG_LIST)) {
-				nbtTileEntity.setTag("oc:rs.bundledOutput", rotate_list(rotationSteps, nbtTileEntity.getTagList("oc:rs.bundledOutput", NBT.TAG_INT_ARRAY)));
+			if (nbtTileEntity.contains("oc:rs.bundledOutput", NBT.TAG_LIST)) {
+				nbtTileEntity.put("oc:rs.bundledOutput", rotate_list(rotationSteps, nbtTileEntity.getList("oc:rs.bundledOutput", NBT.TAG_INT_ARRAY)));
 			}
-			if (nbtTileEntity.hasKey("oc:rs.rednetInput", NBT.TAG_LIST)) {
-				nbtTileEntity.setTag("oc:rs.rednetInput", rotate_list(rotationSteps, nbtTileEntity.getTagList("oc:rs.rednetInput", NBT.TAG_INT_ARRAY)));
+			if (nbtTileEntity.contains("oc:rs.rednetInput", NBT.TAG_LIST)) {
+				nbtTileEntity.put("oc:rs.rednetInput", rotate_list(rotationSteps, nbtTileEntity.getList("oc:rs.rednetInput", NBT.TAG_INT_ARRAY)));
 			}
 			
 			// simple redstone signals
-			if (nbtTileEntity.hasKey("oc:rs.input", NBT.TAG_INT_ARRAY)) {
-				nbtTileEntity.setIntArray("oc:rs.input", rotate_intArray(rotationSteps, nbtTileEntity.getIntArray("oc:rs.input")));
+			if (nbtTileEntity.contains("oc:rs.input", NBT.TAG_INT_ARRAY)) {
+				nbtTileEntity.putIntArray("oc:rs.input", rotate_intArray(rotationSteps, nbtTileEntity.getIntArray("oc:rs.input")));
 			}
-			if (nbtTileEntity.hasKey("oc:rs.output", NBT.TAG_INT_ARRAY)) {
-				nbtTileEntity.setIntArray("oc:rs.output", rotate_intArray(rotationSteps, nbtTileEntity.getIntArray("oc:rs.output")));
+			if (nbtTileEntity.contains("oc:rs.output", NBT.TAG_INT_ARRAY)) {
+				nbtTileEntity.putIntArray("oc:rs.output", rotate_intArray(rotationSteps, nbtTileEntity.getIntArray("oc:rs.output")));
 			}
 			
 			// yaw value
-			if (nbtTileEntity.hasKey("oc:yaw", NBT.TAG_INT)) {
-				final int facing = nbtTileEntity.getInteger("oc:yaw");
+			if (nbtTileEntity.contains("oc:yaw", NBT.TAG_INT)) {
+				final int facing = nbtTileEntity.getInt("oc:yaw");
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setInteger("oc:yaw", rotFacing[facing]);
+					nbtTileEntity.putInt("oc:yaw", rotFacing[facing]);
 					break;
 				case 2:
-					nbtTileEntity.setInteger("oc:yaw", rotFacing[rotFacing[facing]]);
+					nbtTileEntity.putInt("oc:yaw", rotFacing[rotFacing[facing]]);
 					break;
 				case 3:
-					nbtTileEntity.setInteger("oc:yaw", rotFacing[rotFacing[rotFacing[facing]]]);
+					nbtTileEntity.putInt("oc:yaw", rotFacing[rotFacing[rotFacing[facing]]]);
 					break;
 				default:
 					break;
@@ -279,11 +280,11 @@ public class CompatOpenComputers implements IBlockTransformer {
 		
 		// *** metadata transformation
 		// simple horizontal rotation by metadata
-		if ( classBlockDiskDrive.isInstance(block)
-		  || classBlockRaid.isInstance(block)
-		  || classBlockCharger.isInstance(block)
-		  || classBlockMicrocontroller.isInstance(block)
-		  || classBlockRack.isInstance(block) ) {
+		if ( classBlockDiskDrive.isInstance(blockState.getBlock())
+		  || classBlockRaid.isInstance(blockState.getBlock())
+		  || classBlockCharger.isInstance(blockState.getBlock())
+		  || classBlockMicrocontroller.isInstance(blockState.getBlock())
+		  || classBlockRack.isInstance(blockState.getBlock()) ) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotHorizontal[metadata];
@@ -292,13 +293,13 @@ public class CompatOpenComputers implements IBlockTransformer {
 			case 3:
 				return mrotHorizontal[mrotHorizontal[mrotHorizontal[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// full vertex rotation by metadata
-		if ( classBlockKeyboard.isInstance(block)
-		  || classBlockScreen.isInstance(block) ) {
+		if ( classBlockKeyboard.isInstance(blockState.getBlock())
+		  || classBlockScreen.isInstance(blockState.getBlock()) ) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotFull[metadata];
@@ -307,12 +308,12 @@ public class CompatOpenComputers implements IBlockTransformer {
 			case 3:
 				return mrotFull[mrotFull[mrotFull[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// running state & rotation by metadata
-		if (classBlockCase.isInstance(block)) {
+		if (classBlockCase.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotCase[metadata];
@@ -321,18 +322,18 @@ public class CompatOpenComputers implements IBlockTransformer {
 			case 3:
 				return mrotCase[mrotCase[mrotCase[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// no metadata rotation
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

@@ -35,40 +35,42 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.MobEffects;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
 import net.minecraft.network.NetworkManager;
-import net.minecraft.network.play.server.SPacketUpdateTileEntity;
-import net.minecraft.potion.PotionEffect;
+import net.minecraft.network.play.server.SUpdateTileEntityPacket;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.client.FMLClientHandler;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class TileEntityShipCore extends TileEntityAbstractShipController implements IGlobalRegionProvider, IMultiBlockCore {
+	
+	public static TileEntityType<TileEntityShipCore> TYPE;
 	
 	private static final int LOG_INTERVAL_TICKS = 20 * 180;
 	private static final int BOUNDING_BOX_INTERVAL_TICKS = 60;
 	
 	// persistent properties
-	public EnumFacing facing;
+	public Direction facing;
 	private double isolationRate = 0.0D;
 	private final Set<BlockPos> blockPosShipControllers = new CopyOnWriteArraySet<>();
 	private int ticksCooldown = 0;
@@ -107,14 +109,14 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	
 	
 	public TileEntityShipCore() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveShipCore";
 		// addMethods(new String[] {});
 		CC_scripts = Collections.singletonList("startup");
 	}
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	private void doShowBoundingBox() {
 		ticksBoundingBoxUpdate--;
 		if (ticksBoundingBoxUpdate > 0) {
@@ -125,11 +127,11 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		final Vector3 vector3 = new Vector3(this);
 		vector3.translate(0.5D);
 		
-		FMLClientHandler.instance().getClient().effectRenderer.addEffect(
+		Minecraft.getInstance().particles.addEffect(
 				new EntityFXBoundingBox(world, vector3,
 				                        new Vector3(minX - 0.0D, minY - 0.0D, minZ - 0.0D),
 				                        new Vector3(maxX + 1.0D, maxY + 1.0D, maxZ + 1.0D),
-				                        1.0F, 0.8F, 0.3F, BOUNDING_BOX_INTERVAL_TICKS + 1) );
+				                        1.0F, 0.8F, 0.3F, BOUNDING_BOX_INTERVAL_TICKS + 1));
 	}
 	
 	@Override
@@ -142,10 +144,11 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			if (showBoundingBox) {
 				doShowBoundingBox();
 			}
@@ -204,7 +207,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		
 		// scan ship content progressively
 		if (timeLastShipScanDone <= 0L) {
-			timeLastShipScanDone = world.getTotalWorldTime();
+			timeLastShipScanDone = world.getGameTime();
 			
 			// validate ship side constrains before scanning
 			if ( getBack() == 0 && getFront() == 0
@@ -249,11 +252,11 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			final AxisAlignedBB axisalignedbb = new AxisAlignedBB(minX, minY, minZ, maxX + 0.99D, maxY + 0.99D, maxZ + 0.99D);
 			final List<Entity> list = world.getEntitiesWithinAABBExcludingEntity(null, axisalignedbb);
 			for (final Entity entity : list) {
-				if (!(entity instanceof EntityPlayer)) {
+				if (!(entity instanceof PlayerEntity)) {
 					continue;
 				}
 				
-				final String playerName = entity.getName();
+				final String playerName = entity.getName().getUnformattedComponentText();
 				for (final String nameUnlimited : WarpDriveConfig.SHIP_MASS_UNLIMITED_PLAYER_NAMES) {
 					isUnlimited = isUnlimited || nameUnlimited.equals(playerName);
 				}
@@ -340,7 +343,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 				// compute distance
 				distanceSquared = getMovement().getMagnitudeSquared();
 				// rescan ship mass/volume if it's too old
-				if (timeLastShipScanDone + WarpDriveConfig.SHIP_VOLUME_SCAN_AGE_TOLERANCE_SECONDS * 20 < world.getTotalWorldTime()) {
+				if (timeLastShipScanDone + WarpDriveConfig.SHIP_VOLUME_SCAN_AGE_TOLERANCE_SECONDS * 20 < world.getGameTime()) {
 					timeLastShipScanDone = -1;
 					break;
 				}
@@ -448,7 +451,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 				return;
 			}
 			
-			if (WarpDrive.cloaks.isCloaked(world.provider.getDimension(), pos)) {
+			if (WarpDrive.cloaks.isCloaked(world.getDimension().getType(), pos)) {
 				commandDone(false, new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.cloaking_field_overlapping"));
 				return;
 			}
@@ -527,7 +530,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	
 	@Override
 	protected void commandDone(final boolean success, @Nonnull final WarpDriveText reasonRaw) {
-		assert success || !reasonRaw.getUnformattedText().isEmpty();
+		assert success || !reasonRaw.getUnformattedComponentText().isEmpty();
 		final WarpDriveText reason;
 		if (success || !commandCurrent.isMovement()) {
 			reason = reasonRaw;
@@ -540,8 +543,9 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			Commons.messageToAllPlayersInArea(this, reason);
 			stateCurrent = EnumShipCoreState.IDLE;
 		}
+		assert world != null;
 		for (final BlockPos blockPos : blockPosShipControllers) {
-			if (!world.isBlockLoaded(blockPos, false)) {
+			if (!world.isBlockLoaded(blockPos)) {
 				continue;
 			}
 			final TileEntity tileEntity = world.getTileEntity(blockPos);
@@ -561,9 +565,10 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			return null;
 		}
 		
+		assert world != null;
 		final TileEntity tileEntity = world.getTileEntity(posSecurityStation);
 		if ( !(tileEntity instanceof TileEntitySecurityStation)
-		  || tileEntity.isInvalid() ) {// we're desync
+		  || tileEntity.isRemoved() ) {// we're desync
 			// force a refresh
 			timeLastShipScanDone = -1;
 			return "-busy-";
@@ -576,7 +581,8 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		final boolean isValid = super.doScanAssembly(isDirty, textReason);
 		
 		// refresh cache
-		facing = world.getBlockState(pos).getValue(BlockProperties.FACING_HORIZONTAL);
+		assert world != null;
+		facing = world.getBlockState(pos).get(BlockProperties.FACING_HORIZONTAL);
 		
 		// Search block in cube around core
 		final int xMin = pos.getX() - WarpDriveConfig.RADAR_MAX_ISOLATION_RANGE;
@@ -593,7 +599,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		int newCount = 0;
 		
 		// Search for warp isolation blocks
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 		for (int y = yMin; y <= yMax; y++) {
 			for (int x = xMin; x <= xMax; x++) {
 				for (int z = zMin; z <= zMax; z++) {
@@ -684,16 +690,17 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	
 	private void makePlayersOnShipDrunk(final int tickDuration) {
 		final AxisAlignedBB axisalignedbb = new AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
+		assert world != null;
 		final List<Entity> list = world.getEntitiesWithinAABBExcludingEntity(null, axisalignedbb);
 		
 		for (final Entity entity : list) {
-			if (!(entity instanceof EntityPlayer)) {
+			if (!(entity instanceof PlayerEntity)) {
 				continue;
 			}
 			
 			// Set "drunk" effect
-			((EntityPlayer) entity).addPotionEffect(
-					new PotionEffect(MobEffects.NAUSEA, tickDuration, 0, true, true));
+			((PlayerEntity) entity).addPotionEffect(
+					new EffectInstance(Effects.NAUSEA, tickDuration, 0, true, true));
 		}
 	}
 	
@@ -701,14 +708,14 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		return null;
 	}
 	
-	public boolean summonOwnerOnDeploy(final EntityPlayerMP entityPlayerMP) {
-		if (entityPlayerMP == null) {
+	public boolean summonOwnerOnDeploy(final ServerPlayerEntity entityServerPlayer) {
+		if (entityServerPlayer == null) {
 			WarpDrive.logger.warn(this + " No player given to summonOwnerOnDeploy()");
 			return false;
 		}
 		doUpdateParameters(false);
 		if (!isAssemblyValid) {
-			Commons.addChatMessage(entityPlayerMP, new WarpDriveText(Commons.getStyleHeader(), !name.isEmpty() ? name : "ShipCore")
+			Commons.addChatMessage(entityServerPlayer, new WarpDriveText(Commons.getStyleHeader(), !name.isEmpty() ? name : "ShipCore")
 					                                       .appendSibling(textValidityIssues));
 			return false;
 		}
@@ -716,12 +723,12 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		final TileEntitySecurityStation tileEntitySecurityStation = findSecurityStation();
 		if (tileEntitySecurityStation != null) {
 			tileEntitySecurityStation.players.clear();
-			tileEntitySecurityStation.players.add(entityPlayerMP.getName());
+			tileEntitySecurityStation.players.add(entityServerPlayer.getName().getUnformattedComponentText());
 		}
 		
 		final AxisAlignedBB aabb = new AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
-		if (isOutsideBB(aabb, MathHelper.floor(entityPlayerMP.posX), MathHelper.floor(entityPlayerMP.posY), MathHelper.floor(entityPlayerMP.posZ))) {
-			summonPlayer(entityPlayerMP);
+		if (isOutsideBB(aabb, MathHelper.floor(entityServerPlayer.getPosX()), MathHelper.floor(entityServerPlayer.getPosY()), MathHelper.floor(entityServerPlayer.getPosZ()))) {
+			summonPlayer(entityServerPlayer);
 		}
 		return true;
 	}
@@ -732,9 +739,10 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			new VectorI( 1, 0,  1), new VectorI( 1, 0, -1),
 			new VectorI( 0, 0,  1), new VectorI( 0, 0, -1),
 			new VectorI(-2, 0,  0), new VectorI( 2, 0,  0) };
-	private void summonPlayer(@Nonnull final EntityPlayerMP entityPlayer) {
+	private void summonPlayer(@Nonnull final ServerPlayerEntity entityPlayer) {
 		// find a free spot
-		final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos(pos);
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(pos);
+		assert world != null;
 		for (final VectorI vOffset : SUMMON_OFFSETS) {
 			mutableBlockPos.setPos(
 				pos.getX() + facing.getXOffset() * vOffset.x + facing.getZOffset() * vOffset.z,
@@ -745,7 +753,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 					summonPlayer(entityPlayer, mutableBlockPos);
 					return;
 				}
-				mutableBlockPos.move(EnumFacing.DOWN);
+				mutableBlockPos.move(Direction.DOWN);
 				if (world.isAirBlock(mutableBlockPos)) {
 					summonPlayer(entityPlayer, mutableBlockPos);
 					return;
@@ -768,7 +776,8 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		Commons.addChatMessage(entityPlayer, message);
 	}
 	
-	private void summonPlayer(@Nonnull final EntityPlayerMP player, @Nonnull final BlockPos blockPos) {
+	private void summonPlayer(@Nonnull final ServerPlayerEntity player, @Nonnull final BlockPos blockPos) {
+		assert world != null;
 		Commons.moveEntity(player, world, new Vector3(blockPos.getX() + 0.5D, blockPos.getY(), blockPos.getZ() + 0.5D));
 	}
 	
@@ -840,10 +849,11 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			return true;
 		}
 		
+		assert world != null;
 		for (int x = minX; x <= maxX; x++) {
 			for (int z = minZ; z <= maxZ; z++) {
 				for (int y = minY; y <= maxY; y++) {
-					final IBlockState blockState = world.getBlockState(new BlockPos(x, y, z));
+					final BlockState blockState = world.getBlockState(new BlockPos(x, y, z));
 					
 					// Skipping vanilla air & ignored blocks
 					if (blockState.getBlock() == Blocks.AIR || Dictionary.BLOCKS_LEFTBEHIND.contains(blockState.getBlock())) {
@@ -900,6 +910,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		final int moveY = destY - pos.getY();
 		final int moveZ = destZ - pos.getZ();
 		
+		assert world != null;
 		for (int x = minX; x <= maxX; x++) {
 			newX = moveX + x;
 			for (int z = minZ; z <= maxZ; z++) {
@@ -939,6 +950,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		}
 		
 		// Now make jump to a beacon
+		assert world != null;
 		final int gateX = jumpGate_target.x;
 		final int gateY = jumpGate_target.y;
 		final int gateZ = jumpGate_target.z;
@@ -999,6 +1011,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	
 	private void doJump() {
 		
+		assert world != null;
 		final int requiredEnergy = shipMovementCosts.energyRequired;
 		
 		if (!energy_consume(requiredEnergy, true)) {
@@ -1113,7 +1126,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	
 	public ITextComponent getBoundingBoxStatus() {
 		return super.getStatusPrefix()
-			.appendSibling(new TextComponentTranslation(showBoundingBox ? "tile.warpdrive.movement.ship_core.bounding_box.enabled" : "tile.warpdrive.movement.ship_core.bounding_box.disabled"));
+			.appendSibling(new TranslationTextComponent(showBoundingBox ? "tile.warpdrive.movement.ship_core.bounding_box.enabled" : "tile.warpdrive.movement.ship_core.bounding_box.disabled"));
 	}
 	
 	@Override
@@ -1129,60 +1142,60 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	}
 	
 	@Override
-	public boolean energy_canInput(final EnumFacing from) {
+	public boolean energy_canInput(final Direction from) {
 		return true;
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
 		isolationRate = tagCompound.getDouble("isolationRate");
-		ticksCooldown = tagCompound.getInteger("cooldownTime");
-		warmupTime_ticks = tagCompound.getInteger("warmupTime");
-		jumpCount = tagCompound.getInteger("jumpCount");
+		ticksCooldown = tagCompound.getInt("cooldownTime");
+		warmupTime_ticks = tagCompound.getInt("warmupTime");
+		jumpCount = tagCompound.getInt("jumpCount");
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setDouble("isolationRate", isolationRate);
-		tagCompound.setInteger("cooldownTime", ticksCooldown);
-		tagCompound.setInteger("warmupTime", warmupTime_ticks);
-		tagCompound.setInteger("jumpCount", jumpCount);
+		tagCompound.putDouble("isolationRate", isolationRate);
+		tagCompound.putInt("cooldownTime", ticksCooldown);
+		tagCompound.putInt("warmupTime", warmupTime_ticks);
+		tagCompound.putInt("jumpCount", jumpCount);
 		
 		return tagCompound;
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound getUpdateTag() {
-		final NBTTagCompound tagCompound = super.getUpdateTag();
+	public CompoundNBT getUpdateTag() {
+		final CompoundNBT tagCompound = super.getUpdateTag();
 		
-		tagCompound.setInteger("minX", minX);
-		tagCompound.setInteger("maxX", maxX);
-		tagCompound.setInteger("minY", minY);
-		tagCompound.setInteger("maxY", maxY);
-		tagCompound.setInteger("minZ", minZ);
-		tagCompound.setInteger("maxZ", maxZ);
+		tagCompound.putInt("minX", minX);
+		tagCompound.putInt("maxX", maxX);
+		tagCompound.putInt("minY", minY);
+		tagCompound.putInt("maxY", maxY);
+		tagCompound.putInt("minZ", minZ);
+		tagCompound.putInt("maxZ", maxZ);
 		
 		return tagCompound;
 	}
 	
 	@Override
-	public void onDataPacket(@Nonnull final NetworkManager networkManager, @Nonnull final SPacketUpdateTileEntity packet) {
+	public void onDataPacket(@Nonnull final NetworkManager networkManager, @Nonnull final SUpdateTileEntityPacket packet) {
 		super.onDataPacket(networkManager, packet);
 		
-		final NBTTagCompound tagCompound = packet.getNbtCompound();
+		final CompoundNBT tagCompound = packet.getNbtCompound();
 		
-		minX = tagCompound.getInteger("minX");
-		maxX = tagCompound.getInteger("maxX");
-		minY = tagCompound.getInteger("minY");
-		maxY = tagCompound.getInteger("maxY");
-		minZ = tagCompound.getInteger("minZ");
-		maxZ = tagCompound.getInteger("maxZ");
+		minX = tagCompound.getInt("minX");
+		maxX = tagCompound.getInt("maxX");
+		minY = tagCompound.getInt("minY");
+		maxY = tagCompound.getInt("maxY");
+		minZ = tagCompound.getInt("minZ");
+		maxZ = tagCompound.getInt("maxZ");
 		
 		cache_aabbArea = null;
 	}
@@ -1217,7 +1230,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	}
 	
 	@Override
-	public boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final IBlockState blockState) {
+	public boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final BlockState blockState) {
 		// no operation
 		return true;
 	}
@@ -1245,7 +1258,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		final WarpDriveText reason = new WarpDriveText();
 		final int energyRequired = getEnergyRequired(enumShipCommand, reason);
 		if (energyRequired < 0) {
-			return new Object[] { false, Commons.removeFormatting( reason.getUnformattedText() ) };
+			return new Object[] { false, Commons.removeFormatting( reason.getUnformattedComponentText() ) };
 		}
 		final String units = energy_getDisplayUnits();
 		return new Object[] { true, EnergyWrapper.convert(energyRequired, units) };

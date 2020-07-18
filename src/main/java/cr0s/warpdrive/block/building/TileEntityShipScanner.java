@@ -27,41 +27,42 @@ import li.cil.oc.api.machine.Context;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.StringTextComponent;
 
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.Optional;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nonnull;
 
 public class TileEntityShipScanner extends TileEntityAbstractMachine implements ISequencerCallbacks {
 	
+	public static TileEntityType<TileEntityShipScanner> TYPE;
+	
 	// persistent properties
 	private String schematicFileName = "";
 	private int targetX, targetY, targetZ;
 	private byte rotationSteps;
-	public Block blockCamouflage;
-	public int metadataCamouflage;
+	public BlockState blockStateCamouflage;
 	protected int colorMultiplierCamouflage;
 	protected int lightCamouflage;
 	
@@ -81,7 +82,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	private int blocksToDeployCount;
 	
 	public TileEntityShipScanner() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveShipScanner";
 		addMethods(new String[] {
@@ -94,7 +95,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	
 	@Nonnull
 	@Override
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public AxisAlignedBB getRenderBoundingBox() {
 		if (aabbRender == null) {
 			aabbRender = new AxisAlignedBB(
@@ -105,14 +106,15 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
+		assert world != null;
 		
-		if (world.isRemote) {
+		if (world.isRemote()) {
 			return;
 		}
 		
-		final IBlockState blockState = world.getBlockState(pos);
+		final BlockState blockState = world.getBlockState(pos);
 		updateBlockState(blockState, BlockProperties.ACTIVE, enumShipScannerState != EnumShipScannerState.IDLE);
 		
 		// Trigger deployment by player, provided setup is done
@@ -145,15 +147,14 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		
 		switch (enumShipScannerState) {
 		case IDLE:// inactive
-			if (shipCore != null) {// and ship core found
-				laserTicks++;
-				if (laserTicks > 20) {
-					PacketHandler.sendBeamPacket(world,
-					                             new Vector3(this).translate(0.5D),
-					                             new Vector3(shipCore).translate(0.5D),
-					                             0.0F, 1.0F, 0.2F, 40, 0, 100);
-					laserTicks = 0;
-				}
+			// assert shipCore != null;
+			laserTicks++;
+			if (laserTicks > 20) {
+				PacketHandler.sendBeamPacket(world,
+				                             new Vector3(this).translate(0.5D),
+				                             new Vector3(shipCore).translate(0.5D),
+				                             0.0F, 1.0F, 0.2F, 40, 0, 100);
+				laserTicks = 0;
 			}
 			break;
 			
@@ -249,26 +250,27 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	@Override
 	protected boolean doScanAssembly(final boolean isDirty, final WarpDriveText textReason) {
 		final boolean isValid = super.doScanAssembly(isDirty, textReason);
+		assert world != null;
 		
-		IBlockState blockStateShipCoreTooHigh = null;
+		BlockState blockStateShipCoreTooHigh = null;
 		TileEntityShipCore tileEntityShipCore = null;
 		
 		// Search for ship cores above
-		final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos(pos);
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(pos);
 		for (int newY = pos.getY() + 1; newY <= 255; newY++) {
 			mutableBlockPos.setY(newY);
-			final IBlockState blockState = world.getBlockState(mutableBlockPos);
+			final BlockState blockState = world.getBlockState(mutableBlockPos);
 			if (blockState.getBlock() instanceof BlockShipCore) {
 				// validate the ship assembly
 				final TileEntity tileEntity = world.getTileEntity(mutableBlockPos);
 				if ( !(tileEntity instanceof TileEntityShipCore)
-				  || tileEntity.isInvalid()
+				  || tileEntity.isRemoved()
 				  || !((TileEntityShipCore) tileEntity).isAssemblyValid()) {
 					continue;
 				}
 				
 				// validate tier
-				if (((BlockShipCore) blockState.getBlock()).getTier(null).getIndex() > enumTier.getIndex()) {
+				if (((BlockShipCore) blockState.getBlock()).getTier().getIndex() > enumTier.getIndex()) {
 					blockStateShipCoreTooHigh = blockState;
 					continue;
 				}
@@ -285,14 +287,15 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 				textReason.append(Commons.getStyleWarning(), "warpdrive.builder.status_line.no_ship_core_in_range");
 			} else {
 				textReason.append(Commons.getStyleWarning(), "warpdrive.builder.status_line.ship_is_higher_tier",
-				                  blockStateShipCoreTooHigh.getBlock().getLocalizedName(),
-				                  getBlockType().getLocalizedName() );
+				                  blockStateShipCoreTooHigh.getBlock().getNameTextComponent(),
+				                  getBlockState().getBlock().getNameTextComponent() );
 			}
 		}
 		return isValid && shipCore != null; 
 	}
 	
 	private boolean saveShipToSchematic(final String fileName, final WarpDriveText reason) {
+		assert world != null;
 		if (!shipCore.isAssemblyValid()) {
 			return false;
 		}
@@ -307,14 +310,14 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		}
 		
 		// Save header
-		final NBTTagCompound schematic = new NBTTagCompound();
+		final CompoundNBT schematic = new CompoundNBT();
 		
-		schematic.setShort("Width", width);
-		schematic.setShort("Length", length);
-		schematic.setShort("Height", height);
-		schematic.setInteger("shipMass", shipCore.shipMass);
-		schematic.setString("shipName", shipCore.name);
-		schematic.setInteger("shipVolume", shipCore.shipVolume);
+		schematic.putShort("Width", width);
+		schematic.putShort("Length", length);
+		schematic.putShort("Height", height);
+		schematic.putInt("shipMass", shipCore.shipMass);
+		schematic.putString("shipName", shipCore.name);
+		schematic.putInt("shipVolume", shipCore.shipVolume);
 		
 		// Save new format
 		final JumpShip ship = new JumpShip();
@@ -332,21 +335,20 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		if (!ship.save(reason)) {
 			return false;
 		}
-		final NBTTagCompound tagCompoundShip = new NBTTagCompound();
-		ship.writeToNBT(tagCompoundShip);
-		schematic.setTag("ship", tagCompoundShip);
+		final CompoundNBT tagCompoundShip = new CompoundNBT();
+		ship.write(tagCompoundShip);
+		schematic.put("ship", tagCompoundShip);
 		
 		// Storage collections
-		final String[] stringBlockRegistryNames = new String[size];
-		final byte[] byteMetadatas = new byte[size];
-		final NBTTagList tileEntitiesList = new NBTTagList();
+		final INBT[] nbtBlockStates = new INBT[size];
+		final ListNBT tileEntitiesList = new ListNBT();
 		
 		// Scan the whole area
 		for (int x = 0; x < width; x++) {
 			for (int y = 0; y < height; y++) {
 				for (int z = 0; z < length; z++) {
 					final BlockPos blockPos = new BlockPos(shipCore.minX + x, shipCore.minY + y, shipCore.minZ + z);
-					IBlockState blockState = world.getBlockState(blockPos);
+					BlockState blockState = world.getBlockState(blockPos);
 					
 					// Skip leftBehind and anchor blocks
 					if ( Dictionary.BLOCKS_LEFTBEHIND.contains(blockState.getBlock())
@@ -355,25 +357,24 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 					}
 					
 					final int index = x + (y * length + z) * width;
-					stringBlockRegistryNames[index] = Block.REGISTRY.getNameForObject(blockState.getBlock()).toString();
-					byteMetadatas[index] = (byte) blockState.getBlock().getMetaFromState(blockState);
+					nbtBlockStates[index] = Commons.writeBlockStateToNBT(blockState);
 					
-					if (!blockState.getBlock().isAssociatedBlock(Blocks.AIR)) {
+					if (blockState.getBlock() != Blocks.AIR) {
 						final TileEntity tileEntity = world.getTileEntity(blockPos);
 						if (tileEntity != null) {
 							try {
-								final NBTTagCompound tagTileEntity = new NBTTagCompound();
-								tileEntity.writeToNBT(tagTileEntity);
+								final CompoundNBT tagTileEntity = new CompoundNBT();
+								tileEntity.write(tagTileEntity);
 								
 								JumpBlock.removeUniqueIDs(tagTileEntity);
 								
 								// Transform TE's coordinates from local axis to .schematic offset-axis
 								// Warning: this is a cheap workaround for World Edit. Use the native format for proper transformation
-								tagTileEntity.setInteger("x", tileEntity.getPos().getX() - shipCore.minX);
-								tagTileEntity.setInteger("y", tileEntity.getPos().getY() - shipCore.minY);
-								tagTileEntity.setInteger("z", tileEntity.getPos().getZ() - shipCore.minZ);
+								tagTileEntity.putInt("x", tileEntity.getPos().getX() - shipCore.minX);
+								tagTileEntity.putInt("y", tileEntity.getPos().getY() - shipCore.minY);
+								tagTileEntity.putInt("z", tileEntity.getPos().getZ() - shipCore.minZ);
 								
-								tileEntitiesList.appendTag(tagTileEntity);
+								tileEntitiesList.add(tagTileEntity);
 							} catch (final Exception exception) {
 								exception.printStackTrace(WarpDrive.printStreamError);
 							}
@@ -383,16 +384,13 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 			}
 		}
 		
-		schematic.setString("Materials", "Alpha");
-		final NBTTagList tagListBlocks = new NBTTagList();
-		for (final String stringRegistryName : stringBlockRegistryNames) {
-			tagListBlocks.appendTag(new NBTTagString(stringRegistryName));
-		}
-		schematic.setTag("Blocks", tagListBlocks);
-		schematic.setByteArray("Data", byteMetadatas);
+		schematic.putString("Materials", "Alpha");
+		final ListNBT tagListBlocks = new ListNBT();
+		tagListBlocks.addAll(Arrays.asList(nbtBlockStates));
+		schematic.put("BlockStates", tagListBlocks);
 		
-		schematic.setTag("Entities", new NBTTagList()); // don't save entities
-		schematic.setTag("TileEntities", tileEntitiesList);
+		schematic.put("Entities", new ListNBT()); // don't save entities
+		schematic.put("TileEntities", tileEntitiesList);
 		
 		Commons.writeNBTToFile(fileName, schematic);
 		
@@ -422,13 +420,14 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		if (!saveShipToSchematic(WarpDriveConfig.G_SCHEMATICS_LOCATION + "/" + schematicFileName + ".schematic", reason)) {
 			return false;
 		}
-		reason.appendSibling(new TextComponentString(schematicFileName));
+		reason.appendSibling(new StringTextComponent(schematicFileName));
 		return true;
 	}
 	
 	// Returns true on success and reason string
 	private boolean deployShip(final String fileName, final int offsetX, final int offsetY, final int offsetZ,
 	                           final byte rotationSteps, final boolean isForced, final WarpDriveText reason) {
+		assert world != null;
 		targetX = pos.getX() + offsetX;
 		targetY = pos.getY() + offsetY;
 		targetZ = pos.getZ() + offsetZ;
@@ -489,7 +488,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 				for (int x = targetLocationMin.getX(); x <= targetLocationMax.getX(); x++) {
 					for (int y = targetLocationMin.getY(); y <= targetLocationMax.getY(); y++) {
 						for (int z = targetLocationMin.getZ(); z <= targetLocationMax.getZ(); z++) {
-							world.setBlockToAir(new BlockPos(x, y, z));
+							world.removeBlock(new BlockPos(x, y, z), false);
 						}
 					}
 				}
@@ -499,7 +498,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 				// Check specified area for occupation by blocks
 				// If specified area is occupied, break deployment with error message
 				int occupiedBlockCount = 0;
-				final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+				final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 				for (int x = targetLocationMin.getX(); x <= targetLocationMax.getX(); x++) {
 					for (int y = targetLocationMin.getY(); y <= targetLocationMax.getY(); y++) {
 						for (int z = targetLocationMin.getZ(); z <= targetLocationMax.getZ(); z++) {
@@ -541,7 +540,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	
 	private static boolean isShipCoreClear(@Nonnull final World world, final BlockPos blockPos,
 	                                       final String nameRequestingPlayer, final WarpDriveText reason) {
-		final IBlockState blockState = world.getBlockState(blockPos);
+		final BlockState blockState = world.getBlockState(blockPos);
 		if (blockState.getBlock().isAir(blockState, world, blockPos)) {
 			return true;
 		}
@@ -553,7 +552,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 			                                      0.10F + 0.10F * world.rand.nextFloat(), 0.10F + 0.20F * world.rand.nextFloat(), 0.10F + 0.30F * world.rand.nextFloat(),
 			                                      WarpDriveConfig.SS_MAX_DEPLOY_RADIUS_BLOCKS);
 			reason.append(Commons.getStyleWarning(), "warpdrive.builder.guide.deployment_area_occupied_by_block",
-			              blockState.getBlock().getLocalizedName(),
+			              blockState.getBlock().getNameTextComponent(),
 			              blockPos.getX(), blockPos.getY(), blockPos.getZ());
 			return false;
 		}
@@ -607,31 +606,32 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		schematicFileName = tagCompound.getString("schematic");
-		targetX = tagCompound.getInteger("targetX");
-		targetY = tagCompound.getInteger("targetY");
-		targetZ = tagCompound.getInteger("targetZ");
+		targetX = tagCompound.getInt("targetX");
+		targetY = tagCompound.getInt("targetY");
+		targetZ = tagCompound.getInt("targetZ");
 		rotationSteps = tagCompound.getByte("rotationSteps");
-		if (tagCompound.hasKey("camouflageBlock")) {
+		if (tagCompound.contains("camouflage")) {
+			final CompoundNBT nbtCamouflage = tagCompound.getCompound("camouflage");
 			try {
-				blockCamouflage = Block.getBlockFromName(tagCompound.getString("camouflageBlock"));
-				metadataCamouflage = tagCompound.getByte("camouflageMeta");
-				colorMultiplierCamouflage = tagCompound.getInteger("camouflageColorMultiplier");
-				lightCamouflage = tagCompound.getByte("camouflageLight");
-				if (Dictionary.BLOCKS_NOCAMOUFLAGE.contains(blockCamouflage)) {
-					blockCamouflage = null;
-					metadataCamouflage = 0;
+				blockStateCamouflage = Commons.readBlockStateFromNBT(nbtCamouflage.get("state"));
+				colorMultiplierCamouflage = nbtCamouflage.getInt("color");
+				lightCamouflage = nbtCamouflage.getByte("light");
+				if (Dictionary.BLOCKS_NOCAMOUFLAGE.contains(blockStateCamouflage.getBlock())) {
+					blockStateCamouflage = null;
 					colorMultiplierCamouflage = 0;
 					lightCamouflage = 0;
 				}
 			} catch (final Exception exception) {
 				exception.printStackTrace(WarpDrive.printStreamError);
+				blockStateCamouflage = null;
+				colorMultiplierCamouflage = 0;
+				lightCamouflage = 0;
 			}
 		} else {
-			blockCamouflage = null;
-			metadataCamouflage = 0;
+			blockStateCamouflage = null;
 			colorMultiplierCamouflage = 0;
 			lightCamouflage = 0;
 		}
@@ -639,46 +639,43 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
-		tagCompound.setString("schematic", schematicFileName);
-		tagCompound.setInteger("targetX", targetX);
-		tagCompound.setInteger("targetY", targetY);
-		tagCompound.setInteger("targetZ", targetZ);
-		tagCompound.setByte("rotationSteps", rotationSteps);
-		if (blockCamouflage != null) {
-			assert blockCamouflage.getRegistryName() != null;
-			tagCompound.setString("camouflageBlock", blockCamouflage.getRegistryName().toString());
-			tagCompound.setByte("camouflageMeta", (byte) metadataCamouflage);
-			tagCompound.setInteger("camouflageColorMultiplier",  colorMultiplierCamouflage);
-			tagCompound.setByte("camouflageLight", (byte) lightCamouflage);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
+		tagCompound.putString("schematic", schematicFileName);
+		tagCompound.putInt("targetX", targetX);
+		tagCompound.putInt("targetY", targetY);
+		tagCompound.putInt("targetZ", targetZ);
+		tagCompound.putByte("rotationSteps", rotationSteps);
+		if (blockStateCamouflage != null && blockStateCamouflage.getBlock() != Blocks.AIR) {
+			final CompoundNBT nbtCamouflage = new CompoundNBT();
+			assert blockStateCamouflage.getBlock().getRegistryName() != null;
+			nbtCamouflage.put("state", Commons.writeBlockStateToNBT(blockStateCamouflage));
+			nbtCamouflage.putInt("color", colorMultiplierCamouflage);
+			nbtCamouflage.putByte("light", (byte) lightCamouflage);
+			tagCompound.put("camouflage", nbtCamouflage);
 		}
 		return tagCompound;
 	}
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] scan(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return scan();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] filename(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return filename();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] deploy(final Context context, final Arguments arguments) {
 		return deploy(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] state(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return state();
@@ -696,7 +693,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		}
 		final WarpDriveText reason = new WarpDriveText();
 		final boolean success = scanShip(reason);
-		return new Object[] { success, 3, Commons.removeFormatting( reason.getUnformattedText() ) };
+		return new Object[] { success, 3, Commons.removeFormatting( reason.getUnformattedComponentText() ) };
 	}
 	
 	@Nonnull
@@ -747,14 +744,14 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		final boolean isSuccess = deployShip(fileName, x, y, z, rotationSteps, false, reason);
 		
 		// don't force captain when deploying from LUA
-		final EntityPlayer entityPlayer = world.getClosestPlayer(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 8.0D, false);
+		final PlayerEntity entityPlayer = world.getClosestPlayer(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 8.0D, false);
 		if (entityPlayer != null) {
-			playerName = entityPlayer.getName();
+			playerName = entityPlayer.getName().getUnformattedComponentText();
 		} else {
 			playerName = "";
 		}
 		
-		return new Object[] { isSuccess, Commons.removeFormatting( reason.getUnformattedText() ) };
+		return new Object[] { isSuccess, Commons.removeFormatting( reason.getUnformattedComponentText() ) };
 	}
 	
 	@Nonnull
@@ -770,9 +767,8 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		}
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "scan":
@@ -801,6 +797,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	private int shipToken_countWarmup = SHIP_TOKEN_PLAYER_WARMUP_PERIODS;
 	private String shipToken_nameSchematic = "";
 	private void checkPlayerForShipToken() {
+		assert world != null;
 		// cool down to prevent player chat spam and server lag
 		shipToken_nextUpdate_ticks--;
 		if (shipToken_nextUpdate_ticks > 0) {
@@ -811,11 +808,11 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		// find a unique player in range
 		final AxisAlignedBB axisalignedbb = new AxisAlignedBB(pos.getX() - 1.0D, pos.getY() + 1.0D, pos.getZ() - 1.0D,
 		                                                      pos.getX() + 1.99D, pos.getY() + 5.0D, pos.getZ() + 1.99D);
-		final List list = world.getEntitiesWithinAABBExcludingEntity(null, axisalignedbb);
-		final List<EntityPlayer> entityPlayers = new ArrayList<>(10);
+		final List<Entity> list = world.getEntitiesWithinAABBExcludingEntity(null, axisalignedbb);
+		final List<PlayerEntity> entityPlayers = new ArrayList<>(10);
 		for (final Object object : list) {
-			if (object instanceof EntityPlayer) {
-				entityPlayers.add((EntityPlayer) object);
+			if (object instanceof PlayerEntity) {
+				entityPlayers.add((PlayerEntity) object);
 			}
 		}
 		if (entityPlayers.isEmpty()) {
@@ -823,14 +820,14 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 			return;
 		}
 		if (entityPlayers.size() > 1) {
-			for (final EntityPlayer entityPlayer : entityPlayers) {
+			for (final PlayerEntity entityPlayer : entityPlayers) {
 				Commons.addChatMessage(entityPlayer, new WarpDriveText(Commons.getStyleWarning(), "warpdrive.builder.guide.too_many_players"));
 				shipToken_nextUpdate_ticks = SHIP_TOKEN_UPDATE_DELAY_FAILED_PRECONDITION_TICKS;
 			}
 			shipToken_idPlayer = null;
 			return;
 		}
-		final EntityPlayer entityPlayer = entityPlayers.get(0);
+		final PlayerEntity entityPlayer = entityPlayers.get(0);
 		
 		// check inventory
 		int slotIndex = 0;
@@ -838,7 +835,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		for (; slotIndex < entityPlayer.inventory.getSizeInventory(); slotIndex++) {
 			itemStack = entityPlayer.inventory.getStackInSlot(slotIndex);
 			if ( !itemStack.isEmpty()
-			  && itemStack.getItem() == WarpDrive.itemShipToken
+			  && itemStack.getItem() instanceof ItemShipToken
 			  && itemStack.getCount() >= 1 ) {
 				break;
 			}
@@ -868,7 +865,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		}
 		// warm-up done
 		shipToken_idPlayer = null;
-		playerName = entityPlayer.getName();
+		playerName = entityPlayer.getName().getUnformattedComponentText();
 		
 		// try deploying
 		final WarpDriveText reason = new WarpDriveText();
@@ -884,7 +881,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		Commons.addChatMessage(entityPlayer, reason);
 		
 		// success => remove token
-		if (!entityPlayer.capabilities.isCreativeMode) {
+		if (!entityPlayer.isCreative()) {
 			itemStack.shrink(1);
 			entityPlayer.inventory.setInventorySlotContents(slotIndex, itemStack);
 			entityPlayer.inventory.markDirty();

@@ -5,7 +5,7 @@ import cr0s.warpdrive.config.WarpDriveConfig;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 
 public class AcceleratorControlParameter {
 	
@@ -19,22 +19,22 @@ public class AcceleratorControlParameter {
 		this.controlChannel = controlChannel;
 	}
 	
-	public AcceleratorControlParameter(@Nonnull final NBTTagCompound tagCompound) {
-		readFromNBT(tagCompound);
+	public AcceleratorControlParameter(@Nonnull final CompoundNBT tagCompound) {
+		read(tagCompound);
 	}
 	
-	private void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		controlChannel = tagCompound.getInteger(IControlChannel.CONTROL_CHANNEL_TAG);
-		isEnabled = !tagCompound.hasKey("isEnabled") || tagCompound.getBoolean("isEnabled");
+	private void read(@Nonnull final CompoundNBT tagCompound) {
+		controlChannel = tagCompound.getInt(IControlChannel.CONTROL_CHANNEL_TAG);
+		isEnabled = !tagCompound.contains("isEnabled") || tagCompound.getBoolean("isEnabled");
 		threshold = tagCompound.getDouble("threshold");
 		description = tagCompound.getString("description");
 	}
 	
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		tagCompound.setInteger(IControlChannel.CONTROL_CHANNEL_TAG, controlChannel);
-		tagCompound.setBoolean("isEnabled", isEnabled);
-		tagCompound.setDouble("threshold", threshold);
-		tagCompound.setString("description", description);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		tagCompound.putInt(IControlChannel.CONTROL_CHANNEL_TAG, controlChannel);
+		tagCompound.putBoolean("isEnabled", isEnabled);
+		tagCompound.putDouble("threshold", threshold);
+		tagCompound.putString("description", description);
 		return tagCompound;
 	}
 	

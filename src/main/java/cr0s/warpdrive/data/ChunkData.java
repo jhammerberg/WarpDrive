@@ -9,8 +9,8 @@ import cr0s.warpdrive.event.ChunkHandler;
 import javax.annotation.Nonnull;
 import java.util.Arrays;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -54,7 +54,7 @@ public class ChunkData {
 		timeUnloaded = 0L;
 	}
 	
-	public void load(final NBTTagCompound tagCompoundChunk) {
+	public void load(final CompoundNBT tagCompoundChunk) {
 		// check consistency
 		assert !isLoaded;
 		
@@ -75,16 +75,16 @@ public class ChunkData {
 		isModified = false;
 		
 		// check version
-		if (tagCompoundChunk.hasKey(TAG_CHUNK_MOD_DATA)) {
-			final NBTTagCompound tagCompound = tagCompoundChunk.getCompoundTag(TAG_CHUNK_MOD_DATA);
-			final int version = tagCompound.getInteger(TAG_VERSION);
+		if (tagCompoundChunk.contains(TAG_CHUNK_MOD_DATA)) {
+			final CompoundNBT tagCompound = tagCompoundChunk.getCompound(TAG_CHUNK_MOD_DATA);
+			final int version = tagCompound.getInt(TAG_VERSION);
 			assert version == 0 || version == 1;
 			
 			// load from NBT data
 			if (version == 1) {
-				final NBTTagList nbtTagList = tagCompound.getTagList(TAG_AIR, Constants.NBT.TAG_COMPOUND);
-				if (nbtTagList.tagCount() != CHUNK_SIZE_SEGMENTS) {
-					if (nbtTagList.tagCount() != 0) {
+				final ListNBT nbtTagList = tagCompound.getList(TAG_AIR, Constants.NBT.TAG_COMPOUND);
+				if (nbtTagList.size() != CHUNK_SIZE_SEGMENTS) {
+					if (nbtTagList.size() != 0) {
 						WarpDrive.logger.error(String.format("Chunk %s (%d %d %d) loaded with invalid data, restoring default",
 						                                     chunkCoordIntPair,
 						                                     getChunkPosition().getX(), getChunkPosition().getY(), getChunkPosition().getZ()));
@@ -92,7 +92,7 @@ public class ChunkData {
 				} else {
 					// check all segments
 					for (int indexSegment = 0; indexSegment < CHUNK_SIZE_SEGMENTS; indexSegment++) {
-						final NBTTagCompound nbtTagCompoundInList = nbtTagList.getCompoundTagAt(indexSegment);
+						final CompoundNBT nbtTagCompoundInList = nbtTagList.getCompound(indexSegment);
 						
 						// get raw data
 						final int[] intData = nbtTagCompoundInList.getIntArray(TAG_AIR_SEGMENT_DATA);
@@ -171,7 +171,7 @@ public class ChunkData {
 		}
 	}
 	
-	public void save(final NBTTagCompound tagCompoundChunk) {
+	public void save(final CompoundNBT tagCompoundChunk) {
 		// check consistency
 		// (unload happens before saving)
 		
@@ -190,18 +190,18 @@ public class ChunkData {
 		}
 		
 		// save to NBT data
-		final NBTTagCompound tagCompound =  new NBTTagCompound();
-		tagCompoundChunk.setTag(TAG_CHUNK_MOD_DATA, tagCompound);
-		tagCompound.setInteger(TAG_VERSION, 1);
+		final CompoundNBT tagCompound =  new CompoundNBT();
+		tagCompoundChunk.put(TAG_CHUNK_MOD_DATA, tagCompound);
+		tagCompound.putInt(TAG_VERSION, 1);
 		
-		final NBTTagList nbtTagList = new NBTTagList();
+		final ListNBT nbtTagList = new ListNBT();
 		
 		// check all segments
 		int countEmptySegments = 0;
 		final int[] intData = new int[SEGMENT_SIZE_BLOCKS];
 		final byte[] byteTick = new byte[SEGMENT_SIZE_BLOCKS];
 		for (int indexSegment = 0; indexSegment < CHUNK_SIZE_SEGMENTS; indexSegment++) {
-			final NBTTagCompound tagCompoundInList = new NBTTagCompound();
+			final CompoundNBT tagCompoundInList = new CompoundNBT();
 			
 			// skip empty segment
 			if (dataAirSegments[indexSegment] != null) {
@@ -231,19 +231,19 @@ public class ChunkData {
 				if (countEmptyBlocks == SEGMENT_SIZE_BLOCKS) {
 					countEmptySegments++;
 				} else {
-					tagCompoundInList.setIntArray(TAG_AIR_SEGMENT_DATA, intData.clone());
-					tagCompoundInList.setByteArray(TAG_AIR_SEGMENT_DELAY, byteTick.clone());
-					tagCompoundInList.setByte(TAG_AIR_SEGMENT_Y, (byte) indexSegment);
+					tagCompoundInList.putIntArray(TAG_AIR_SEGMENT_DATA, intData.clone());
+					tagCompoundInList.putByteArray(TAG_AIR_SEGMENT_DELAY, byteTick.clone());
+					tagCompoundInList.putByte(TAG_AIR_SEGMENT_Y, (byte) indexSegment);
 				}
 			} else {
 				countEmptySegments++;
 			}
-			nbtTagList.appendTag(tagCompoundInList);
+			nbtTagList.add(tagCompoundInList);
 		}
 		
 		// ignore tag if all segments are empty
 		if (countEmptySegments != CHUNK_SIZE_SEGMENTS) {
-			tagCompound.setTag(TAG_AIR, nbtTagList);
+			tagCompound.put(TAG_AIR, nbtTagList);
 		}
 		
 		// mark as saved
@@ -478,8 +478,8 @@ public class ChunkData {
 		if ( WarpDriveConfig.LOGGING_CHUNK_HANDLER
 		  && ChunkHandler.delayLogging == 0
 		  && countBlocks != 0 ) {
-			WarpDrive.logger.info(String.format("Dimension %d chunk (%d %d) had %d / %d blocks ticked",
-			                                    world.provider.getDimension(),
+			WarpDrive.logger.info(String.format("Dimension %s chunk (%d %d) had %d / %d blocks ticked",
+			                                    world.getDimension().getType().getRegistryName(),
 			                                    chunkCoordIntPair.x,
 			                                    chunkCoordIntPair.z,
 			                                    countTickingBlocks,

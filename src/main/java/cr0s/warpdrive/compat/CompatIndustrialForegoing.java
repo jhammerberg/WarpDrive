@@ -11,9 +11,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -37,26 +37,27 @@ public class CompatIndustrialForegoing implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classAxisAlignedBlock.isInstance(block)
-		    || classBlockConveyor.isInstance(block)
-		    || classBlockLabel.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classAxisAlignedBlock.isInstance(blockState.getBlock())
+		    || classBlockConveyor.isInstance(blockState.getBlock())
+		    || classBlockLabel.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -74,25 +75,25 @@ public class CompatIndustrialForegoing implements IBlockTransformer {
 	}
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0) {
-			return metadata;
+			return blockState;
 		}
 		
-		if (classBlockConveyor.isInstance(block)) {
+		if (classBlockConveyor.isInstance(blockState.getBlock())) {
 			// facing property
-			if (nbtTileEntity.hasKey("Facing")) {
+			if (nbtTileEntity.contains("Facing")) {
 				final String facing = nbtTileEntity.getString("Facing");
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setString("Facing", rotFacingNames.get(facing));
+					nbtTileEntity.putString("Facing", rotFacingNames.get(facing));
 					break;
 				case 2:
-					nbtTileEntity.setString("Facing", rotFacingNames.get(rotFacingNames.get(facing)));
+					nbtTileEntity.putString("Facing", rotFacingNames.get(rotFacingNames.get(facing)));
 					break;
 				case 3:
-					nbtTileEntity.setString("Facing", rotFacingNames.get(rotFacingNames.get(rotFacingNames.get(facing))));
+					nbtTileEntity.putString("Facing", rotFacingNames.get(rotFacingNames.get(rotFacingNames.get(facing))));
 					break;
 				default:
 					break;
@@ -100,12 +101,12 @@ public class CompatIndustrialForegoing implements IBlockTransformer {
 			}
 			
 			// upgrades
-			if (nbtTileEntity.hasKey("Upgrades")) {
-				final NBTTagCompound tagCompoundUpgrades = nbtTileEntity.getCompoundTag("Upgrades");
-				final Map<String, NBTBase> map = new HashMap<>();
+			if (nbtTileEntity.contains("Upgrades")) {
+				final CompoundNBT tagCompoundUpgrades = nbtTileEntity.getCompound("Upgrades");
+				final Map<String, INBT> map = new HashMap<>();
 				for (final String key : rotFacingNames.keySet()) {
-					if (tagCompoundUpgrades.hasKey(key)) {
-						final NBTBase tagBase = tagCompoundUpgrades.getTag(key);
+					if (tagCompoundUpgrades.contains(key)) {
+						final INBT tagBase = tagCompoundUpgrades.get(key);
 						switch (rotationSteps) {
 						case 1:
 							map.put(rotFacingNames.get(key), tagBase);
@@ -120,12 +121,12 @@ public class CompatIndustrialForegoing implements IBlockTransformer {
 							map.put(key, tagBase);
 							break;
 						}
-						tagCompoundUpgrades.removeTag(key);
+						tagCompoundUpgrades.remove(key);
 					}
 				}
 				if (!map.isEmpty()) {
-					for (final Entry<String, NBTBase> entry : map.entrySet()) {
-						tagCompoundUpgrades.setTag(entry.getKey(), entry.getValue());
+					for (final Entry<String, INBT> entry : map.entrySet()) {
+						tagCompoundUpgrades.put(entry.getKey(), entry.getValue());
 					}
 				}
 			}
@@ -140,14 +141,14 @@ public class CompatIndustrialForegoing implements IBlockTransformer {
 		case 3:
 			return rotFacing[rotFacing[rotFacing[metadata]]];
 		default:
-			return metadata;
+			return blockState;
 		}
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

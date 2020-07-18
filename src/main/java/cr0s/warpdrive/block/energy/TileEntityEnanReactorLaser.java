@@ -21,16 +21,16 @@ import javax.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
-
-import net.minecraftforge.fml.common.Optional;
 
 public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implements IEnanReactorLaser {
+	
+	public static TileEntityType<TileEntityEnanReactorLaser> TYPE;
 	
 	// persistent properties
 	private ReactorFace reactorFace = ReactorFace.UNKNOWN;
@@ -42,7 +42,7 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 	private WeakReference<TileEntityEnanReactorCore> weakReactorCore;
 	
 	public TileEntityEnanReactorLaser() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveEnanReactorLaser";
 		addMethods(new String[] {
@@ -50,12 +50,12 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 				"stabilize"
 		});
 		laserMedium_maxCount = 1;
-		laserMedium_directionsValid = new EnumFacing[] { EnumFacing.UP, EnumFacing.DOWN };
+		laserMedium_directionsValid = new Direction[] { Direction.UP, Direction.DOWN };
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		
 		if (reactorFace == ReactorFace.UNKNOWN) {
 			// laser isn't linked yet, let's try to update nearby reactors
@@ -66,8 +66,8 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
 		if (energyStabilizationRequest > 0) {
 			doStabilize(energyStabilizationRequest);
@@ -93,14 +93,15 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 		reactorSignatureName = reactorCore != null ? reactorCore.getSignatureName() : "";
 		
 		// refresh blockstate
-		final IBlockState blockState_old = world.getBlockState(pos);
-		final IBlockState blockState_new;
+		assert world != null;
+		final BlockState blockState_old = world.getBlockState(pos);
+		final BlockState blockState_new;
 		if (reactorFace.facingLaserProperty != null) {
-			blockState_new = blockState_old.withProperty(BlockProperties.ACTIVE, true)
-			                               .withProperty(BlockProperties.FACING, reactorFace.facingLaserProperty);
+			blockState_new = blockState_old.with(BlockProperties.ACTIVE, true)
+			                               .with(BlockProperties.FACING, reactorFace.facingLaserProperty);
 		} else {
-			blockState_new = blockState_old.withProperty(BlockProperties.ACTIVE, false)
-			                               .withProperty(BlockProperties.FACING, EnumFacing.DOWN);
+			blockState_new = blockState_old.with(BlockProperties.ACTIVE, false)
+			                               .with(BlockProperties.FACING, Direction.DOWN);
 		}
 		updateBlockState(blockState_old, blockState_new);
 		
@@ -121,6 +122,7 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 		}
 		TileEntityEnanReactorCore reactorCore = weakReactorCore != null ? weakReactorCore.get() : null;
 		if (reactorCore == null) {
+			assert world != null;
 			final BlockPos blockPos = pos.add(- reactorFace.x, - reactorFace.y, - reactorFace.z);
 			final TileEntity tileEntity = world.getTileEntity(blockPos);
 			if (tileEntity instanceof TileEntityEnanReactorCore) {
@@ -145,7 +147,8 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 		if (reactorCore != null) {
 			reactorCore.onBlockUpdateDetected();
 		} else {
-			final MutableBlockPos mutableBlockPos = new MutableBlockPos(pos);
+			assert world != null;
+			final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(pos);
 			for (final ReactorFace reactorFace : ReactorFace.getLasers()) {
 				if (reactorFace.indexStability < 0) {
 					continue;
@@ -154,7 +157,7 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 				mutableBlockPos.setPos(pos.getX() - reactorFace.x,
 				                       pos.getY() - reactorFace.y,
 				                       pos.getZ() - reactorFace.z);
-				if (world.isBlockLoaded(mutableBlockPos, true)) {
+				if (world.isBlockLoaded(mutableBlockPos)) {
 					final TileEntity tileEntity = world.getTileEntity(mutableBlockPos);
 					if (tileEntity instanceof TileEntityEnanReactorCore) {
 						((TileEntityEnanReactorCore) tileEntity).onBlockUpdateDetected();
@@ -243,38 +246,39 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 			WarpDrive.logger.warn(String.format("ReactorLaser %s on %s side has a core %s with no center defined, can't stabilize %d",
 			                                    Commons.format(world, pos), reactorFace.name, reactorCore, energy ));
 		} else {
+			assert world != null;
 			PacketHandler.sendBeamPacket(world, vLaser, vReactorCore, 0.1F, 0.2F, 1.0F, 25, 50, 100);
 		}
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		if (reactorFace != null && reactorFace != ReactorFace.UNKNOWN) {
-			tagCompound.setString("reactorFace", reactorFace.getName());
+			tagCompound.putString("reactorFace", reactorFace.getName());
 		}
-		tagCompound.setInteger("energyStabilizationRequest", energyStabilizationRequest);
+		tagCompound.putInt("energyStabilizationRequest", energyStabilizationRequest);
 		return tagCompound;
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
 		reactorFace = ReactorFace.get(tagCompound.getString("reactorFace"));
 		if (reactorFace == null) {
 			reactorFace = ReactorFace.UNKNOWN;
 		}
-		energyStabilizationRequest = tagCompound.getInteger("energyStabilizationRequest");
+		energyStabilizationRequest = tagCompound.getInt("energyStabilizationRequest");
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
 		
-		tagCompound.removeTag("reactorFace");
-		tagCompound.removeTag("energyStabilizationRequest");
+		tagCompound.remove("reactorFace");
+		tagCompound.remove("energyStabilizationRequest");
 		return tagCompound;
 	}
 	
@@ -314,21 +318,18 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] stabilize(final Context context, final Arguments arguments) {
 		return stabilize(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] side(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return side();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "stabilize":

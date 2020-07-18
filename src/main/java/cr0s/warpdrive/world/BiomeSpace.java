@@ -1,17 +1,22 @@
 package cr0s.warpdrive.world;
 
+import javax.annotation.Nonnull;
+
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.biome.Biome;
 
 public class BiomeSpace extends Biome {
 	
-    public BiomeSpace(final BiomeProperties biomeProperties) {
-        super(biomeProperties);
+    public BiomeSpace(final Biome.Builder biomeBuilder) {
+        super(biomeBuilder);
         
-        this.decorator.treesPerChunk = 0;
-        //this.temperature = 1F;
-        this.decorator.flowersPerChunk = 0;
-        this.decorator.grassPerChunk = 0;
-        this.setRegistryName("Space");
+        carvers.clear();
+	    features.clear();
+        flowers.clear();
+        structures.clear();
+        
+        setRegistryName("Space");
     }
 
     @Override
@@ -20,7 +25,7 @@ public class BiomeSpace extends Biome {
     }
 	
 	@Override
-	public boolean getEnableSnow() {
+	public boolean doesSnowGenerate(@Nonnull final IWorldReader worldReader, @Nonnull final BlockPos blockPos) {
 		return false;
 	}
 }

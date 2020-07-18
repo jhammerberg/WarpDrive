@@ -7,14 +7,16 @@ import javax.annotation.Nonnull;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
+import net.minecraft.util.Direction;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.shapes.VoxelShape;
 
 @SuppressWarnings("unused") // Core mod
 public class GravityManager {
@@ -36,7 +38,7 @@ public class GravityManager {
 	private static Method methodIPlanetaryProvider_applyGravity;
 	
 	@SuppressWarnings("unused") // Core mod
-	public static void applyEntityItemGravity(@Nonnull final EntityItem entityItem) {
+	public static void applyEntityItemGravity(@Nonnull final ItemEntity entityItem) {
 		final double gravity = CelestialObjectManager.getGravity(entityItem);
 		if (gravity == CelestialObject.GRAVITY_NORMAL) {// reroute to AdvancedRocketry if we're set to normal, they'll reroute to Galacticraft on their own
 			if (!isAdvancedRocketryLoaded) {
@@ -62,7 +64,11 @@ public class GravityManager {
 		}
 		
 		// fall-back to our own system
-		entityItem.motionY -= getItemGravity(entityItem);
+		Vec3d vMotion = entityItem.getMotion();
+		entityItem.setMotion(
+				vMotion.x,
+				vMotion.y - getItemGravity(entityItem),
+				vMotion.z );
 	}
 	
 	@SuppressWarnings("unused") // Core mod
@@ -88,8 +94,8 @@ public class GravityManager {
 				}
 			} else {
 				final double jitter = inHyperspace ? (entity.world.rand.nextDouble() - 0.5D) * 2.0D * HYPERSPACE_VOID_ENTITY_JITTER : 0.0D;
-				if (entity instanceof EntityPlayer) {
-					final EntityPlayer player = (EntityPlayer) entity;
+				if (entity instanceof PlayerEntity) {
+					final PlayerEntity player = (PlayerEntity) entity;
 					
 					if (player.isSneaking()) {
 						for (final ItemStack armor : player.getArmorInventoryList()) {
@@ -118,7 +124,7 @@ public class GravityManager {
 	}
 	
 	@SuppressWarnings("unused") // Core mod
-	public static double getItemGravity(final EntityItem entity) {
+	public static double getItemGravity(final ItemEntity entity) {
 		final double gravity = CelestialObjectManager.getGravity(entity);
 		if (gravity == CelestialObject.GRAVITY_NONE) {
 			return SPACE_VOID_GRAVITY;
@@ -140,7 +146,7 @@ public class GravityManager {
 	}
 	
 	@SuppressWarnings("unused") // Core mod
-	public static double getItemGravity2(final EntityItem entity) {
+	public static double getItemGravity2(final ItemEntity entity) {
 		final double gravity = CelestialObjectManager.getGravity(entity);
 		if (gravity == CelestialObject.GRAVITY_NONE) {
 			return SPACE_VOID_GRAVITY;
@@ -162,19 +168,26 @@ public class GravityManager {
 	}
 	
 	private static boolean isEntityInGraviField(final Entity entity) {
-		final int y = MathHelper.floor(entity.posY);
-		final int x = MathHelper.floor(entity.posX);
-		final int z = MathHelper.floor(entity.posZ);
+		final int y = MathHelper.floor(entity.getPosY());
+		final int x = MathHelper.floor(entity.getPosX());
+		final int z = MathHelper.floor(entity.getPosZ());
 		final int CHECK_DISTANCE = 20;
 		
 		// Search non-air blocks under player
-		final MutableBlockPos blockPos = new MutableBlockPos(x, y, z);
+		final BlockPos.Mutable blockPos = new BlockPos.Mutable(x, y, z);
 		for (int ny = y; ny > (y - CHECK_DISTANCE); ny--) {
 			blockPos.setY(ny);
-			final IBlockState blockState = entity.world.getBlockState(blockPos);
+			final BlockState blockState = entity.world.getBlockState(blockPos);
 			if (!blockState.getBlock().isAir(blockState, entity.world, blockPos)) {
-				final AxisAlignedBB axisAlignedBB = blockState.getCollisionBoundingBox(entity.world, blockPos);
-				if (axisAlignedBB != null && axisAlignedBB.getAverageEdgeLength() > 0.90D) {
+				final VoxelShape voxelShape = blockState.getCollisionShape(entity.world, blockPos);
+				if (voxelShape.isEmpty()) {
+					continue;
+				}
+				final double dX = voxelShape.getEnd(Direction.Axis.X) - voxelShape.getStart(Direction.Axis.X);
+				final double dY = voxelShape.getEnd(Direction.Axis.Y) - voxelShape.getStart(Direction.Axis.Y);
+				final double dZ = voxelShape.getEnd(Direction.Axis.Z) - voxelShape.getStart(Direction.Axis.Z);
+				final double averageEdgeLength = (dX + dY + dZ) / 3.0D;
+				if (averageEdgeLength > 0.90D) {
 					return true;
 				}
 			}

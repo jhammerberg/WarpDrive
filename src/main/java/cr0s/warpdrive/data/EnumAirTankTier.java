@@ -3,9 +3,8 @@ package cr0s.warpdrive.data;
 import javax.annotation.Nonnull;
 import java.util.HashMap;
 
+import net.minecraft.item.Rarity;
 import net.minecraft.util.IStringSerializable;
-
-import net.minecraftforge.common.IRarity;
 
 public enum EnumAirTankTier implements IStringSerializable {
 	
@@ -55,7 +54,7 @@ public enum EnumAirTankTier implements IStringSerializable {
 	}
 	
 	@Nonnull
-	public IRarity getForgeRarity() {
-		return enumTier.getForgeRarity();
+	public Rarity getRarity() {
+		return enumTier.getRarity();
 	}
 }

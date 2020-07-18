@@ -5,14 +5,14 @@ import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.block.Blocks;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IWorldReader;
 
 class JumpGateScanner {
 	
 	// inputs
-	private IBlockAccess blockAccess;
+	private IWorldReader worldReader;
 	private int minX, minY, minZ;
 	private int maxX, maxY, maxZ;
 	
@@ -20,15 +20,15 @@ class JumpGateScanner {
 	private int x;
 	private int y;
 	private int z;
-	private MutableBlockPos mutableBlockPos;
+	private BlockPos.Mutable mutableBlockPos;
 	
 	// output
 	public int volumeUsed = 0;
 	
-	JumpGateScanner(final IBlockAccess blockAccess,
+	JumpGateScanner(final IWorldReader worldReader,
 	                final int minX, final int minY, final int minZ,
 	                final int maxX, final int maxY, final int maxZ) {
-		this.blockAccess = blockAccess;
+		this.worldReader = worldReader;
 		this.minX = minX;
 		this.minY = minY;
 		this.minZ = minZ;
@@ -38,7 +38,7 @@ class JumpGateScanner {
 		x = this.minX;
 		y = this.minY;
 		z = this.minZ;
-		mutableBlockPos = new MutableBlockPos(x, y, z);
+		mutableBlockPos = new BlockPos.Mutable(x, y, z);
 	}
 	
 	boolean tick() {
@@ -47,7 +47,7 @@ class JumpGateScanner {
 		try {
 			while (countBlocks < WarpDriveConfig.SHIP_VOLUME_SCAN_BLOCKS_PER_TICK) {
 				mutableBlockPos.setPos(x, y, z);
-				final Block block = blockAccess.getBlockState(mutableBlockPos).getBlock();
+				final Block block = worldReader.getBlockState(mutableBlockPos).getBlock();
 				countBlocks++;
 				
 				// skipping vanilla air & ignored blocks

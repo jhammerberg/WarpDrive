@@ -3,80 +3,177 @@ package cr0s.warpdrive.world;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Biomes;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.NBTTagCompound;
+import java.util.ArrayList;
+import java.util.List;
+
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.fluid.Fluid;
+import net.minecraft.item.crafting.RecipeManager;
+import net.minecraft.scoreboard.Scoreboard;
+import net.minecraft.tags.NetworkTagManager;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.SoundEvent;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ITickList;
+import net.minecraft.world.biome.Biomes;
+import net.minecraft.block.Blocks;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.EnumSkyBlock;
+import net.minecraft.world.LightType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.IChunkProvider;
+import net.minecraft.world.chunk.AbstractChunkProvider;
+import net.minecraft.world.gen.Heightmap.Type;
+import net.minecraft.world.storage.MapData;
 import net.minecraft.world.storage.WorldInfo;
 
 public class FakeWorld extends World {
 	
-	private IBlockState blockState;
+	private final FakeChunk fakeChunk;
+	private BlockState blockState;
 	private TileEntity tileEntity;
 	
-	public FakeWorld(final IBlockState blockState, final boolean isRemote) {
-		super(null, new WorldInfo(new NBTTagCompound()), new FakeWorldProvider(), null, isRemote);
+	
+	public FakeWorld(final BlockState blockState, final boolean isRemote) {
+		super(new WorldInfo(new CompoundNBT(), null, 1, null), FakeDimensionType.INSTANCE, null, null, isRemote);
+		fakeChunk = new FakeChunk(this, new ChunkPos(0, 0));
 		this.blockState = blockState;
+	}
+	
+	@Override
+	public ITickList<Block> getPendingBlockTicks() {
+		return null;
+	}
+	
+	@Override
+	public ITickList<Fluid> getPendingFluidTicks() {
+		return null;
 	}
 	
 	@Nullable
 	@Override
-	protected IChunkProvider createChunkProvider() {
+	public AbstractChunkProvider getChunkProvider() {
+		return null;
+	}
+	
+	@Nullable
+	@Override
+	public MapData getMapData(@Nonnull final String mapName) {
+		return null;
+	}
+	
+	@Override
+	public void registerMapData(@Nonnull final MapData mapData) {
+		// no operation
+	}
+	
+	@Override
+	public int getNextMapId() {
+		return 0;
+	}
+	
+	@Override
+	public void sendBlockBreakProgress(final int breakerId, @Nonnull final BlockPos blockPos, final int progress) {
+		// no operation
+	}
+	
+	@Override
+	public Scoreboard getScoreboard() {
+		return null;
+	}
+	
+	@Override
+	public RecipeManager getRecipeManager() {
+		return null;
+	}
+	
+	@Override
+	public NetworkTagManager getTags() {
 		return null;
 	}
 	
 	@Nonnull
 	@Override
-	public Biome getBiomeForCoordsBody(@Nonnull final BlockPos blockPos) {
+	public Biome getBiome(@Nonnull final BlockPos blockPos) {
+		return Biomes.PLAINS;
+	}
+	
+	@Nonnull
+	@Override
+	public Biome getNoiseBiomeRaw(final int x, final int y, final int z) {
 		return Biomes.PLAINS;
 	}
 	
 	@Override
-	protected boolean isChunkLoaded(final int x, final int z, final boolean allowEmpty) {
+	public boolean isBlockLoaded(@Nonnull final BlockPos blockPos) {
 		return true;
+	}
+	
+	@Override
+	public boolean chunkExists(final int chunkX, final int chunkZ) {
+		return true;
+	}
+	
+	@Override
+	public void playEvent(@Nullable final PlayerEntity entityPlayer, final int type, @Nonnull final BlockPos blockPos, final int data) {
+		
 	}
 	
 	@Nonnull
 	@Override
 	public Chunk getChunk(final int chunkX, final int chunkZ) {
-		return new FakeChunk(this, 0, 0);
+		return fakeChunk;
 	}
 	
 	@Nonnull
 	@Override
-	public IBlockState getBlockState(@Nonnull final BlockPos blockPos) {
-		if (blockPos == BlockPos.ORIGIN) {
+	public BlockState getBlockState(@Nonnull final BlockPos blockPos) {
+		if (blockPos == BlockPos.ZERO) {
 			return blockState;
 		}
 		return Blocks.AIR.getDefaultState();
 	}
 	
 	@Override
-	public boolean setBlockState(@Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
-		if (blockPos == BlockPos.ORIGIN) {
+	public void playSound(@Nullable final PlayerEntity player, final double x, final double y, final double z,
+	                      @Nonnull final SoundEvent soundEvent, @Nonnull final SoundCategory soundCategory, final float volume, final float pitch) {
+		// no operation
+	}
+	
+	@Override
+	public void playMovingSound(@Nullable final PlayerEntity entityPlayer, @Nonnull final Entity entity,
+	                            @Nonnull final SoundEvent soundEvent, @Nonnull final SoundCategory soundCategory, final float volume, final float pitch) {
+		// no operation
+	}
+	
+	@Override
+	public boolean setBlockState(@Nonnull final BlockPos blockPos, @Nonnull final BlockState blockState) {
+		if (blockPos == BlockPos.ZERO) {
 			this.blockState = blockState;
 			tileEntity = null;
 		}
 		return true;
 	}
 	
+	@Override
+	public void notifyBlockUpdate(@Nonnull final BlockPos blockPos, @Nonnull final BlockState oldState, @Nonnull final BlockState newState, final int flags) {
+		// no operation
+	}
+	
 	@Nullable
 	@Override
 	public TileEntity getTileEntity(@Nonnull final BlockPos blockPos) {
-		if ( blockPos == BlockPos.ORIGIN
+		if ( blockPos == BlockPos.ZERO
 		  && blockState.getBlock().hasTileEntity(blockState) ) {
 			if (tileEntity == null) {
-				tileEntity = blockState.getBlock().createTileEntity(this, blockState);
+				tileEntity = blockState.getBlock().createTileEntity(blockState, this);
 				if (tileEntity != null) {
-					tileEntity.setPos(blockPos);
-					tileEntity.setWorld(this);
+					tileEntity.setWorldAndPos(this, blockPos);
 					tileEntity.validate();
 				}
 			}
@@ -85,8 +182,14 @@ public class FakeWorld extends World {
 		return null;
 	}
 	
+	@Nullable
 	@Override
-	public long getTotalWorldTime() {
+	public Entity getEntityByID(int id) {
+		return null;
+	}
+	
+	@Override
+	public long getGameTime() {
 		return System.currentTimeMillis();
 	}
 	
@@ -96,40 +199,29 @@ public class FakeWorld extends World {
 	}
 	
 	@Override
-	public int getLight(@Nonnull final BlockPos blockPos, final boolean checkNeighbors) {
+	public int getLight(@Nonnull final BlockPos blockPos) {
 		return 0;
 	}
 	
 	@Override
-	public int getHeight(final int x, final int z) {
-		return getSeaLevel() + 1;
-	}
-	
-	@SuppressWarnings("deprecation")
-	@Override
-	public int getChunksLowestHorizon(final int x, final int z) {
+	public int getHeight() {
 		return getSeaLevel() + 1;
 	}
 	
 	@Override
-	public int getLightFor(@Nonnull final EnumSkyBlock type, @Nonnull final BlockPos blockPos) {
+	public int getLightFor(@Nonnull final LightType type, @Nonnull final BlockPos blockPos) {
 		return type.defaultLightValue;
 	}
 	
 	@Nonnull
 	@Override
-	public BlockPos getPrecipitationHeight(@Nonnull final BlockPos blockPos) {
+	public BlockPos getHeight(@Nonnull final Type heightmapType, @Nonnull final BlockPos blockPos) {
 		return blockPos;
 	}
 	
 	@Nonnull
 	@Override
-	public BlockPos getTopSolidOrLiquidBlock(@Nonnull final BlockPos blockPos) {
-		return BlockPos.ORIGIN;
-	}
-	
-	@Override
-	public int getBlockLightOpacity(@Nonnull final BlockPos blockPos) {
-		return blockState.getLightOpacity(this, blockPos);
+	public List<? extends PlayerEntity> getPlayers() {
+		return new ArrayList<>(0);
 	}
 }

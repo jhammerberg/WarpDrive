@@ -28,6 +28,7 @@ import cr0s.warpdrive.data.GlobalRegionManager;
 import cr0s.warpdrive.data.MovingEntity;
 import cr0s.warpdrive.data.Vector3;
 import cr0s.warpdrive.data.VectorI;
+import cr0s.warpdrive.event.ChunkLoadingHandler;
 import cr0s.warpdrive.item.ItemComponent;
 import cr0s.warpdrive.network.PacketHandler;
 
@@ -49,38 +50,35 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.FlowingFluidBlock;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.MobEffects;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.potion.PotionEffect;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 
-import net.minecraftforge.common.DimensionManager;
-import net.minecraftforge.common.ForgeChunkManager;
-import net.minecraftforge.common.ForgeChunkManager.Ticket;
-import net.minecraftforge.common.ForgeChunkManager.Type;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fml.common.Optional;
 
 public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrController implements ITransporterCore, IBeamFrequency, IGlobalRegionProvider {
+	
+	public static TileEntityType<TileEntityTransporterCore> TYPE;
 	
 	// global properties
 	private static final UpgradeSlot upgradeSlotEnergyStorage = new UpgradeSlot("transporter.energy_storage",
@@ -111,7 +109,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	private int tickComputerPulse = 0;
 	private boolean isConnected = false;
 	private GlobalPosition globalPositionBeacon = null;
-	private Ticket ticketChunkloading;
+	private boolean isChunkLoading;
 	private double energyCostForAcquiring = 0.0D;
 	private double energyCostForEnergizing = 0.0D;
 	private double lockStrengthOptimal = -1.0D;
@@ -126,7 +124,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	private int tickEnergizing = 0;
 	
 	public TileEntityTransporterCore() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveTransporterCore";
 		addMethods(new String[] {
@@ -153,17 +151,18 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		
 		globalPositionLocal = new GlobalPosition(this);
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -314,27 +313,29 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	public void onChunkUnload() {
+	public void onChunkUnloaded() {
 		releaseChunks();
 		
-		super.onChunkUnload();
+		super.onChunkUnloaded();
 	}
 	
 	@Override
-	public void onBlockBroken(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
-		if (!world.isRemote) {
+	public void remove() {
+		assert world != null;
+		if (!world.isRemote()) {
 			rebootTransporter();
 		}
-		super.onBlockBroken(world, blockPos, blockState);
+		super.remove();
 	}
 	
 	private void rebootTransporter() {
 		// switch connected scanners to 'offline'
 		if (vLocalScanners != null) {
+			assert world != null;
 			for (final BlockPos vScanner : vLocalScanners) {
-				final IBlockState blockState = world.getBlockState(vScanner);
+				final BlockState blockState = world.getBlockState(vScanner);
 				if (blockState.getBlock() instanceof BlockTransporterScanner) {
-					world.setBlockState(vScanner, blockState.withProperty(BlockProperties.ACTIVE, false), 2);
+					world.setBlockState(vScanner, blockState.with(BlockProperties.ACTIVE, false), 2);
 				}
 			}
 		}
@@ -343,13 +344,13 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	private void state_energizing() {
 		// load remote world
-		final WorldServer worldRemote = Commons.getOrCreateWorldServer(globalPositionRemote.dimensionId);
+		final ServerWorld worldRemote = Commons.getOrCreateWorldServer(globalPositionRemote.dimensionId);
 		if (worldRemote == null) {
-			WarpDrive.logger.error(String.format("Unable to initialize dimension %d for %s",
+			WarpDrive.logger.error(String.format("Unable to initialize dimension %s for %s",
 			                                     globalPositionRemote.dimensionId,
 			                                     this ));
 			isJammed = true;
-			reasonJammed = String.format("Unable to initialize dimension %d",
+			reasonJammed = String.format("Unable to initialize dimension %s",
 			                             globalPositionRemote.dimensionId);
 			return;
 		}
@@ -446,7 +447,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		}
 		
 		// compute friendly name
-		final String nameEntity = entity.getName();
+		final String nameEntity = entity.getName().getUnformattedComponentText();
 		
 		// check lock strength
 		if ( lockStrength < 1.0D
@@ -541,7 +542,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	public boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final IBlockState blockState) {
+	public boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final BlockState blockState) {
 		// skip in case of explosion, etc.
 		if (isDirtyAssembly()) {
 			return true;
@@ -574,6 +575,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	@Override
 	protected boolean doScanAssembly(final boolean isDirty, final WarpDriveText textReason) {
 		final boolean isValid = super.doScanAssembly(isDirty, textReason);
+		assert world != null;
 		
 		// scan the whole area for scanners
 		final int xMin = pos.getX() - WarpDriveConfig.TRANSPORTER_SETUP_SCANNER_RANGE_XZ_BLOCKS;
@@ -585,7 +587,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		
 		final ArrayList<BlockPos> vScanners = new ArrayList<>(16);
 		final HashSet<BlockPos> vContainments = new HashSet<>(64);
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos(0, 0, 0);
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(0, 0, 0);
 		for (int x = xMin; x <= xMax; x++) {
 			for (int y = yMin; y <= yMax; y++) {
 				if (y < 0 || y > 254) {
@@ -594,7 +596,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 				
 				for (int z = zMin; z <= zMax; z++) {
 					mutableBlockPos.setPos(x, y, z);
-					final IBlockState blockState = world.getBlockState(mutableBlockPos);
+					final BlockState blockState = world.getBlockState(mutableBlockPos);
 					final Block block = blockState.getBlock();
 					if (block instanceof BlockTransporterScanner) {
 						
@@ -603,7 +605,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 						if (vValidContainments == null || vValidContainments.isEmpty()) {
 							textReason.append(Commons.getStyleWarning(), "warpdrive.transporter.status_line.missing_containment",
 							                  Commons.format(world, mutableBlockPos) );
-							world.setBlockState(mutableBlockPos, blockState.withProperty(BlockProperties.ACTIVE, false), 2);
+							world.setBlockState(mutableBlockPos, blockState.with(BlockProperties.ACTIVE, false), 2);
 							PacketHandler.sendSpawnParticlePacket(world, "jammed", (byte) 5,
 							                                      new Vector3(x + 0.5D, y + 1.5D, z + 0.5D),
 							                                      new Vector3(0.0D, 0.0D, 0.0D),
@@ -613,7 +615,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 						} else {
 							vScanners.add(mutableBlockPos.toImmutable());
 							vContainments.addAll(vValidContainments);
-							world.setBlockState(mutableBlockPos, blockState.withProperty(BlockProperties.ACTIVE, true), 2);
+							world.setBlockState(mutableBlockPos, blockState.with(BlockProperties.ACTIVE, true), 2);
 						}
 					}
 				}
@@ -675,7 +677,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	private void checkBeaconObsolescence() {
 		if (globalPositionBeacon != null) {
-			final WorldServer worldBeacon = globalPositionBeacon.getWorldServerIfLoaded();
+			final ServerWorld worldBeacon = globalPositionBeacon.getWorldServerIfLoaded();
 			if (worldBeacon == null) {
 				globalPositionBeacon = null;
 				isLockRequested = false;
@@ -748,7 +750,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 				}
 				
 			} else {
-				globalPositionRemoteNew = new GlobalPosition(world.provider.getDimension(), vRequest.x, vRequest.y, vRequest.z);
+				globalPositionRemoteNew = new GlobalPosition(world.getDimension().getType().getRegistryName(), vRequest.x, vRequest.y, vRequest.z);
 			}
 			
 		} else if (remoteLocationRequested instanceof UUID) {
@@ -758,14 +760,14 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 			}
 			
 		} else if (remoteLocationRequested instanceof String) {
-			final EntityPlayerMP entityPlayer = Commons.getOnlinePlayerByName((String) remoteLocationRequested);
+			final ServerPlayerEntity entityPlayer = Commons.getOnlinePlayerByName((String) remoteLocationRequested);
 			if (entityPlayer == null) {
 				reasonJammed = "No player by that name";
 			} else {
-				ItemStack itemStackHeld = entityPlayer.getHeldItem(EnumHand.MAIN_HAND);
+				ItemStack itemStackHeld = entityPlayer.getHeldItem(Hand.MAIN_HAND);
 				if ( itemStackHeld.isEmpty()
 				  || !(itemStackHeld.getItem() instanceof IItemTransporterBeacon) ) {
-					itemStackHeld = entityPlayer.getHeldItem(EnumHand.OFF_HAND);
+					itemStackHeld = entityPlayer.getHeldItem(Hand.OFF_HAND);
 				}
 				if ( itemStackHeld.isEmpty()
 				  || !(itemStackHeld.getItem() instanceof IItemTransporterBeacon) ) {
@@ -794,8 +796,8 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		}
 		
 		// validate target dimension
-		final CelestialObject celestialObjectRemote = globalPositionRemote.getCelestialObject(world.isRemote);
-		final Vector3 v3Remote_universal = globalPositionRemote.getUniversalCoordinates(world.isRemote);
+		final CelestialObject celestialObjectRemote = globalPositionRemote.getCelestialObject(world.isRemote());
+		final Vector3 v3Remote_universal = globalPositionRemote.getUniversalCoordinates(world.isRemote());
 		
 		if (celestialObjectRemote == null) {
 			isJammed = true;
@@ -821,7 +823,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		}
 		
 		// get remote world, only load while acquiring or energizing
-		final WorldServer worldRemote;
+		final ServerWorld worldRemote;
 		if ( transporterState == EnumTransporterState.ACQUIRING
 		  || transporterState == EnumTransporterState.ENERGIZING ) {
 			worldRemote = Commons.getOrCreateWorldServer(celestialObjectRemote.dimensionId);
@@ -835,10 +837,11 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 				return;
 			}
 		} else {
-			worldRemote = DimensionManager.getWorld(celestialObjectRemote.dimensionId);
+			worldRemote = Commons.getOrCreateWorldServer(celestialObjectRemote.dimensionId);
 		}
 		
 		// compute range
+		assert v3Local_universal != null;
 		final double rangeActualSquared = v3Local_universal.clone().subtract(v3Remote_universal).getMagnitudeSquared();
 		final int rangeActual = (int) Math.ceil(Math.sqrt(rangeActualSquared));
 		
@@ -977,45 +980,32 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	private void forceChunks() {
-		if (ticketChunkloading != null) {
+		if (isChunkLoading) {
 			WarpDrive.logger.warn(String.format("%s Already chunkloading...",
-			                                     this));
+			                                     this ));
 			return;
 		}
 		
 		if (WarpDriveConfig.LOGGING_TRANSPORTER) {
 			WarpDrive.logger.info(String.format("%s Forcing chunks",
-			                                    this));
+			                                    this ));
 		}
-		ticketChunkloading = ForgeChunkManager.requestTicket(WarpDrive.instance, world, Type.NORMAL);
-		if (ticketChunkloading == null) {
-			WarpDrive.logger.error(String.format("%s Chunkloading rejected",
-			                                     this));
-			return;
-		}
+		
+		assert world instanceof ServerWorld;
 		final AxisAlignedBB aabbArea = getGlobalRegionArea();
 		final int minX = (int) aabbArea.minX >> 4;
 		final int maxX = (int) aabbArea.maxX >> 4;
 		final int minZ = (int) aabbArea.minZ >> 4;
 		final int maxZ = (int) aabbArea.maxZ >> 4;
-		int chunkCount = 0;
 		for (int x = minX; x <= maxX; x++) {
 			for (int z = minZ; z <= maxZ; z++) {
-				chunkCount++;
-				if (chunkCount > ticketChunkloading.getMaxChunkListDepth()) {
-					WarpDrive.logger.error(String.format("%s Too many chunks to load: %d > %d",
-					                                     this,
-					                                     (maxX - minX + 1) * (maxZ - minZ + 1),
-					                                     ticketChunkloading.getMaxChunkListDepth() ));
-					return;
-				}
-				ForgeChunkManager.forceChunk(ticketChunkloading, new ChunkPos(x, z));
+				ChunkLoadingHandler.registerTicket((ServerWorld) world, new ChunkPos(x, z), 1);
 			}
 		}
 	}
 	
 	private void releaseChunks() {
-		if (ticketChunkloading == null) {
+		if (!isChunkLoading) {
 			return;
 		}
 		
@@ -1023,10 +1013,18 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 			WarpDrive.logger.info(this + " Releasing chunks");
 		}
 		
-		if (ticketChunkloading != null) {
-			ForgeChunkManager.releaseTicket(ticketChunkloading);
-			ticketChunkloading = null;
+		assert world instanceof ServerWorld;
+		final AxisAlignedBB aabbArea = getGlobalRegionArea();
+		final int minX = (int) aabbArea.minX >> 4;
+		final int maxX = (int) aabbArea.maxX >> 4;
+		final int minZ = (int) aabbArea.minZ >> 4;
+		final int maxZ = (int) aabbArea.maxZ >> 4;
+		for (int x = minX; x <= maxX; x++) {
+			for (int z = minZ; z <= maxZ; z++) {
+				ChunkLoadingHandler.releaseTicket((ServerWorld) world, new ChunkPos(x, z), 1);
+			}
 		}
+		isChunkLoading = false;
 	}
 	
 	private static FocusValues getFocusValueAtCoordinates(final World world, final BlockPos blockPos, final int radius) {
@@ -1053,7 +1051,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		final int zMax = blockPos.getZ() + radius;
 		
 		ArrayList<BlockPos> vScanners = null;
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos(0, 0, 0);
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(0, 0, 0);
 		for (int x = xMin; x <= xMax; x++) {
 			for (int y = yMin; y <= yMax; y++) {
 				if (y < 0 || y > 254) {
@@ -1131,8 +1129,8 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		final Vector3 v3Current = new Vector3(blockPosSource.getX() + 0.5D,
 		                                      blockPosSource.getY() + 0.5D,
 		                                      blockPosSource.getZ() + 0.5D );
-		final MutableBlockPos blockPosCurrent = new MutableBlockPos(blockPosSource);
-		final MutableBlockPos blockPosPrevious = new MutableBlockPos(blockPosCurrent);
+		final BlockPos.Mutable blockPosCurrent = new BlockPos.Mutable(blockPosSource);
+		final BlockPos.Mutable blockPosPrevious = new BlockPos.Mutable(blockPosCurrent);
 		for (int step = 0; step < length; step++) {
 			v3Current.translate(v3Delta);
 			blockPosCurrent.setPos((int) Math.round(v3Current.x),
@@ -1184,9 +1182,8 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	private int getEnergyRequired(final EnumTransporterState transporterState) {
 		switch (transporterState) {
 		case DISABLED:
-			return 0;
-			
 		case IDLE:
+		default:
 			return 0;
 			
 		case ACQUIRING:
@@ -1194,16 +1191,13 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 			
 		case ENERGIZING:
 			return (int) Math.ceil(energyCostForEnergizing * energyFactor / WarpDriveConfig.TRANSPORTER_ENERGIZING_CHARGING_TICKS);
-			
-		default:
-			return 0;
 		}
 	}
 	
 	private static void applyTeleportationDamages(final boolean isPreTeleportation, final Entity entity, final double strength) {
 		// skip invulnerable
-		if ( entity.isDead
-		  || entity.isEntityInvulnerable(WarpDrive.damageTeleportation) ) {
+		if ( !entity.isAlive()
+		  || entity.isInvulnerableTo(WarpDrive.damageTeleportation) ) {
 			return;
 		}
 		
@@ -1229,28 +1223,28 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 			                                    entity));
 		}
 		
-		if (entity instanceof EntityLivingBase) {
+		if (entity instanceof LivingEntity) {
 			entity.attackEntityFrom(WarpDrive.damageTeleportation, (float) damageAmount);
-			final boolean isCreative = (entity instanceof EntityPlayer) && ((EntityPlayer) entity).isCreative();
+			final boolean isCreative = (entity instanceof PlayerEntity) && ((PlayerEntity) entity).isCreative();
 			if (!isCreative) {
 				if (isPreTeleportation) {
 					// add 1s nausea
-					((EntityLivingBase) entity).addPotionEffect(new PotionEffect(MobEffects.NAUSEA, 20));
+					((LivingEntity) entity).addPotionEffect(new EffectInstance(Effects.NAUSEA, 20));
 				} else {
 					// add 5s poison
-					((EntityLivingBase) entity).addPotionEffect(new PotionEffect(MobEffects.POISON, 5 * 20));
+					((LivingEntity) entity).addPotionEffect(new EffectInstance(Effects.POISON, 5 * 20));
 				}
 			}
 		} else if (strengthToUse > strengthNoDamage) {
 			// add lava blade at location
 			final BlockPos blockPos = new BlockPos(entity);
 			if (entity.world.isAirBlock(blockPos)) {
-				entity.world.setBlockState(blockPos, Blocks.FLOWING_LAVA.getDefaultState().withProperty(BlockLiquid.LEVEL, 6), 2);
+				entity.world.setBlockState(blockPos, Blocks.LAVA.getDefaultState().with(FlowingFluidBlock.LEVEL, 6), 2);
 			}
 		}
 	}
 	
-	private EntityValues updateEntitiesToEnergize(final WorldServer worldRemote) {
+	private EntityValues updateEntitiesToEnergize(final ServerWorld worldRemote) {
 		final int countLocalScanners = vLocalScanners == null ? 0 : vLocalScanners.size();
 		final int countScanners = vRemoteScanners == null ? countLocalScanners : Math.min(countLocalScanners, vRemoteScanners.size());
 		
@@ -1299,7 +1293,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 			if (movingEntity != null) {
 				final Entity entity = movingEntity.getEntity();
 				if ( entity == null
-				  || entity.isDead ) {// no longer valid => search a new one, no energy lost
+				  || !entity.isAlive() ) {// no longer valid => search a new one, no energy lost
 					movingEntity = null;
 					
 				} else {
@@ -1354,7 +1348,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 			if (movingEntity != null) {
 				final Entity entity = movingEntity.getEntity();
 				if ( entity == null
-				  || entity.isDead ) {// no longer valid => search a new one, no energy lost
+				  || !entity.isAlive() ) {// no longer valid => search a new one, no energy lost
 					movingEntity = null;
 					
 				} else if (entities.contains(entity)) {// still in the list
@@ -1511,102 +1505,104 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	public boolean energy_canInput(final EnumFacing from) {
-		return from != EnumFacing.UP;
+	public boolean energy_canInput(final Direction from) {
+		return from != Direction.UP;
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
 		if ( vLocalScanners != null
 		  && vLocalContainments != null ) {
-			final NBTTagList tagListScanners = new NBTTagList();
+			final ListNBT tagListScanners = new ListNBT();
 			for (final BlockPos vScanner : vLocalScanners) {
-				final NBTTagCompound tagCompoundScanner = Commons.writeBlockPosToNBT(vScanner, new NBTTagCompound());
-				tagListScanners.appendTag(tagCompoundScanner);
+				final CompoundNBT tagCompoundScanner = Commons.writeBlockPosToNBT(vScanner, new CompoundNBT());
+				tagListScanners.add(tagCompoundScanner);
 			}
-			tagCompound.setTag("scanners", tagListScanners);
+			tagCompound.put("scanners", tagListScanners);
 			
-			final NBTTagList tagListContainments = new NBTTagList();
+			final ListNBT tagListContainments = new ListNBT();
 			for (final BlockPos vContainment : vLocalContainments) {
-				final NBTTagCompound tagCompoundContainment = Commons.writeBlockPosToNBT(vContainment, new NBTTagCompound());
-				tagListContainments.appendTag(tagCompoundContainment);
+				final CompoundNBT tagCompoundContainment = Commons.writeBlockPosToNBT(vContainment, new CompoundNBT());
+				tagListContainments.add(tagCompoundContainment);
 			}
-			tagCompound.setTag("containments", tagListContainments);
+			tagCompound.put("containments", tagListContainments);
 		}
 		
-		tagCompound.setInteger(IBeamFrequency.BEAM_FREQUENCY_TAG, beamFrequency);
-		tagCompound.setBoolean("isLockRequested", isLockRequested);
-		tagCompound.setBoolean("isEnergizeRequested", isEnergizeRequested);
+		tagCompound.putInt(IBeamFrequency.BEAM_FREQUENCY_TAG, beamFrequency);
+		tagCompound.putBoolean("isLockRequested", isLockRequested);
+		tagCompound.putBoolean("isEnergizeRequested", isEnergizeRequested);
 		
-		NBTTagCompound tagRemoteLocation = new NBTTagCompound();
+		CompoundNBT tagRemoteLocation = new CompoundNBT();
 		if (remoteLocationRequested instanceof UUID) {
-			tagRemoteLocation.setLong(ICoreSignature.UUID_MOST_TAG, ((UUID) remoteLocationRequested).getMostSignificantBits());
-			tagRemoteLocation.setLong(ICoreSignature.UUID_LEAST_TAG, ((UUID) remoteLocationRequested).getLeastSignificantBits());
+			tagRemoteLocation.putLong(ICoreSignature.UUID_MOST_TAG, ((UUID) remoteLocationRequested).getMostSignificantBits());
+			tagRemoteLocation.putLong(ICoreSignature.UUID_LEAST_TAG, ((UUID) remoteLocationRequested).getLeastSignificantBits());
 		} else if (remoteLocationRequested instanceof VectorI) {
-			tagRemoteLocation = ((VectorI) remoteLocationRequested).writeToNBT(tagRemoteLocation);
+			tagRemoteLocation = ((VectorI) remoteLocationRequested).write(tagRemoteLocation);
 		} else if (remoteLocationRequested instanceof String) {
-			tagRemoteLocation.setString("playerName", (String) remoteLocationRequested);
+			tagRemoteLocation.putString("playerName", (String) remoteLocationRequested);
 		}
-		tagCompound.setTag("remoteLocation", tagRemoteLocation);
+		tagCompound.put("remoteLocation", tagRemoteLocation);
 		
-		tagCompound.setDouble("energyFactor", energyFactor);
-		tagCompound.setDouble("lockStrengthActual", lockStrengthActual);
-		tagCompound.setInteger("tickCooldown", tickCooldown);
+		tagCompound.putDouble("energyFactor", energyFactor);
+		tagCompound.putDouble("lockStrengthActual", lockStrengthActual);
+		tagCompound.putInt("tickCooldown", tickCooldown);
 		
-		tagCompound.setString("state", transporterState.toString());
+		tagCompound.putString("state", transporterState.toString());
 		
 		return tagCompound;
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		if ( tagCompound.hasKey("scanners", Constants.NBT.TAG_LIST)
-		  && tagCompound.hasKey("containments", Constants.NBT.TAG_LIST)) {
-			final NBTTagList tagListScanners = (NBTTagList) tagCompound.getTag("scanners");
-			final ArrayList<BlockPos> vScanners = new ArrayList<>(tagListScanners.tagCount());
-			for (int indexScanner = 0; indexScanner < tagListScanners.tagCount(); indexScanner++) {
-				final BlockPos vScanner = Commons.createBlockPosFromNBT(tagListScanners.getCompoundTagAt(indexScanner));
+		if ( tagCompound.contains("scanners", Constants.NBT.TAG_LIST)
+		  && tagCompound.contains("containments", Constants.NBT.TAG_LIST)) {
+			final ListNBT tagListScanners = (ListNBT) tagCompound.get("scanners");
+			assert tagListScanners != null;
+			final ArrayList<BlockPos> vScanners = new ArrayList<>(tagListScanners.size());
+			for (int indexScanner = 0; indexScanner < tagListScanners.size(); indexScanner++) {
+				final BlockPos vScanner = Commons.createBlockPosFromNBT(tagListScanners.getCompound(indexScanner));
 				vScanners.add(vScanner);
 			}
 			
-			final NBTTagList tagListContainments = (NBTTagList) tagCompound.getTag("containments");
-			final ArrayList<BlockPos> vContainments = new ArrayList<>(tagListContainments.tagCount());
-			for (int indexContainment = 0; indexContainment < tagListContainments.tagCount(); indexContainment++) {
-				final BlockPos vContainment = Commons.createBlockPosFromNBT(tagListContainments.getCompoundTagAt(indexContainment));
+			final ListNBT tagListContainments = (ListNBT) tagCompound.get("containments");
+			assert tagListContainments != null;
+			final ArrayList<BlockPos> vContainments = new ArrayList<>(tagListContainments.size());
+			for (int indexContainment = 0; indexContainment < tagListContainments.size(); indexContainment++) {
+				final BlockPos vContainment = Commons.createBlockPosFromNBT(tagListContainments.getCompound(indexContainment));
 				vContainments.add(vContainment);
 			}
 			setLocalScanners(vScanners, vContainments);
 		}
 		
-		beamFrequency = tagCompound.getInteger(IBeamFrequency.BEAM_FREQUENCY_TAG);
+		beamFrequency = tagCompound.getInt(IBeamFrequency.BEAM_FREQUENCY_TAG);
 		isLockRequested = tagCompound.getBoolean("isLockRequested");
 		isEnergizeRequested = tagCompound.getBoolean("isEnergizeRequested");
 		
-		final NBTBase tagRemoteLocation = tagCompound.getTag("remoteLocation");
-		if (tagRemoteLocation instanceof NBTTagCompound) {
-			final NBTTagCompound tagCompoundRemoteLocation = (NBTTagCompound) tagRemoteLocation;
-			if (tagCompoundRemoteLocation.hasKey(ICoreSignature.UUID_MOST_TAG)) {
+		final INBT tagRemoteLocation = tagCompound.get("remoteLocation");
+		if (tagRemoteLocation instanceof CompoundNBT) {
+			final CompoundNBT tagCompoundRemoteLocation = (CompoundNBT) tagRemoteLocation;
+			if (tagCompoundRemoteLocation.contains(ICoreSignature.UUID_MOST_TAG)) {
 				remoteLocationRequested = new UUID(
 						tagCompoundRemoteLocation.getLong(ICoreSignature.UUID_MOST_TAG),
 						tagCompoundRemoteLocation.getLong(ICoreSignature.UUID_LEAST_TAG));
 				
-			} else if (tagCompoundRemoteLocation.hasKey("x")) {
+			} else if (tagCompoundRemoteLocation.contains("x")) {
 				remoteLocationRequested = new VectorI();
-				((VectorI) remoteLocationRequested).readFromNBT(tagCompoundRemoteLocation);
+				((VectorI) remoteLocationRequested).read(tagCompoundRemoteLocation);
 				
-			} else if (tagCompoundRemoteLocation.hasKey("playerName")) {
+			} else if (tagCompoundRemoteLocation.contains("playerName")) {
 				remoteLocationRequested = tagCompoundRemoteLocation.getString("playerName");
 			}
 		}
 		
 		energyFactor = Commons.clamp(1, WarpDriveConfig.TRANSPORTER_ENERGIZING_MAX_ENERGY_FACTOR, tagCompound.getDouble("energyFactor"));
 		lockStrengthActual = tagCompound.getDouble("lockStrengthActual");
-		tickCooldown = tagCompound.getInteger("tickCooldown");
+		tickCooldown = tagCompound.getInt("tickCooldown");
 		
 		try {
 			transporterState = EnumTransporterState.valueOf(tagCompound.getString("state"));
@@ -1617,18 +1613,18 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound getUpdateTag() {
-		final NBTTagCompound tagCompound = super.getUpdateTag();
+	public CompoundNBT getUpdateTag() {
+		final CompoundNBT tagCompound = super.getUpdateTag();
 		
-		tagCompound.removeTag(ICoreSignature.UUID_MOST_TAG);
-		tagCompound.removeTag(ICoreSignature.UUID_LEAST_TAG);
-		tagCompound.removeTag(IBeamFrequency.BEAM_FREQUENCY_TAG);
+		tagCompound.remove(ICoreSignature.UUID_MOST_TAG);
+		tagCompound.remove(ICoreSignature.UUID_LEAST_TAG);
+		tagCompound.remove(IBeamFrequency.BEAM_FREQUENCY_TAG);
 		
 		return tagCompound;
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
 		
 		return tagCompound;
@@ -1636,7 +1632,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	// Common OC/CC methods
 	@Override
-	public String[] name(final Object[] arguments) {
+	public String[] name(@Nonnull final Object[] arguments) {
 		final String name_old = name;
 		super.name(arguments);
 		if (!name_old.equals(name)) {
@@ -1645,7 +1641,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		return new String[] { name, uuid == null ? null : uuid.toString() };
 	}
 	
-	public Object[] beamFrequency(final Object[] arguments) {
+	public Object[] beamFrequency(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1) {
 			setBeamFrequency(Commons.toInt(arguments[0]));
 		}
@@ -1661,7 +1657,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	public Object[] remoteLocation(final Object[] arguments) {
+	public Object[] remoteLocation(@Nonnull final Object[] arguments) {
 		if (arguments.length == 3) {
 			if (remoteLocationRequested instanceof VectorI) {// already using direct coordinates
 				final VectorI vNew = computer_getVectorI((VectorI) remoteLocationRequested, arguments);
@@ -1709,7 +1705,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	public Boolean[] lock(final Object[] arguments) {
+	public Boolean[] lock(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && arguments[0] != null) {
 			isLockRequested = Commons.toBool(arguments[0]);
 			markDirty();
@@ -1718,7 +1714,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	public Double[] energyFactor(final Object[] arguments) {
+	public Double[] energyFactor(@Nonnull final Object[] arguments) {
 		try {
 			if (arguments.length >= 1) {
 				energyFactor = Commons.clamp(1, WarpDriveConfig.TRANSPORTER_ENERGIZING_MAX_ENERGY_FACTOR, Commons.toDouble(arguments[0]));
@@ -1745,7 +1741,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	}
 	
 	@Override
-	public Boolean[] energize(final Object[] arguments) {
+	public Boolean[] energize(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && arguments[0] != null) {
 			isEnergizeRequested = Commons.toBool(arguments[0]);
 			markDirty();
@@ -1755,52 +1751,44 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] beamFrequency(final Context context, final Arguments arguments) {
 		return beamFrequency(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] state(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return state();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] remoteLocation(final Context context, final Arguments arguments) {
 		return remoteLocation(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] lock(final Context context, final Arguments arguments) {
 		return lock(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] energyFactor(final Context context, final Arguments arguments) {
 		return energyFactor(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getLockStrength(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getLockStrength();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] energize(final Context context, final Arguments arguments) {
 		return energize(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "beamFrequency":

@@ -3,17 +3,18 @@ package cr0s.warpdrive.network;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.block.TileEntityLaser;
 import cr0s.warpdrive.config.WarpDriveConfig;
-import io.netty.buffer.ByteBuf;
+import cr0s.warpdrive.network.PacketHandler.IMessage;
 
+import javax.annotation.Nonnull;
+
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraftforge.fml.network.NetworkEvent.Context;
 
-public class MessageTargeting implements IMessage, IMessageHandler<MessageTargeting, IMessage> {
+public class MessageTargeting implements IMessage {
 	
 	private int x;
 	private int y;
@@ -35,7 +36,7 @@ public class MessageTargeting implements IMessage, IMessageHandler<MessageTarget
 	}
 
 	@Override
-	public void fromBytes(final ByteBuf buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		x = buffer.readInt();
 		y = buffer.readInt();
 		z = buffer.readInt();
@@ -44,7 +45,7 @@ public class MessageTargeting implements IMessage, IMessageHandler<MessageTarget
 	}
 
 	@Override
-	public void toBytes(final ByteBuf buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		buffer.writeInt(x);
 		buffer.writeInt(y);
 		buffer.writeInt(z);
@@ -61,14 +62,14 @@ public class MessageTargeting implements IMessage, IMessageHandler<MessageTarget
 	}
 	
 	@Override
-	public IMessage onMessage(final MessageTargeting targetingMessage, final MessageContext context) {
+	public IMessage process(@Nonnull final Context context) {
 		if (WarpDriveConfig.LOGGING_TARGETING) {
 			WarpDrive.logger.info(String.format("Received target packet: (%d %d %d) yaw: %.1f pitch: %.1f",
-			                                    targetingMessage.x, targetingMessage.y, targetingMessage.z,
-			                                    targetingMessage.yaw, targetingMessage.pitch));
+			                                    x, y, z,
+			                                    yaw, pitch));
 		}
 		
-		targetingMessage.handle(context.getServerHandler().player.world);
+		handle(context.getSender().world);
         
 		return null;	// no response
 	}

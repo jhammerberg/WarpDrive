@@ -8,44 +8,58 @@ import cr0s.warpdrive.data.OfflineAvatarManager;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import java.util.Optional;
 import java.util.UUID;
 
-import net.minecraft.entity.EntityLiving;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.MobEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.World;
 
-import com.google.common.base.Optional;
-
-public class EntityOfflineAvatar extends EntityLiving {
+public class EntityOfflineAvatar extends MobEntity {
+	
+	private static final DataParameter<Optional<UUID>>  DATA_PLAYER_UUID = EntityDataManager.createKey(EntityOfflineAvatar.class, DataSerializers.OPTIONAL_UNIQUE_ID);
+	private static final DataParameter<String>          DATA_PLAYER_NAME = EntityDataManager.createKey(EntityOfflineAvatar.class, DataSerializers.STRING);
+	public static final EntityType<EntityOfflineAvatar> TYPE;
 	
 	// persistent properties
-	private static final DataParameter<Optional<UUID>> DATA_PLAYER_UUID = EntityDataManager.createKey(EntityOfflineAvatar.class, DataSerializers.OPTIONAL_UNIQUE_ID);
-	private static final DataParameter<String>         DATA_PLAYER_NAME = EntityDataManager.createKey(EntityOfflineAvatar.class, DataSerializers.STRING);
+	// (none)
 	
 	// computed properties
 	private GlobalPosition cache_globalPosition;
 	private boolean isDirtyGlobalPosition = true;
 	private int tickUpdateGlobalPosition = 0;
 	
-	public EntityOfflineAvatar(@Nonnull final World world) {
-		super(world);
+	static {
+		TYPE = EntityType.Builder.create(EntityOfflineAvatar::new, EntityClassification.AMBIENT)
+				       .size(0.6F * WarpDriveConfig.OFFLINE_AVATAR_MODEL_SCALE, 1.8F  * WarpDriveConfig.OFFLINE_AVATAR_MODEL_SCALE)
+				       .setTrackingRange(200)
+				       .setUpdateInterval(1)
+				       .setShouldReceiveVelocityUpdates(false)
+				       .build("entity_offline_avatar");
+		TYPE.setRegistryName(WarpDrive.MODID, "entity_offline_avatar");
+	}
+	
+	public EntityOfflineAvatar(@Nonnull final EntityType<EntityOfflineAvatar> entityType, @Nonnull final World world) {
+		super(entityType, world);
 		
 		setCanPickUpLoot(false);
 		setNoAI(true);
-		setCustomNameTag("Offline avatar");
-		setAlwaysRenderNameTag(WarpDriveConfig.OFFLINE_AVATAR_ALWAYS_RENDER_NAME_TAG);
-		setSize(width * WarpDriveConfig.OFFLINE_AVATAR_MODEL_SCALE, height  * WarpDriveConfig.OFFLINE_AVATAR_MODEL_SCALE);
+		setCustomName(new StringTextComponent("Offline avatar"));
+		setCustomNameVisible(WarpDriveConfig.OFFLINE_AVATAR_ALWAYS_RENDER_NAME_TAG);
 	}
 	
 	@Override
-	protected void entityInit() {
-		super.entityInit();
+	protected void registerData() {
+		super.registerData();
 		
-		dataManager.register(DATA_PLAYER_UUID, Optional.absent());
+		dataManager.register(DATA_PLAYER_UUID, Optional.empty());
 		dataManager.register(DATA_PLAYER_NAME, "");
 	}
 	
@@ -56,7 +70,7 @@ public class EntityOfflineAvatar extends EntityLiving {
 	
 	@Nullable
 	public UUID getPlayerUUID() {
-		return dataManager.get(DATA_PLAYER_UUID).orNull();
+		return dataManager.get(DATA_PLAYER_UUID).orElse(null);
 	}
 	
 	public String getPlayerName() {
@@ -64,10 +78,10 @@ public class EntityOfflineAvatar extends EntityLiving {
 	}
 	
 	@Override
-	public void onUpdate() {
-		super.onUpdate();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -93,7 +107,7 @@ public class EntityOfflineAvatar extends EntityLiving {
 				if (ticksExisted > 5) {
 					WarpDrive.logger.error(String.format("Removing invalid EntityOfflineAvatar with no UUID %s",
 					                                     this ));
-					setDead();
+					remove();
 				}
 				
 			} else {
@@ -105,8 +119,8 @@ public class EntityOfflineAvatar extends EntityLiving {
 	}
 	
 	@Override
-	public void setDead() {
-		super.setDead();
+	public void remove(final boolean keepData) {
+		super.remove(keepData);
 		
 		if (WarpDriveConfig.OFFLINE_AVATAR_FORGET_ON_DEATH) {
 			OfflineAvatarManager.remove(this);
@@ -114,13 +128,13 @@ public class EntityOfflineAvatar extends EntityLiving {
 	}
 	
 	@Override
-	public float getRenderSizeModifier() {
+	public float getRenderScale() {
 		return WarpDriveConfig.OFFLINE_AVATAR_MODEL_SCALE;
 	}
 	
 	@Override
-	public void readEntityFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readEntityFromNBT(tagCompound);
+	public void readAdditional(@Nonnull final CompoundNBT tagCompound) {
+		super.readAdditional(tagCompound);
 		
 		final UUID uuidPlayer = tagCompound.getUniqueId("player");
 		final String namePlayer = tagCompound.getString("playerName");
@@ -128,44 +142,34 @@ public class EntityOfflineAvatar extends EntityLiving {
 		  || namePlayer.isEmpty() ) {
 			WarpDrive.logger.error(String.format("Removing on reading invalid offline avatar in %s",
 			                                     tagCompound ));
-			setDead();
+			remove();
 			return;
 		}
 		setPlayer(uuidPlayer, namePlayer);
 	}
 	
 	@Override
-	public void writeEntityToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.writeEntityToNBT(tagCompound);
+	public void writeAdditional(@Nonnull final CompoundNBT tagCompound) {
+		super.writeAdditional(tagCompound);
 		
 		final UUID uuidPlayer = getPlayerUUID();
 		if (uuidPlayer == null) {
 			WarpDrive.logger.error(String.format("Removing on writing invalid offline avatar in %s",
 			                                     tagCompound ));
-			setDead();
+			remove();
 			return;
 		}
-		tagCompound.setUniqueId("player", uuidPlayer);
-		tagCompound.setString("playerName", getPlayerName());
+		tagCompound.putUniqueId("player", uuidPlayer);
+		tagCompound.putString("playerName", getPlayerName());
 	}
 	
 	@Override
-	public boolean canBeLeashedTo(@Nonnull final EntityPlayer entityPlayer) {
+	public boolean canBeLeashedTo(@Nonnull final PlayerEntity entityPlayer) {
 		return false;
 	}
 	
 	@Override
 	protected boolean isMovementBlocked() {
 		return true;
-	}
-	
-	@Override
-	public boolean getAlwaysRenderNameTagForRender() {
-		return super.getAlwaysRenderNameTagForRender();
-	}
-	
-	@Override
-	public boolean getAlwaysRenderNameTag() {
-		return super.getAlwaysRenderNameTag();
 	}
 }

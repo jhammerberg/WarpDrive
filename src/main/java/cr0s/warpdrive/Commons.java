@@ -4,58 +4,57 @@ import cr0s.warpdrive.api.IGlobalRegionProvider;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;
-import cr0s.warpdrive.data.BlockProperties;
 import cr0s.warpdrive.data.BlockStatePos;
 import cr0s.warpdrive.data.GlobalPosition;
 import cr0s.warpdrive.data.Vector3;
 import cr0s.warpdrive.data.VectorI;
 import cr0s.warpdrive.event.ChunkHandler;
-import cr0s.warpdrive.world.SpaceTeleporter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.BlockRenderType;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.command.CommandException;
-import net.minecraft.command.EntitySelector;
-import net.minecraft.command.ICommandSender;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.ICommandSource;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.NBTDynamicOps;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.tileentity.TileEntitySkull;
-import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.tileentity.SkullTileEntity;
+import net.minecraft.util.Direction;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.concurrent.ThreadTaskExecutor;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.IBlockReader;
+import net.minecraft.world.IWorld;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.gen.ChunkProviderServer;
+import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.server.ServerChunkProvider;
+import net.minecraft.world.server.ServerWorld;
 
 import net.minecraftforge.common.DimensionManager;
-import net.minecraftforge.common.property.IExtendedBlockState;
-import net.minecraftforge.common.property.IUnlistedProperty;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.common.util.ITeleporter;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSidedProvider;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -68,27 +67,24 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
-
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
-
+import com.google.gson.JsonPrimitive;
 import com.mojang.authlib.GameProfile;
+import com.mojang.datafixers.Dynamic;
+import com.mojang.datafixers.types.JsonOps;
 
 /**
  * Common static methods
@@ -96,11 +92,11 @@ import com.mojang.authlib.GameProfile;
 public class Commons {
 	
 	private static final String CHAR_FORMATTING = "" + (char) 167;
-	private static final List<EnumBlockRenderType> ALLOWED_RENDER_TYPES = Arrays.asList(
-		EnumBlockRenderType.INVISIBLE,
-//		EnumBlockRenderType.LIQUID,
-		EnumBlockRenderType.ENTITYBLOCK_ANIMATED,
-		EnumBlockRenderType.MODEL
+	private static final List<BlockRenderType> ALLOWED_RENDER_TYPES = Arrays.asList(
+		BlockRenderType.INVISIBLE,
+//		BlockRenderType.LIQUID,
+		BlockRenderType.ENTITYBLOCK_ANIMATED,
+		BlockRenderType.MODEL
 	);
 	
 	private static final ExecutorService THREAD_POOL = new ThreadPoolExecutor(0, 2, 1L, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
@@ -202,6 +198,11 @@ public class Commons {
 	}
 	
 	@Nonnull
+	public static WarpDriveText getChatPrefix(@Nonnull final BlockState blockState) {
+		return getChatPrefix(blockState.getBlock());
+	}
+	
+	@Nonnull
 	public static WarpDriveText getChatPrefix(@Nonnull final Block block) {
 		return getChatPrefix(block.getTranslationKey() + ".name");
 	}
@@ -214,13 +215,13 @@ public class Commons {
 	@Nonnull
 	public static WarpDriveText getChatPrefix(@Nonnull final String translationKey) {
 		return new WarpDriveText(getStyleHeader(), "warpdrive.guide.prefix",
-		                         new TextComponentTranslation(translationKey));
+		                         new TranslationTextComponent(translationKey) );
 	}
 	
 	@Nonnull
 	public static WarpDriveText getNamedPrefix(@Nonnull final String name) {
 		return new WarpDriveText(getStyleHeader(), "warpdrive.guide.prefix",
-		                         new TextComponentString(name));
+		                         new StringTextComponent(name) );
 	}
 	
 	@Nonnull
@@ -246,13 +247,13 @@ public class Commons {
 		}
 	}
 	
-	public static void addChatMessage(final ICommandSender commandSender, @Nonnull final ITextComponent textComponent) {
+	public static void addChatMessage(final ICommandSource commandSource, @Nonnull final ITextComponent textComponent) {
 		final String message = textComponent.getFormattedText();
-		addChatMessage(commandSender, message);
+		addChatMessage(commandSource, message);
 	}
 	
-	public static void addChatMessage(final ICommandSender commandSender, @Nonnull final String message) {
-		if (commandSender == null) {
+	public static void addChatMessage(final ICommandSource commandSource, @Nonnull final String message) {
+		if (commandSource == null) {
 			WarpDrive.logger.error(String.format("Unable to send message to NULL sender: %s",
 			                                     message));
 			return;
@@ -266,7 +267,7 @@ public class Commons {
 		final String[] lines = updateEscapeCodes(message).split("\n");
 		String formatNextLine = "";
 		for (final String line : lines) {
-			commandSender.sendMessage(new TextComponentString(formatNextLine + line));
+			commandSource.sendMessage(new StringTextComponent(formatNextLine + line));
 			
 			// compute remaining format
 			int index = 0;
@@ -309,7 +310,7 @@ public class Commons {
 	
 	// add tooltip information with text formatting and line splitting
 	// will ensure it fits on minimum screen width
-	public static void addTooltip(final List<String> list, @Nonnull final String tooltip) {
+	public static void addTooltip(final List<ITextComponent> list, @Nonnull final String tooltip) {
 		// skip empty tooltip
 		if (tooltip.isEmpty()) {
 			return;
@@ -323,8 +324,8 @@ public class Commons {
 			// skip redundant information
 			boolean isExisting = false;
 			final String cleanToAdd = getComparableTooltipLine(line);
-			for (final String lineExisting : list) {
-				final String cleanExisting = getComparableTooltipLine(lineExisting);
+			for (final ITextComponent lineExisting : list) {
+				final String cleanExisting = getComparableTooltipLine(lineExisting.getFormattedText());
 				if (cleanExisting.equals(cleanToAdd)) {
 					isExisting = true;
 					break;
@@ -352,10 +353,10 @@ public class Commons {
 				if (indexToCut < length) {
 					indexToCut = lineRemaining.substring(0, indexToCut).lastIndexOf(' ');
 					if (indexToCut == -1 || indexToCut == 0) {// no space available, show the whole line 'as is'
-						list.add(lineRemaining);
+						list.add(new StringTextComponent(lineRemaining));
 						lineRemaining = "";
 					} else {// cut at last space
-						list.add(lineRemaining.substring(0, indexToCut).replaceAll("\u00A0", " "));
+						list.add(new StringTextComponent(lineRemaining.substring(0, indexToCut).replaceAll("\u00A0", " ")));
 						
 						// compute remaining format
 						int index = formatNextLine.length();
@@ -371,7 +372,7 @@ public class Commons {
 						lineRemaining = formatNextLine + lineRemaining.substring(indexToCut + 1);
 					}
 				} else {
-					list.add(lineRemaining.replaceAll("\u00A0", " "));
+					list.add(new StringTextComponent(lineRemaining.replaceAll("\u00A0", " ")));
 					lineRemaining = "";
 				}
 			}
@@ -380,13 +381,12 @@ public class Commons {
 	
 	public static boolean isKeyPressed(@Nonnull final KeyBinding keyBinding) {
 		try {
-			final int keyCode = keyBinding.getKeyCode();
-			return keyCode < 0 ? Mouse.isButtonDown(keyCode + 100) : Keyboard.isKeyDown(keyCode);
+			return keyBinding.isKeyDown();
 		} catch(final Exception exception) {
-			if (throttleMe(keyBinding.getDisplayName())) {
+			if (throttleMe(keyBinding.getLocalizedName())) {
 				exception.printStackTrace();
 				WarpDrive.logger.error(String.format("Exception trying to get key pressed status for %s",
-				                                     keyBinding.getDisplayName() ));
+				                                     keyBinding.getLocalizedName() ));
 			}
 			return false;
 		}
@@ -457,7 +457,7 @@ public class Commons {
 	}
 	
 	@Nonnull
-	public static String format(final World world) {
+	public static String format(final IWorld world) {
 		if (world == null) {
 			return "~NULL~";
 		}
@@ -467,14 +467,15 @@ public class Commons {
 		// world.provider.getSaveFolder() is null for the Overworld, other dimensions shall define it
 		String saveFolder;
 		try {
-			saveFolder = world.provider.getSaveFolder();
+			saveFolder = world.getDimension().getType().directory;
 		} catch (final Exception exception) {
 			exception.printStackTrace(WarpDrive.printStreamError);
-			saveFolder = "<Exception DIM" + world.provider.getDimension() + ">";
+			saveFolder = "<Exception " + world.getDimension().getType().getRegistryName() + ">";
 		}
 		if (saveFolder == null || saveFolder.isEmpty()) {
-			final int dimension = world.provider.getDimension();
-			if (dimension != 0) {
+			final ResourceLocation dimension = world.getDimension().getType().getRegistryName();
+			if ( dimension == null
+			  || dimension.toString().equals("minecraft:overworld") ) {
 				assert false;
 				return String.format("~invalid dimension %d~", dimension);
 			}
@@ -489,30 +490,39 @@ public class Commons {
 		return saveFolder;
 	}
 	
-	public static String format(final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos) {
-		if (blockAccess instanceof World) {
-			return format((World) blockAccess, blockPos);
+	public static String format(final IBlockReader blockReader, @Nonnull final BlockPos blockPos) {
+		if (blockReader instanceof IWorld) {
+			return format((IWorld) blockReader, blockPos);
 		}
 		return String.format("@ %s (%d %d %d)",
-		                     blockAccess,
+		                     blockReader,
 		                     blockPos.getX(), blockPos.getY(), blockPos.getZ() );
 	}
 	
-	public static String format(final World world, @Nonnull final BlockPos blockPos) {
+	public static String format(final IWorldReader worldReader, @Nonnull final BlockPos blockPos) {
+		if (worldReader instanceof IWorld) {
+			return format((IWorld) worldReader, blockPos);
+		}
+		return String.format("@ %s (%d %d %d)",
+		                     worldReader,
+		                     blockPos.getX(), blockPos.getY(), blockPos.getZ() );
+	}
+	
+	public static String format(final IWorld world, @Nonnull final BlockPos blockPos) {
 		return format(world, blockPos.getX(), blockPos.getY(), blockPos.getZ());
 	}
 	
-	public static String format(final World world, final int x, final int y, final int z) {
+	public static String format(final IWorld world, final int x, final int y, final int z) {
 		return String.format("@ %s (%d %d %d)",
 		                     format(world),
 		                     x, y, z );
 	}
 	
-	public static String format(final World world, @Nonnull final Vector3 vector3) {
+	public static String format(final IWorld world, @Nonnull final Vector3 vector3) {
 		return format(world, vector3.x, vector3.y, vector3.z);
 	}
 	
-	public static String format(final World world, final double x, final double y, final double z) {
+	public static String format(final IWorld world, final double x, final double y, final double z) {
 		return String.format("@ %s (%.2f %.2f %.2f)",
 		                     format(world),
 		                     x, y, z );
@@ -520,35 +530,35 @@ public class Commons {
 	
 	public static String format(@Nonnull final Entity entity) {
 		if (entity.world != null) {
-			return format(entity.world, entity.posX, entity.posY, entity.posZ);
+			return format(entity.world, entity.getPosX(), entity.getPosY(), entity.getPosZ());
 		}
 		return String.format("@ DIM%d (%.2f %.2f %.2f)",
-		                     entity.dimension,
-		                     entity.posX, entity.posY, entity.posZ );
+		                     entity.dimension.getId(),
+		                     entity.getPosX(), entity.getPosY(), entity.getPosZ() );
 	}
 	
 	public static String format(@Nonnull final GlobalPosition globalPosition) {
-		return String.format("@ DIM%d (%d %d %d)",
+		return String.format("@ %s (%d %d %d)",
 		                     globalPosition.dimensionId,
 		                     globalPosition.x, globalPosition.y, globalPosition.z );
 	}
 	
 	public static String format(@Nonnull final ItemStack itemStack) {
 		final String stringNBT;
-		if (itemStack.hasTagCompound()) {
-			stringNBT = " " + itemStack.getTagCompound();
+		if (itemStack.hasTag()) {
+			stringNBT = " " + itemStack.getTag();
 		} else {
 			stringNBT = "";
 		}
 		return String.format("%dx%s@%d (%s)%s",
 		                     itemStack.getCount(),
 		                     itemStack.getItem().getRegistryName(),
-		                     itemStack.getItemDamage(),
+		                     itemStack.getDamage(),
 		                     itemStack.getDisplayName(),
 		                     stringNBT);
 	}
 	
-	public static String format(@Nonnull final IBlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos) {
+	public static String format(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos) {
 		final Block block = blockState.getBlock();
 		try {
 			final ItemStack itemStack = block.getPickBlock(blockState, null, world, blockPos, null);
@@ -585,6 +595,7 @@ public class Commons {
 		           .replace("\\", ".");
 	}
 	
+	@Nonnull
 	public static ItemStack copyWithSize(@Nonnull final ItemStack itemStack, final int newSize) {
 		final ItemStack ret = itemStack.copy();
 		ret.setCount(newSize);
@@ -594,7 +605,8 @@ public class Commons {
 	
 	// searching methods
 	
-	public static final EnumFacing[] FACINGS_VERTICAL = { EnumFacing.DOWN, EnumFacing.UP };
+	public static final Direction[] FACINGS_HORIZONTAL = { Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST };
+	public static final Direction[] FACINGS_VERTICAL = { Direction.DOWN, Direction.UP };
 	public static final VectorI[] DIRECTIONS_UP_CONE = {
 			// up
 			new VectorI( 0,  1,  0),
@@ -649,7 +661,7 @@ public class Commons {
 		while(!toIterate.isEmpty() && range < maxRange) {
 			toIterateNext = new HashSet<>();
 			for (final BlockPos current : toIterate) {
-				final IBlockState blockStateCurrent = getBlockState_noChunkLoading(world, current);
+				final BlockState blockStateCurrent = getBlockState_noChunkLoading(world, current);
 				if ( blockStateCurrent != null
 				  && whitelist.contains(blockStateCurrent.getBlock()) ) {
 					iterated.add(current);
@@ -660,7 +672,7 @@ public class Commons {
 					                                   current.getY() + direction.y,
 					                                   current.getZ() + direction.z );
 					if (!iterated.contains(next) && !toIgnore.contains(next) && !toIterate.contains(next) && !toIterateNext.contains(next)) {
-						final IBlockState blockStateNext = getBlockState_noChunkLoading(world, next);
+						final BlockState blockStateNext = getBlockState_noChunkLoading(world, next);
 						if ( blockStateNext != null
 						  && whitelist.contains(blockStateNext.getBlock())) {
 							toIterateNext.add(next);
@@ -676,7 +688,7 @@ public class Commons {
 	}
 	
 	@Nonnull
-	public static Set<BlockStatePos> getConnectedBlockStatePos(@Nonnull final IBlockAccess blockAccess, @Nonnull final Collection<BlockPos> start,
+	public static Set<BlockStatePos> getConnectedBlockStatePos(@Nonnull final IWorldReader worldReader, @Nonnull final Collection<BlockPos> start,
 	                                                           @Nonnull final VectorI[] directions, @Nonnull final Set<Block> blockConnecting,
 	                                                           @Nonnull final Set<Block> blockResults, final int maxRange) {
 		Set<BlockPos> toIterate = new HashSet<>(start.size() * 4);
@@ -685,7 +697,7 @@ public class Commons {
 		
 		// preload the starting positions
 		for (final BlockPos blockPos : start) {
-			final IBlockState blockState = getBlockState_noChunkLoading(blockAccess, blockPos);
+			final BlockState blockState = getBlockState_noChunkLoading(worldReader, blockPos);
 			if (blockState != null) {
 				// always iterate starting position, even if it's not a connecting block
 				toIterate.add(blockPos);
@@ -697,7 +709,7 @@ public class Commons {
 		}
 		
 		Set<BlockPos> toIterateNext;
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 		
 		int range = 0;
 		while(!toIterate.isEmpty() && range < maxRange) {
@@ -712,7 +724,7 @@ public class Commons {
 						final BlockPos blockPosNext = mutableBlockPos.toImmutable();
 						blockPosIterated.add(blockPosNext);
 						
-						final IBlockState blockStateNext = getBlockState_noChunkLoading(blockAccess, mutableBlockPos);
+						final BlockState blockStateNext = getBlockState_noChunkLoading(worldReader, mutableBlockPos);
 						if (blockStateNext != null) {
 							// only iterate connecting blocks
 							if (blockConnecting.contains(blockStateNext.getBlock())) {
@@ -720,7 +732,7 @@ public class Commons {
 							}
 							// export results, even when not connecting
 							if (blockResults.contains(blockStateNext.getBlock())) {
-								blockStatePosResults.add(new BlockStatePos(blockPosNext, blockAccess.getBlockState(blockPosNext)));
+								blockStatePosResults.add(new BlockStatePos(blockPosNext, worldReader.getBlockState(blockPosNext)));
 							}
 						}
 					}
@@ -842,48 +854,48 @@ public class Commons {
 		return yMin + (x - xMin) * (yMax - yMin) / (xMax - xMin);
 	}
 	
-	public static EnumFacing getHorizontalDirectionFromEntity(@Nullable final EntityLivingBase entityLiving) {
+	public static Direction getHorizontalDirectionFromEntity(@Nullable final LivingEntity entityLiving) {
 		if (entityLiving != null) {
 			final int direction = Math.round(entityLiving.rotationYaw / 90.0F) & 3;
 			switch (direction) {
 			default:
 			case 0:
-				return EnumFacing.NORTH;
+				return Direction.NORTH;
 			case 1:
-				return EnumFacing.EAST;
+				return Direction.EAST;
 			case 2:
-				return EnumFacing.SOUTH;
+				return Direction.SOUTH;
 			case 3:
-				return EnumFacing.WEST;
+				return Direction.WEST;
 			}
 		}
-		return EnumFacing.NORTH;
+		return Direction.NORTH;
 	}
 	
-	public static EnumFacing getFacingFromEntity(@Nullable final EntityLivingBase entityLivingBase) {
+	public static Direction getFacingFromEntity(@Nullable final LivingEntity entityLivingBase) {
 		if (entityLivingBase != null) {
-			final EnumFacing facing;
+			final Direction facing;
 			if (entityLivingBase.rotationPitch > 45) {
-				facing = EnumFacing.UP;
+				facing = Direction.UP;
 			} else if (entityLivingBase.rotationPitch < -45) {
-				facing = EnumFacing.DOWN;
+				facing = Direction.DOWN;
 			} else {
 				final int direction = Math.round(entityLivingBase.rotationYaw / 90.0F) & 3;
 				switch (direction) {
 					case 0:
-						facing = EnumFacing.NORTH;
+						facing = Direction.NORTH;
 						break;
 					case 1:
-						facing = EnumFacing.EAST;
+						facing = Direction.EAST;
 						break;
 					case 2:
-						facing = EnumFacing.SOUTH;
+						facing = Direction.SOUTH;
 						break;
 					case 3:
-						facing = EnumFacing.WEST;
+						facing = Direction.WEST;
 						break;
 					default:
-						facing = EnumFacing.NORTH;
+						facing = Direction.NORTH;
 						break;
 				}
 			}
@@ -892,7 +904,7 @@ public class Commons {
 			}
 			return facing;
 		}
-		return EnumFacing.UP;
+		return Direction.UP;
 	}
 	
 	private static final ConcurrentHashMap<String, Long> throttle_timePreviousForKey_ms = new ConcurrentHashMap<>(16);
@@ -964,7 +976,7 @@ public class Commons {
 		}
 	}
 	
-	public static void writeNBTToFile(@Nonnull final String fileName, @Nonnull final NBTTagCompound tagCompound) {
+	public static void writeNBTToFile(@Nonnull final String fileName, @Nonnull final CompoundNBT tagCompound) {
 		if (WarpDrive.isDev) {
 			WarpDrive.logger.info(String.format("writeNBTToFile %s",
 			                                    fileName));
@@ -987,7 +999,7 @@ public class Commons {
 		}
 	}
 	
-	public static NBTTagCompound readNBTFromFile(@Nonnull final String fileName) {
+	public static CompoundNBT readNBTFromFile(@Nonnull final String fileName) {
 		if (WarpDrive.isDev) {
 			WarpDrive.logger.info(String.format("readNBTFromFile %s", fileName));
 		}
@@ -999,7 +1011,7 @@ public class Commons {
 			}
 			
 			final FileInputStream fileinputstream = new FileInputStream(file);
-			final NBTTagCompound tagCompound = CompressedStreamTools.readCompressed(fileinputstream);
+			final CompoundNBT tagCompound = CompressedStreamTools.readCompressed(fileinputstream);
 			
 			fileinputstream.close();
 			
@@ -1011,53 +1023,83 @@ public class Commons {
 		return null;
 	}
 	
-	public static BlockPos createBlockPosFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		final int x = tagCompound.getInteger("x");
-		final int y = tagCompound.getInteger("y");
-		final int z = tagCompound.getInteger("z");
+	@Nonnull
+	public static BlockPos createBlockPosFromNBT(@Nonnull final CompoundNBT tagCompound) {
+		final int x = tagCompound.getInt("x");
+		final int y = tagCompound.getInt("y");
+		final int z = tagCompound.getInt("z");
 		return new BlockPos(x, y, z);
 	}
 	
-	public static NBTTagCompound writeBlockPosToNBT(@Nonnull final BlockPos blockPos, @Nonnull final NBTTagCompound tagCompound) {
-		tagCompound.setInteger("x", blockPos.getX());
-		tagCompound.setInteger("y", blockPos.getY());
-		tagCompound.setInteger("z", blockPos.getZ());
+	@Nonnull
+	public static CompoundNBT writeBlockPosToNBT(@Nonnull final BlockPos blockPos, @Nonnull final CompoundNBT tagCompound) {
+		tagCompound.putInt("x", blockPos.getX());
+		tagCompound.putInt("y", blockPos.getY());
+		tagCompound.putInt("z", blockPos.getZ());
 		return tagCompound;
 	}
 	
-	public static EntityPlayerMP[] getOnlinePlayerByNameOrSelector(@Nonnull final ICommandSender commandSender, final String playerNameOrSelector) {
-		final MinecraftServer server = commandSender.getServer();
+	@Nonnull
+	public static BlockState readBlockStateFromNBT(@Nullable final INBT tag) {
+		if (tag == null) {
+			return Blocks.AIR.getDefaultState();
+		}
+		return BlockState.deserialize(new Dynamic<>(NBTDynamicOps.INSTANCE, tag));
+	}
+	
+	@Nonnull
+	public static INBT writeBlockStateToNBT(@Nonnull final BlockState blockState) {
+		return BlockState.serialize(NBTDynamicOps.INSTANCE, blockState).getValue();
+	}
+	
+	@Nonnull
+	public static BlockState readBlockStateFromString(@Nullable final String string) {
+		if ( string == null
+		  || string.isEmpty() ) {
+			return Blocks.AIR.getDefaultState();
+		}
+		return BlockState.deserialize(new Dynamic<>(JsonOps.INSTANCE, new JsonPrimitive(string)));
+	}
+	
+	@Nonnull
+	public static String writeBlockStateToString(@Nonnull final BlockState blockState) {
+		return BlockState.serialize(JsonOps.INSTANCE, blockState).getValue().toString();
+	}
+	
+	@Nonnull
+	public static ServerPlayerEntity[] getOnlinePlayerByNameOrSelector(@Nonnull final CommandSource commandSource, final String playerNameOrSelector) {
+		final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
 		assert server != null;
-		final List<EntityPlayerMP> onlinePlayers = server.getPlayerList().getPlayers();
-		for (final EntityPlayerMP onlinePlayer : onlinePlayers) {
-			if (onlinePlayer.getName().equalsIgnoreCase(playerNameOrSelector)) {
-				return new EntityPlayerMP[] { onlinePlayer };
+		final List<ServerPlayerEntity> onlinePlayers = server.getPlayerList().getPlayers();
+		for (final ServerPlayerEntity onlinePlayer : onlinePlayers) {
+			if (onlinePlayer.getName().getUnformattedComponentText().equalsIgnoreCase(playerNameOrSelector)) {
+				return new ServerPlayerEntity[] { onlinePlayer };
 			}
 		}
 		
 		try {
-			final List<EntityPlayerMP> entityPlayerMPs_found = EntitySelector.matchEntities(commandSender, playerNameOrSelector, EntityPlayerMP.class);
+			final List<ServerPlayerEntity> entityPlayerMPs_found = null; // TODO 1.15 commands EntitySelector.selectPlayers(commandSource, playerNameOrSelector, ServerPlayerEntity.class);
 			if (!entityPlayerMPs_found.isEmpty()) {
-				return entityPlayerMPs_found.toArray(new EntityPlayerMP[0]);
+				return entityPlayerMPs_found.toArray(new ServerPlayerEntity[0]);
 			}
 		} catch (final CommandException exception) {
 			WarpDrive.logger.error(String.format("Exception from %s with selector %s",
-			                                     commandSender, playerNameOrSelector));
+			                                     commandSource, playerNameOrSelector));
 		}
 		
 		return null;
 	}
 	
 	@Nullable
-	public static EntityPlayerMP getOnlinePlayerByName(final String namePlayer) {
-		final MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+	public static ServerPlayerEntity getOnlinePlayerByName(final String namePlayer) {
+		final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
 		assert server != null;
 		return server.getPlayerList().getPlayerByUsername(namePlayer);
 	}
 	
 	@Nullable
-	public static EntityPlayerMP getOnlinePlayerByUUID(@Nonnull final UUID uuidPlayer) {
-		final MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+	public static ServerPlayerEntity getOnlinePlayerByUUID(@Nonnull final UUID uuidPlayer) {
+		final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
 		assert server != null;
 		return server.getPlayerList().getPlayerByUUID(uuidPlayer);
 	}
@@ -1070,13 +1112,13 @@ public class Commons {
 	public static GameProfile getGameProfile(@Nonnull final UUID uuidPlayer, @Nonnull final String namePlayer,
 	                                         final ProfilePropertiesAvailableCallback profilePropertiesAvailableCallback) {
 		// validate context
-		if ( TileEntitySkull.profileCache == null
-		  || TileEntitySkull.sessionService == null ) {
+		if ( SkullTileEntity.profileCache == null
+		  || SkullTileEntity.sessionService == null ) {
 			return new GameProfile(uuidPlayer, namePlayer);
 		}
 		
 		// check the cache first
-		final GameProfile gameProfileCached = TileEntitySkull.profileCache.getProfileByUUID(uuidPlayer);
+		final GameProfile gameProfileCached = SkullTileEntity.profileCache.getProfileByUUID(uuidPlayer);
 		if ( gameProfileCached != null
 		  && !gameProfileCached.getProperties().isEmpty() ) {
 			if (profilePropertiesAvailableCallback != null) {
@@ -1094,12 +1136,12 @@ public class Commons {
 		// return an empty profile while a thread will query the server
 		uuidGameProfileFilling.add(uuidPlayer);
 		THREAD_POOL.submit(() -> {
-			final GameProfile gameProfileFilled = TileEntitySkull.sessionService.fillProfileProperties(gameProfileEmpty, true);
+			final GameProfile gameProfileFilled = SkullTileEntity.sessionService.fillProfileProperties(gameProfileEmpty, true);
 			
 			// return to main thread before updating our cache and informing caller
-			Minecraft.getMinecraft().addScheduledTask(() -> {
+			enqueueServerWork(() -> {
 				if (gameProfileEmpty != gameProfileFilled) {// when successful, a new object is created, so we might as well use it
-					TileEntitySkull.profileCache.addEntry(gameProfileFilled);
+					SkullTileEntity.profileCache.addEntry(gameProfileFilled);
 				}
 				profilePropertiesAvailableCallback.profilePropertiesAvailable(gameProfileFilled);
 				uuidGameProfileFilling.remove(uuidPlayer);
@@ -1107,6 +1149,19 @@ public class Commons {
 		});
 		
 		return gameProfileEmpty;
+	}
+	
+	// note: following is loosely based on NetworkEvent.enqueueWork
+	public static CompletableFuture<Void> enqueueServerWork(@Nonnull final Runnable runnable) {
+		ThreadTaskExecutor<?> executor = LogicalSidedProvider.WORKQUEUE.get(LogicalSide.SERVER);
+		// Must check ourselves as Minecraft will sometimes delay tasks even when they are received on the client thread
+		// Same logic as ThreadTaskExecutor#runImmediately without the join
+		if (!executor.isOnExecutionThread()) {
+			return executor.deferTask(runnable); // Use the internal method so thread check isn't done twice
+		} else {
+			runnable.run();
+			return CompletableFuture.completedFuture(null);
+		}
 	}
 	
 	public static int colorARGBtoInt(final int alpha, final int red, final int green, final int blue) {
@@ -1123,9 +1178,10 @@ public class Commons {
 		
 		WarpDrive.logger.info(String.format("%s messageToAllPlayersInArea: %s",
 		                                    globalRegionProvider, textComponent.getFormattedText()));
-		final WorldServer worldServer = Commons.getOrCreateWorldServer(globalRegionProvider.getDimension());
-		for (final EntityPlayer entityPlayer : worldServer.playerEntities) {
-			if (!entityPlayer.getEntityBoundingBox().intersects(globalRegionArea)) {
+		final ServerWorld worldServer = Commons.getOrCreateWorldServer(globalRegionProvider.getDimension());
+		assert worldServer != null;
+		for (final PlayerEntity entityPlayer : worldServer.getPlayers()) {
+			if (!entityPlayer.getBoundingBox().intersects(globalRegionArea)) {
 				continue;
 			}
 			
@@ -1134,12 +1190,12 @@ public class Commons {
 	}
 	
 	public static void moveEntity(@Nonnull final Entity entity, @Nonnull final World worldDestination, @Nonnull final Vector3 v3Destination) {
-		if (entity.world.isRemote) {
+		if (entity.world.isRemote()) {
 			WarpDrive.logger.error(String.format("Skipping remote movement for entity %s destination %s",
 			                                     entity, Commons.format(worldDestination, v3Destination) ));
 			return;
 		}
-		if (!entity.isEntityAlive()) {
+		if (!entity.isAlive()) {
 			WarpDrive.logger.warn(String.format("Skipping movement for dead entity %s destination %s",
 			                                    entity, Commons.format(worldDestination, v3Destination) ));
 			return;
@@ -1148,115 +1204,76 @@ public class Commons {
 		// change to another dimension if needed
 		if (worldDestination != entity.world) {
 			final World worldSource = entity.world;
-			final MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
-			final WorldServer worldServerFrom = getOrCreateWorldServer(worldSource.provider.getDimension());
-			final WorldServer worldServerTo   = getOrCreateWorldServer(worldDestination.provider.getDimension());
-			final SpaceTeleporter teleporter = new SpaceTeleporter(worldServerTo, v3Destination);
-			
-			if (entity instanceof EntityPlayerMP) {
-				final EntityPlayerMP player = (EntityPlayerMP) entity;
-				server.getPlayerList().transferPlayerToDimension(player, worldDestination.provider.getDimension(), teleporter);
-				player.invulnerableDimensionChange = true;
-				player.connection.captureCurrentPosition();
-			} else {
-				server.getPlayerList().transferEntityToWorld(entity, worldSource.provider.getDimension(), worldServerFrom, worldServerTo, teleporter);
-			}
+			final ServerWorld worldServerFrom = getOrCreateWorldServer(worldSource.getDimension().getType().getRegistryName());
+			assert worldServerFrom != null;
+			final ServerWorld worldServerTo   = getOrCreateWorldServer(worldDestination.getDimension().getType().getRegistryName());
+			assert worldServerTo != null;
+			entity.changeDimension(worldDestination.getDimension().getType(), new ITeleporter() {
+				@Override
+				public Entity placeEntity(@Nonnull final Entity entityCurrent, final ServerWorld worldCurrent, final ServerWorld worldDestination, final float yaw, Function<Boolean, Entity> repositionEntity) {
+					final Entity entityInDestinationWorld = repositionEntity.apply(false);
+					entityInDestinationWorld.rotationYaw = entityCurrent.rotationYaw;
+					entityInDestinationWorld.rotationPitch = entityCurrent.rotationPitch;
+					entityInDestinationWorld.moveForced(v3Destination.x, v3Destination.y, v3Destination.z);
+					return entityInDestinationWorld;
+				}
+			});
 			
 		} else {// just update position
-			if (entity instanceof EntityPlayerMP) {
-				final EntityPlayerMP player = (EntityPlayerMP) entity;
-				player.setPositionAndUpdate(v3Destination.x, v3Destination.y, v3Destination.z);
-			} else {
-				entity.setLocationAndAngles(v3Destination.x, v3Destination.y, v3Destination.z, entity.rotationYaw, entity.rotationPitch);
-				worldDestination.updateEntityWithOptionalForce(entity, false);
-			}
+			entity.moveForced(v3Destination.x, v3Destination.y, v3Destination.z);
 		}
 	}
 	
-	public static WorldServer getOrCreateWorldServer(final int dimensionId) {
-		WorldServer worldServer = DimensionManager.getWorld(dimensionId);
-		
-		if (worldServer == null) {
-			try {
-				final MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
-				worldServer = server.getWorld(dimensionId);
-				if (worldServer.provider.getDimension() != dimensionId) {
-					throw new RuntimeException(String.format("Inconsistent dimension id %d, expecting %d",
-					                                         worldServer.provider.getDimension(), dimensionId ));
-				}
-			} catch (final Exception exception) {
-				WarpDrive.logger.error(String.format("%s: Failed to initialize dimension %d",
-				                                     exception.getMessage(),
-				                                     dimensionId));
-				if (WarpDrive.isDev) {
-					exception.printStackTrace(WarpDrive.printStreamError);
-				}
-				worldServer = null;
+	@Nullable
+	public static ServerWorld getLoadedWorldServer(final ResourceLocation dimensionId) {
+		final DimensionType dimensionType = DimensionType.byName(dimensionId);
+		if (dimensionType == null) {
+			if (Commons.throttleMe("getLoadedWorldServer " + dimensionId)) {
+				WarpDrive.logger.error(String.format("Failed to initialize dimension %s: missing in dimension type registry",
+				                                     dimensionId ));
 			}
-		}
-		
-		return worldServer;
-	}
-	
-	// server side version of EntityLivingBase.rayTrace
-	private static final double BLOCK_REACH_DISTANCE = 5.0D;    // this is a client side hardcoded value, applicable to creative players
-	public static RayTraceResult getInteractingBlock(@Nonnull final World world, @Nonnull final EntityPlayer entityPlayer) {
-		return getInteractingBlock(world, entityPlayer, BLOCK_REACH_DISTANCE);
-	}
-	public static RayTraceResult getInteractingBlock(@Nonnull final World world, @Nonnull final EntityPlayer entityPlayer, final double distance) {
-		final Vec3d vec3Position = new Vec3d(entityPlayer.posX, entityPlayer.posY + entityPlayer.eyeHeight, entityPlayer.posZ);
-		final Vec3d vec3Look = entityPlayer.getLook(1.0F);
-		final Vec3d vec3Target = vec3Position.add(vec3Look.x * distance, vec3Look.y * distance, vec3Look.z * distance);
-		return world.rayTraceBlocks(vec3Position, vec3Target, false, false, true);
-	}
-	
-	// Fluid registry fix
-	// As of MC1.7.10 CoFH is remapping blocks without updating the fluid registry
-	// This imply that call to FluidRegistry.lookupFluidForBlock() for Water and Lava will return null
-	// We're remapping it using unlocalized names, since those don't change
-	private static HashMap<String, Fluid> fluidByBlockName;
-	
-	public static Fluid fluid_getByBlock(@Nonnull final Block block) {
-		// validate context
-		if (!(block instanceof BlockLiquid)) {
-//			if (WarpDrive.isDev) {
-				WarpDrive.logger.warn(String.format("Invalid lookup for fluid block not derived from BlockLiquid %s",
-				                      block));
-//			}
 			return null;
 		}
 		
-		//  build cache on first call
-		if (fluidByBlockName == null) {
-			final Map<String, Fluid> fluidsRegistry = FluidRegistry.getRegisteredFluids();
-			final HashMap<String, Fluid> map = new HashMap<>(100);
-			for (final Fluid fluid : fluidsRegistry.values()) {
-				final Block blockFluid = fluid.getBlock();
-				if (blockFluid != null) {
-					map.put(blockFluid.getTranslationKey(), fluid);
-				}
-			}
-			fluidByBlockName = map;
-		}
-		// final Fluid fluid = FluidRegistry.lookupFluidForBlock(blockState.getBlock()); @TODO MC1.10 fluid detection
-		return fluidByBlockName.get(block.getTranslationKey());
+		final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
+		return DimensionManager.getWorld(server, dimensionType, false, false);
 	}
 	
-	public static EnumFacing getDirection(final int index) {
+	@Nullable
+	public static ServerWorld getOrCreateWorldServer(final ResourceLocation dimensionId) {
+		final DimensionType dimensionType = DimensionType.byName(dimensionId);
+		if (dimensionType == null) {
+			if (Commons.throttleMe("getOrCreateWorldServer " + dimensionId)) {
+				WarpDrive.logger.error(String.format("Failed to initialize dimension %s: missing in dimension type registry",
+				                                     dimensionId ));
+			}
+			return null;
+		}
+		return getOrCreateWorldServer(dimensionType);
+	}
+	
+	@Nullable
+	public static ServerWorld getOrCreateWorldServer(final DimensionType dimensionType) {
+		final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
+		return DimensionManager.getWorld(server, dimensionType, true, true);
+	}
+	
+	@Nullable
+	public static Direction getDirection(final int index) {
 		if (index < 0 || index > 5) {
 			return null;
 		}
-		return EnumFacing.byIndex(index);
+		return Direction.byIndex(index);
 	}
 	
-	public static int getOrdinal(@Nullable final EnumFacing direction) {
+	public static int getOrdinal(@Nullable final Direction direction) {
 		if (direction == null) {
 			return 6;
 		}
 		return direction.ordinal();
 	}
 	
-	public static boolean isValidCamouflage(@Nullable final IBlockState blockState) {
+	public static boolean isValidCamouflage(@Nullable final BlockState blockState) {
 		// fast check
 		if ( blockState == null
 		  || blockState.getBlock() == Blocks.AIR
@@ -1264,12 +1281,12 @@ public class Commons {
 		  || Dictionary.BLOCKS_NOCAMOUFLAGE.contains(blockState.getBlock()) ) {
 			return false;
 		}
-		
+		/* TODO MC1.15 camouflage support 
 		if (blockState instanceof IExtendedBlockState) {
 			final IExtendedBlockState extendedBlockState = (IExtendedBlockState) blockState;
 			// own camouflage blocks
 			if (extendedBlockState.getUnlistedProperties().containsKey(BlockProperties.CAMOUFLAGE)) {// failed: add it to the fast check
-				extendedBlockState.getValue(BlockProperties.CAMOUFLAGE);
+				extendedBlockState.get(BlockProperties.CAMOUFLAGE);
 				// failed: add it to the fast check
 				WarpDrive.logger.error(String.format("Recursive camouflage block detected for block state %s, updating dictionary with %s = NOCAMOUFLAGE to prevent further errors",
 				                                     blockState,
@@ -1288,36 +1305,37 @@ public class Commons {
 				}
 			}
 		}
+		*/
 		return true;
 	}
 	
-	public static boolean isChunkLoaded(final IBlockAccess blockAccess, final int x, final int z) {
-		if (blockAccess instanceof WorldServer) {
+	public static boolean isChunkLoaded(final IWorldReader worldReader, final BlockPos blockPos) {
+		if (worldReader instanceof ServerWorld) {
 			if (isSafeThread()) {
-				return ChunkHandler.isLoaded((WorldServer) blockAccess, x, 64, z);
+				return ChunkHandler.isLoaded((ServerWorld) worldReader, blockPos.getX(), 64, blockPos.getZ());
 			} else {
-				final ChunkProviderServer chunkProviderServer = ((WorldServer) blockAccess).getChunkProvider();
-				final Chunk chunk = chunkProviderServer.getLoadedChunk(x >> 4, z >> 4);
-				return chunk != null && chunk.isLoaded();
+				final ServerChunkProvider chunkProviderServer = ((ServerWorld) worldReader).getChunkProvider();
+				return chunkProviderServer.canTick(blockPos);
 			}
 		}
 		return true;
 	}
 	
-	public static IBlockState getBlockState_noChunkLoading(@Nullable final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos) {
+	@Nullable
+	public static BlockState getBlockState_noChunkLoading(@Nullable final IWorldReader worldReader, @Nonnull final BlockPos blockPos) {
 		// skip unloaded worlds
-		if (blockAccess == null) {
+		if (worldReader == null) {
 			return null;
 		}
 		// skip unloaded chunks
-		if (!isChunkLoaded(blockAccess, blockPos.getX(), blockPos.getZ())) {
+		if (!isChunkLoaded(worldReader, blockPos)) {
 			return null;
 		}
-		return blockAccess.getBlockState(blockPos);
+		return worldReader.getBlockState(blockPos);
 	}
 	
 	public static boolean isReplaceableOreGen(@Nonnull final World world, @Nonnull final BlockPos blockPos) {
-		final IBlockState blockStateActual = world.getBlockState(blockPos);
+		final BlockState blockStateActual = world.getBlockState(blockPos);
 		final Block blockActual = blockStateActual.getBlock();
 		return blockActual.isReplaceableOreGen(blockStateActual, world, blockPos,
 		                                       blockState -> blockState != null

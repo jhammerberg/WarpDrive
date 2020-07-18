@@ -12,10 +12,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -60,24 +60,25 @@ public class CompatDeepResonance implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classGenericDRBlock.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classGenericDRBlock.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -86,20 +87,20 @@ public class CompatDeepResonance implements IBlockTransformer {
 	private static final int[] rotFacingHorizontal = {  3,  2,  0,  1,  7,  6,  4,  5, 11, 10,  8,  9, 15, 14, 12, 13 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0) {
-			return metadata;
+			return blockState;
 		}
 		
 		// tank faces' input/output mode
-		if (nbtTileEntity != null && nbtTileEntity.hasKey("settings")) {
-			final NBTTagList list = nbtTileEntity.getTagList("settings", NBT.TAG_COMPOUND);
+		if (nbtTileEntity != null && nbtTileEntity.contains("settings")) {
+			final ListNBT list = nbtTileEntity.getList("settings", NBT.TAG_COMPOUND);
 			final Map<Integer, Integer> map = new HashMap<>(6);
-			for (int index = 0; index < list.tagCount(); index++) {
-				final NBTTagCompound tagCompound = list.getCompoundTagAt(index);
-				final int dir = tagCompound.getInteger("dir");
-				final int mode = tagCompound.getInteger("n");
+			for (int index = 0; index < list.size(); index++) {
+				final CompoundNBT tagCompound = list.getCompound(index);
+				final int dir = tagCompound.getInt("dir");
+				final int mode = tagCompound.getInt("n");
 				map.put(rotFacing[dir], mode);
 				switch (rotationSteps) {
 				case 1:
@@ -115,11 +116,11 @@ public class CompatDeepResonance implements IBlockTransformer {
 					break;
 				}
 			}
-			for (int index = 0; index < list.tagCount(); index++) {
-				final NBTTagCompound tagCompound = list.getCompoundTagAt(index);
-				final int dir = tagCompound.getInteger("dir");
+			for (int index = 0; index < list.size(); index++) {
+				final CompoundNBT tagCompound = list.getCompound(index);
+				final int dir = tagCompound.getInt("dir");
 				final int mode = map.get(dir);
-				tagCompound.setInteger("n", mode);
+				tagCompound.putInt("n", mode);
 			}
 		}
 		
@@ -132,11 +133,11 @@ public class CompatDeepResonance implements IBlockTransformer {
 			} else {
 				WarpDrive.logger.error(String.format("Block %s has invalid non-Enum return value to getRotationType: %s",
 				                                     block.getRegistryName(), object));
-				return metadata;
+				return blockState;
 			}
 		} catch (final IllegalAccessException | InvocationTargetException exception) {
 			exception.printStackTrace();
-			return metadata;
+			return blockState;
 		}
 		
 		// horizontal facing: 0 3 1 2 / 4 7 5 6 / 8 11 9 10 / 12 15 13 14
@@ -149,7 +150,7 @@ public class CompatDeepResonance implements IBlockTransformer {
 			case 3:
 				return rotFacingHorizontal[rotFacingHorizontal[rotFacingHorizontal[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -163,7 +164,7 @@ public class CompatDeepResonance implements IBlockTransformer {
 			case 3:
 				return rotFacing[rotFacing[rotFacing[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -172,13 +173,13 @@ public class CompatDeepResonance implements IBlockTransformer {
 			                                     enumRotationType, block.getRegistryName()));
 			
 		}
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

@@ -12,13 +12,16 @@ import cr0s.warpdrive.world.WorldGenStation;
 import javax.annotation.Nonnull;
 
 import net.minecraft.command.ICommandSender;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
+
+import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.thread.EffectiveSide;
 
 public class CommandGenerate extends AbstractCommand {
 	
@@ -35,25 +38,25 @@ public class CommandGenerate extends AbstractCommand {
 	
 	@Nonnull
 	@Override
-	public String getUsage(@Nonnull final ICommandSender commandSender) {
+	public String getUsage(@Nonnull final ICommandSource commandSource) {
 		return String.format("/%s <structure group> (<structure name>)\nStructure groups are ship, station, astfield, %s",
 		                     getName(),
 		                     StructureManager.getGroups().replace("\"", "") );
 	}
 	
 	@Override
-	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSender commandSender, @Nonnull final String[] args) {
-		final World world = commandSender.getEntityWorld();
-		BlockPos blockPos = commandSender.getPosition();
+	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSource commandSource, @Nonnull final String[] args) {
+		final World world = commandSource.getEntityWorld();
+		BlockPos blockPos = commandSource.getPosition();
 		
 		//noinspection ConstantConditions
 		if (world == null || blockPos == null) {
-			Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("warpdrive.command.invalid_location").setStyle(Commons.getStyleWarning())));
+			Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.invalid_location").setStyle(Commons.getStyleWarning())));
 			return;
 		}
 		
 		if (args.length <= 0 || args.length == 3 || args.length > 5) {
-			Commons.addChatMessage(commandSender, new TextComponentString(getUsage(commandSender)));
+			Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
 			return;
 		}
 		
@@ -68,39 +71,39 @@ public class CommandGenerate extends AbstractCommand {
 		
 		// Reject command, if player is not in space
 		if (!CelestialObjectManager.isInSpace(world, blockPos.getX(), blockPos.getZ()) && (!"ship".equals(structure))) {
-			Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("warpdrive.command.only_in_space").setStyle(Commons.getStyleWarning())));
+			Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.only_in_space").setStyle(Commons.getStyleWarning())));
 			return;
 		}
 		
-		if (FMLCommonHandler.instance().getEffectiveSide().isServer()) {
+		if (EffectiveSide.get() == LogicalSide.SERVER) {
 			final String name = (args.length > 1) ? args[1] : null;
 			switch (structure) {
 			case "":
-				Commons.addChatMessage(commandSender, new TextComponentString(getUsage(commandSender)));
+				Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
 				break;
 				
 			case "ship":
 				WarpDrive.logger.info(String.format("/generate: generating NPC ship %s",
 				                                    Commons.format(world, blockPos)));
-				new WorldGenSmallShip(false, true).generate(world, world.rand, blockPos);
+				new WorldGenSmallShip(false, true).place(world, world.rand, blockPos);
 				break;
 				
 			case "station":
 				WarpDrive.logger.info(String.format("/generate: generating station %s",
 				                                    Commons.format(world, blockPos)));
-				new WorldGenStation(false).generate(world, world.rand, blockPos);
+				new WorldGenStation(false).place(world, world.rand, blockPos);
 				break;
 				
 			case "astfield":
-				generateStructure(commandSender, EnumStructureGroup.ASTEROIDS_FIELDS.getName(), name, world, blockPos);
+				generateStructure(commandSource, EnumStructureGroup.ASTEROIDS_FIELDS.getName(), name, world, blockPos);
 				break;
 				
 			case "gascloud":
-				generateStructure(commandSender, EnumStructureGroup.GAS_CLOUDS.getName(), name, world, blockPos);
+				generateStructure(commandSource, EnumStructureGroup.GAS_CLOUDS.getName(), name, world, blockPos);
 				break;
 				
 			default:
-				generateStructure(commandSender, structure, name, world, blockPos);
+				generateStructure(commandSource, structure, name, world, blockPos);
 				break;
 			}
 		}
@@ -118,25 +121,25 @@ public class CommandGenerate extends AbstractCommand {
 		}
 	}
 	
-	private void generateStructure(final ICommandSender commandSender, final String group, final String name, final World world, final BlockPos blockPos) {
+	private void generateStructure(final ICommandSource commandSource, final String group, final String name, final World world, final BlockPos blockPos) {
 		final AbstractStructure structure = StructureManager.getStructure(world.rand, group, name);
 		if (structure == null) {
-			Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("Invalid %1$s:%2$s, try one of the followings:\n%3$s",
+			Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("Invalid %1$s:%2$s, try one of the followings:\n%3$s",
 			                                                                                             group, name, StructureManager.getStructureNames(group)).setStyle(Commons.getStyleWarning())));
 		} else {
 			WarpDrive.logger.info(String.format("/generate: Generating %s:%s %s",
 			                                    group, structure.getName(), Commons.format(world, blockPos)));
-			structure.generate(world, world.rand, blockPos);
+			structure.place(world, world.rand, blockPos);
 			
 			// do a weak attempt to extract player (ideally, it should be delayed after generation, but that's too complicated)
-			if (commandSender instanceof EntityPlayerMP) {
+			if (commandSource instanceof ServerPlayerEntity) {
 				int newY = blockPos.getY() + 1;
 				while ( newY < 256
 				     && !world.isAirBlock(new BlockPos(blockPos.getX(), newY, blockPos.getZ())) ) {
 					newY++;
 				}
-				final EntityPlayerMP entityPlayerMP = (EntityPlayerMP) commandSender;
-				entityPlayerMP.setPosition(entityPlayerMP.posX, newY, entityPlayerMP.posZ);
+				final ServerPlayerEntity entityServerPlayer = (ServerPlayerEntity) commandSource;
+				entityServerPlayer.setPosition(entityServerPlayer.getPosX(), newY, entityServerPlayer.getPosZ());
 			}
 		}
 	}

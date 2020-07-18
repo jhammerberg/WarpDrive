@@ -6,30 +6,31 @@ import cr0s.warpdrive.data.CelestialObject;
 import cr0s.warpdrive.data.CelestialObjectManager;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.client.gui.AbstractGui;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.MathHelper;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
 
-@SideOnly(Side.CLIENT)
+import com.mojang.blaze3d.systems.RenderSystem;
+
+@OnlyIn(Dist.CLIENT)
 public class RenderOverlayLocation {
 	
-	private static final Minecraft minecraft = Minecraft.getMinecraft();
+	private static final Minecraft minecraft = Minecraft.getInstance();
 	
 	private void renderLocation(final int widthScreen, final int heightScreen) {
 		// get player
-		final EntityPlayer entityPlayer = minecraft.player;
+		final PlayerEntity entityPlayer = minecraft.player;
 		if (entityPlayer == null) {
 			return;
 		}
-		final int x = MathHelper.floor(entityPlayer.posX);
-		final int z = MathHelper.floor(entityPlayer.posZ);
+		final int x = MathHelper.floor(entityPlayer.getPosX());
+		final int z = MathHelper.floor(entityPlayer.getPosZ());
 		
 		// get celestial object
 		String name = Commons.format(entityPlayer.world);
@@ -43,8 +44,8 @@ public class RenderOverlayLocation {
 		}
 		
 		// start rendering
-		GlStateManager.enableBlend();
-		minecraft.getTextureManager().bindTexture(Gui.ICONS);
+		RenderSystem.enableBlend();
+		minecraft.getTextureManager().bindTexture(AbstractGui.GUI_ICONS_LOCATION);
 		
 		// show current location name & description
 		RenderCommons.drawText(widthScreen, heightScreen, name, description,
@@ -63,13 +64,13 @@ public class RenderOverlayLocation {
 		// @TODO: show orbiting planet?
 		
 		// close rendering
-		// (done by GlStateManager & TextureManager)
+		// (done by RenderSystem & TextureManager)
 	}
 	
 	@SubscribeEvent
 	public void onRender(final RenderGameOverlayEvent.Pre event) {
 		if (event.getType() == ElementType.HOTBAR) {
-			renderLocation(event.getResolution().getScaledWidth(), event.getResolution().getScaledHeight());
+			renderLocation(event.getWindow().getScaledWidth(), event.getWindow().getScaledHeight());
 		}
 	}
 }

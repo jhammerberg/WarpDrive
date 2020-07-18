@@ -10,12 +10,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSidedProvider;
 
 public abstract class AbstractSequencer {
 	
@@ -32,7 +33,7 @@ public abstract class AbstractSequencer {
 		}
 		for (final Iterator<Entry<AbstractSequencer, Boolean>> iterator = sequencers.entrySet().iterator(); iterator.hasNext(); ) {
 			final Entry<AbstractSequencer, Boolean> entry = iterator.next();
-			final boolean doContinue = entry.getKey().onUpdate();
+			final boolean doContinue = entry.getKey().tick();
 			if (!doContinue) {
 				iterator.remove();
 			}
@@ -47,12 +48,12 @@ public abstract class AbstractSequencer {
 		globalRegionLocks.add(globalRegion);
 		
 		// ensure locked players are no longer inside GUIs
-		final MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+		final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
 		assert server != null;
-		for(final EntityPlayerMP entityPlayerMP : server.getPlayerList().getPlayers()) {
-			if (globalRegion.contains(entityPlayerMP.getPosition())) {
-				entityPlayerMP.closeScreen();
-				entityPlayerMP.closeContainer();
+		for(final ServerPlayerEntity entityServerPlayer : server.getPlayerList().getPlayers()) {
+			if (globalRegion.contains(entityServerPlayer.getPosition())) {
+				entityServerPlayer.closeScreen();
+				entityServerPlayer.closeContainer();
 			}
 		}
 		
@@ -84,10 +85,10 @@ public abstract class AbstractSequencer {
 		sequencers.put(this, false);
 	}
 	
-	abstract public boolean onUpdate();
+	abstract public boolean tick();
 
-	abstract protected void readFromNBT(@Nonnull final NBTTagCompound tagCompound);
+	abstract protected void read(@Nonnull final CompoundNBT tagCompound);
 
-	abstract protected NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound);
+	abstract protected CompoundNBT write(@Nonnull final CompoundNBT tagCompound);
 	
 }

@@ -6,9 +6,9 @@ import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -38,28 +38,29 @@ public class CompatCustomNPCs implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockBorder.isInstance(block)
-		    || classBlockBuilder.isInstance(block)
-		    || classBlockCarpentryBench.isInstance(block)
-		    || classBlockMailbox.isInstance(block)
-		    || classBlockNpcRedstone.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockBorder.isInstance(blockState.getBlock())
+		    || classBlockBuilder.isInstance(blockState.getBlock())
+		    || classBlockCarpentryBench.isInstance(blockState.getBlock())
+		    || classBlockMailbox.isInstance(blockState.getBlock())
+		    || classBlockNpcRedstone.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -95,24 +96,24 @@ public class CompatCustomNPCs implements IBlockTransformer {
 	private static final int[]   mrotMailbox            = {  1,  2,  3,  0,  5,  6,  7,  4,  9, 10, 11,  8, 12, 13, 14, 15 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0) {
-			return metadata;
+			return blockState;
 		}
 		
 		if ( nbtTileEntity != null
-		  && nbtTileEntity.hasKey("BorderRotation") ) {
-			final int BorderRotation = nbtTileEntity.getInteger("BorderRotation");
+		  && nbtTileEntity.contains("BorderRotation") ) {
+			final int BorderRotation = nbtTileEntity.getInt("BorderRotation");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setInteger("BorderRotation", mrot4[BorderRotation]);
+				nbtTileEntity.putInt("BorderRotation", mrot4[BorderRotation]);
 				break;
 			case 2:
-				nbtTileEntity.setInteger("BorderRotation", mrot4[mrot4[BorderRotation]]);
+				nbtTileEntity.putInt("BorderRotation", mrot4[mrot4[BorderRotation]]);
 				break;
 			case 3:
-				nbtTileEntity.setInteger("BorderRotation", mrot4[mrot4[mrot4[BorderRotation]]]);
+				nbtTileEntity.putInt("BorderRotation", mrot4[mrot4[mrot4[BorderRotation]]]);
 				break;
 			default:
 				break;
@@ -120,18 +121,18 @@ public class CompatCustomNPCs implements IBlockTransformer {
 		}
 		
 		if ( nbtTileEntity != null
-		  && nbtTileEntity.hasKey("BlockOnRangeX") ) {
-			final int BlockOnRangeX = nbtTileEntity.getInteger("BlockOnRangeX");
-			final int BlockOnRangeZ = nbtTileEntity.getInteger("BlockOnRangeZ");
-			final int BlockOffRangeX = nbtTileEntity.getInteger("BlockOffRangeX");
-			final int BlockOffRangeZ = nbtTileEntity.getInteger("BlockOffRangeZ");
+		  && nbtTileEntity.contains("BlockOnRangeX") ) {
+			final int BlockOnRangeX = nbtTileEntity.getInt("BlockOnRangeX");
+			final int BlockOnRangeZ = nbtTileEntity.getInt("BlockOnRangeZ");
+			final int BlockOffRangeX = nbtTileEntity.getInt("BlockOffRangeX");
+			final int BlockOffRangeZ = nbtTileEntity.getInt("BlockOffRangeZ");
 			switch (rotationSteps) {
 			case 1:
 			case 3:
-				nbtTileEntity.setInteger("BlockOnRangeX", BlockOnRangeZ);
-				nbtTileEntity.setInteger("BlockOnRangeZ", BlockOnRangeX);
-				nbtTileEntity.setInteger("BlockOffRangeX", BlockOffRangeZ);
-				nbtTileEntity.setInteger("BlockOffRangeZ", BlockOffRangeX);
+				nbtTileEntity.putInt("BlockOnRangeX", BlockOnRangeZ);
+				nbtTileEntity.putInt("BlockOnRangeZ", BlockOnRangeX);
+				nbtTileEntity.putInt("BlockOffRangeX", BlockOffRangeZ);
+				nbtTileEntity.putInt("BlockOffRangeZ", BlockOffRangeX);
 				break;
 				
 			default:
@@ -140,9 +141,9 @@ public class CompatCustomNPCs implements IBlockTransformer {
 		}
 		
 		
-		if ( classBlockBorder.isInstance(block)
-		  || classBlockBuilder.isInstance(block)
-		  || classBlockCarpentryBench.isInstance(block) ) {
+		if ( classBlockBorder.isInstance(blockState.getBlock())
+		  || classBlockBuilder.isInstance(blockState.getBlock())
+		  || classBlockCarpentryBench.isInstance(blockState.getBlock()) ) {
 			switch (rotationSteps) {
 			case 1:
 				return mrot4[metadata];
@@ -151,10 +152,10 @@ public class CompatCustomNPCs implements IBlockTransformer {
 			case 3:
 				return mrot4[mrot4[mrot4[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
-		if (classBlockMailbox.isInstance(block)) {
+		if (classBlockMailbox.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotMailbox[metadata];
@@ -163,17 +164,17 @@ public class CompatCustomNPCs implements IBlockTransformer {
 			case 3:
 				return mrotMailbox[mrotMailbox[mrotMailbox[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

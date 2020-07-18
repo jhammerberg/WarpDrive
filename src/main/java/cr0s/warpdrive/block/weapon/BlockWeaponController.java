@@ -5,23 +5,21 @@ import cr0s.warpdrive.data.EnumTier;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.block.material.Material;
+import net.minecraft.block.BlockState;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.World;
+import net.minecraft.world.IBlockReader;
 
 public class BlockWeaponController extends BlockAbstractContainer {
 	
-	public BlockWeaponController(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier, Material.IRON);
-		
-		setHardness(50.0F);
-		setResistance(20.0F * 5 / 3);
-		setTranslationKey("warpdrive.weapon.weapon_controller");
+	public BlockWeaponController(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(getDefaultProperties(null)
+		      .hardnessAndResistance(50.0F, 20.0F),
+		      registryName, enumTier);
 	}
 
 	@Nonnull
 	@Override
-	public TileEntity createNewTileEntity(@Nonnull final World world, final int metadata) {
+	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
 		return new TileEntityWeaponController();
 	}
 }

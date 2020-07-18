@@ -9,39 +9,46 @@ import cr0s.warpdrive.data.EnumTier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.inventory.EntityEquipmentSlot;
-import net.minecraft.item.ItemArmor;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.item.ArmorItem;
+import net.minecraft.item.IArmorMaterial;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Rarity;
 
-import net.minecraftforge.common.IRarity;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-public class ItemWarpArmor extends ItemArmor implements IItemBase, IBreathingHelmet {
+public class ItemWarpArmor extends ArmorItem implements IItemBase, IBreathingHelmet {
 	
 	public static final String[] suffixes = {  "boots", "leggings", "chestplate", "helmet" };
 	
 	protected final EnumTier enumTier;
+	protected String translationKey;
 	
-	public ItemWarpArmor(final String registryName, final EnumTier enumTier,
-	                     final ArmorMaterial armorMaterial, final int renderIndex, final EntityEquipmentSlot entityEquipmentSlot) {
-		super(armorMaterial, renderIndex, entityEquipmentSlot);
+	public ItemWarpArmor(@Nonnull final String registryName, @Nonnull final EnumTier enumTier,
+	                     @Nonnull final IArmorMaterial armorMaterial, @Nonnull final EquipmentSlotType entityEquipmentSlot) {
+		super(armorMaterial,
+		      entityEquipmentSlot,
+		      new Item.Properties()
+				      .group(WarpDrive.itemGroupMain)
+				      .maxDamage(0)
+				      .maxStackSize(1) );
 		
 		this.enumTier = enumTier;
-		setTranslationKey("warpdrive.armor." + enumTier.getName() + "." + suffixes[entityEquipmentSlot.getIndex()]);
+		translationKey = "warpdrive.armor." + enumTier.getName() + "." + suffixes[entityEquipmentSlot.getIndex()];
 		setRegistryName(registryName);
-		setCreativeTab(WarpDrive.creativeTabMain);
 		WarpDrive.register(this);
 	}
 	
 	@Nonnull
 	@Override
-	public String getArmorTexture(@Nonnull final ItemStack itemStack, final Entity entity, final EntityEquipmentSlot slot, @Nullable final String renderingType) {
-		return "warpdrive:textures/armor/warp_armor_" + (armorType == EntityEquipmentSlot.LEGS ? 2 : 1) + ".png";
+	public String getArmorTexture(@Nonnull final ItemStack itemStack, final Entity entity, final EquipmentSlotType slot, @Nullable final String renderingType) {
+		return "warpdrive:textures/armor/warp_armor_" + (slot == EquipmentSlotType.LEGS ? 2 : 1) + ".png";
 	}
 	
 	@Nonnull
@@ -52,29 +59,29 @@ public class ItemWarpArmor extends ItemArmor implements IItemBase, IBreathingHel
 	
 	@Nonnull
 	@Override
-	public IRarity getForgeRarity(@Nonnull final ItemStack itemStack) {
-		return getTier(itemStack).getForgeRarity();
+	public Rarity getRarity(@Nonnull final ItemStack itemStack) {
+		return getTier(itemStack).getRarity();
 	}
 	
 	@Override
-	public void onEntityExpireEvent(final EntityItem entityItem, final ItemStack itemStack) {
+	public void onEntityExpireEvent(final ItemEntity entityItem, final ItemStack itemStack) {
 	}
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	@Override
 	public void modelInitialisation() {
 		ClientProxy.modelInitialisation(this);
 	}
 	
 	@Nonnull
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	@Override
 	public ModelResourceLocation getModelResourceLocation(final ItemStack itemStack) {
 		return ClientProxy.getModelResourceLocation(itemStack);
 	}
 	
 	@Override
-	public boolean canBreath(final EntityLivingBase entityLivingBase) {
-		return armorType == EntityEquipmentSlot.HEAD;
+	public boolean canBreath(final LivingEntity entityLivingBase) {
+		return slot == EquipmentSlotType.HEAD;
 	}
 }

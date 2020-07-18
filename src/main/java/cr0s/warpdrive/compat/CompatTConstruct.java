@@ -7,10 +7,10 @@ import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -67,42 +67,43 @@ public class CompatTConstruct implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockChannel.isInstance(block)
-		    || classBlockFaucet.isInstance(block)
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockChannel.isInstance(blockState.getBlock())
+		    || classBlockFaucet.isInstance(blockState.getBlock())
 		       
-		    || classBlockCasting.isInstance(block)
-		    || classBlockToolForge.isInstance(block)
-		    || classBlockToolTable.isInstance(block)
-		    || classBlockRack.isInstance(block)
+		    || classBlockCasting.isInstance(blockState.getBlock())
+		    || classBlockToolForge.isInstance(blockState.getBlock())
+		    || classBlockToolTable.isInstance(blockState.getBlock())
+		    || classBlockRack.isInstance(blockState.getBlock())
 		       
-			|| classBlockSearedFurnaceController.isInstance(block)
-		    || classBlockSmelteryController.isInstance(block)
-		    || classBlockTinkerTankController.isInstance(block)
+			|| classBlockSearedFurnaceController.isInstance(blockState.getBlock())
+		    || classBlockSmelteryController.isInstance(blockState.getBlock())
+		    || classBlockTinkerTankController.isInstance(blockState.getBlock())
 		       
-		    || classBlockSlimeChannel.isInstance(block)
+		    || classBlockSlimeChannel.isInstance(blockState.getBlock())
 		       
-		    || classBlockEnumSmeltery.isInstance(block)
-//		    || classBlockSmelteryIO.isInstance(block)       (derived from classBlockEnumSmeltery, no point to test it here)
+		    || classBlockEnumSmeltery.isInstance(blockState.getBlock())
+//		    || classBlockSmelteryIO.isInstance(blockState.getBlock())       (derived from classBlockEnumSmeltery, no point to test it here)
 		       
-		    || classBlockStairsBase.isInstance(block)
-		    || classEnumBlockSlab.isInstance(block);
+		    || classBlockStairsBase.isInstance(blockState.getBlock())
+		    || classEnumBlockSlab.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -213,27 +214,27 @@ public class CompatTConstruct implements IBlockTransformer {
 	private static final int[]  rotSlimeDirection  = {  2,  3,  4,  5,  6,  7,  0,  1,  8,  9, 10, 11, 12, 13, 14, 15 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		
 		// *** NBT transformation
 		if (nbtTileEntity != null) {
 			// ForgeData compound
-			if (nbtTileEntity.hasKey("ForgeData", NBT.TAG_COMPOUND)) {
-				final NBTTagCompound nbtForgeData = nbtTileEntity.getCompoundTag("ForgeData");
+			if (nbtTileEntity.contains("ForgeData", NBT.TAG_COMPOUND)) {
+				final CompoundNBT nbtForgeData = nbtTileEntity.getCompound("ForgeData");
 				
 				// facing from Tables, Castings and Racks is just facing
-				if (nbtForgeData.hasKey("facing")) {
-					final int facing = nbtForgeData.getInteger("facing");
+				if (nbtForgeData.contains("facing")) {
+					final int facing = nbtForgeData.getInt("facing");
 					switch (rotationSteps) {
 					case 1:
-						nbtForgeData.setInteger("facing", mrotFacing[facing]);
+						nbtForgeData.putInt("facing", mrotFacing[facing]);
 						break;
 					case 2:
-						nbtForgeData.setInteger("facing", mrotFacing[mrotFacing[facing]]);
+						nbtForgeData.putInt("facing", mrotFacing[mrotFacing[facing]]);
 						break;
 					case 3:
-						nbtForgeData.setInteger("facing", mrotFacing[mrotFacing[mrotFacing[facing]]]);
+						nbtForgeData.putInt("facing", mrotFacing[mrotFacing[mrotFacing[facing]]]);
 						break;
 					default:
 						break;
@@ -241,18 +242,18 @@ public class CompatTConstruct implements IBlockTransformer {
 				}
 				
 				// side from slime channels is just facing
-				if ( nbtForgeData.hasKey("side")
-				  && nbtForgeData.hasKey("direction") ) {
-					final int side = nbtForgeData.getInteger("side");
+				if ( nbtForgeData.contains("side")
+				  && nbtForgeData.contains("direction") ) {
+					final int side = nbtForgeData.getInt("side");
 					switch (rotationSteps) {
 					case 1:
-						nbtForgeData.setInteger("side", mrotFacing[side]);
+						nbtForgeData.putInt("side", mrotFacing[side]);
 						break;
 					case 2:
-						nbtForgeData.setInteger("side", mrotFacing[mrotFacing[side]]);
+						nbtForgeData.putInt("side", mrotFacing[mrotFacing[side]]);
 						break;
 					case 3:
-						nbtForgeData.setInteger("side", mrotFacing[mrotFacing[mrotFacing[side]]]);
+						nbtForgeData.putInt("side", mrotFacing[mrotFacing[mrotFacing[side]]]);
 						break;
 					default:
 						break;
@@ -260,16 +261,16 @@ public class CompatTConstruct implements IBlockTransformer {
 					
 					// direction from slime channels is power and horizontal rotation
 					if (side == 0 || side == 1) {
-						final int direction = nbtForgeData.getInteger("direction");
+						final int direction = nbtForgeData.getInt("direction");
 						switch (rotationSteps) {
 						case 1:
-							nbtForgeData.setInteger("direction", rotSlimeDirection[direction]);
+							nbtForgeData.putInt("direction", rotSlimeDirection[direction]);
 							break;
 						case 2:
-							nbtForgeData.setInteger("direction", rotSlimeDirection[rotSlimeDirection[direction]]);
+							nbtForgeData.putInt("direction", rotSlimeDirection[rotSlimeDirection[direction]]);
 							break;
 						case 3:
-							nbtForgeData.setInteger("direction", rotSlimeDirection[rotSlimeDirection[rotSlimeDirection[direction]]]);
+							nbtForgeData.putInt("direction", rotSlimeDirection[rotSlimeDirection[rotSlimeDirection[direction]]]);
 							break;
 						default:
 							break;
@@ -279,28 +280,28 @@ public class CompatTConstruct implements IBlockTransformer {
 			}
 			
 			// Channel connections
-			if (nbtTileEntity.hasKey("connections")) {
+			if (nbtTileEntity.contains("connections")) {
 				final byte[] bytesOldConnections = nbtTileEntity.getByteArray("connections");
 				final byte[] bytesNewConnections = bytesOldConnections.clone();
 				for (int sideOld = 0; sideOld < 4; sideOld++) {
 					final byte byteConnection = bytesOldConnections[sideOld];
 					bytesNewConnections[(sideOld + rotationSteps) % 4] = byteConnection;
 				}
-				nbtTileEntity.setByteArray("connections", bytesNewConnections);
+				nbtTileEntity.putByteArray("connections", bytesNewConnections);
 			}
 			
 			// smeltery components
 			if (nbtTileEntity.getBoolean("hasMaster")) {// (defined and non-zero means there's a master/controller)
-				if ( nbtTileEntity.hasKey("xCenter", NBT.TAG_INT)
-				  && nbtTileEntity.hasKey("yCenter", NBT.TAG_INT) 
-				  && nbtTileEntity.hasKey("zCenter", NBT.TAG_INT) ) {
+				if ( nbtTileEntity.contains("xCenter", NBT.TAG_INT)
+				  && nbtTileEntity.contains("yCenter", NBT.TAG_INT) 
+				  && nbtTileEntity.contains("zCenter", NBT.TAG_INT) ) {
 					final BlockPos blockPosCenter = transformation.apply(
-							nbtTileEntity.getInteger("xCenter"),
-							nbtTileEntity.getInteger("yCenter"),
-							nbtTileEntity.getInteger("zCenter") );
-					nbtTileEntity.setInteger("xCenter", blockPosCenter.getX());
-					nbtTileEntity.setInteger("yCenter", blockPosCenter.getY());
-					nbtTileEntity.setInteger("zCenter", blockPosCenter.getZ());
+							nbtTileEntity.getInt("xCenter"),
+							nbtTileEntity.getInt("yCenter"),
+							nbtTileEntity.getInt("zCenter") );
+					nbtTileEntity.putInt("xCenter", blockPosCenter.getX());
+					nbtTileEntity.putInt("yCenter", blockPosCenter.getY());
+					nbtTileEntity.putInt("zCenter", blockPosCenter.getZ());
 				} else {
 					WarpDrive.logger.warn(String.format("Missing center coordinates for 'smeltery' component %s:%s %s",
 					                                    block, metadata, nbtTileEntity));
@@ -310,32 +311,32 @@ public class CompatTConstruct implements IBlockTransformer {
 			// controllers
 			if (nbtTileEntity.getBoolean("active")) {// (defined and non-zero means the structure is valid)
 				// mandatory min/max position of the inner volume
-				if ( nbtTileEntity.hasKey("minPos", NBT.TAG_COMPOUND)
-				  && nbtTileEntity.hasKey("maxPos", NBT.TAG_COMPOUND) ) {
-					final NBTTagCompound nbtMinOldPos = nbtTileEntity.getCompoundTag("minPos");
-					final NBTTagCompound nbtMaxOldPos = nbtTileEntity.getCompoundTag("maxPos");
+				if ( nbtTileEntity.contains("minPos", NBT.TAG_COMPOUND)
+				  && nbtTileEntity.contains("maxPos", NBT.TAG_COMPOUND) ) {
+					final CompoundNBT nbtMinOldPos = nbtTileEntity.getCompound("minPos");
+					final CompoundNBT nbtMaxOldPos = nbtTileEntity.getCompound("maxPos");
 					
-					if ( nbtMinOldPos.hasKey("X", NBT.TAG_INT)
-				      && nbtMinOldPos.hasKey("Y", NBT.TAG_INT)
-				      && nbtMinOldPos.hasKey("Z", NBT.TAG_INT)
-					  && nbtMaxOldPos.hasKey("X", NBT.TAG_INT)
-					  && nbtMaxOldPos.hasKey("Y", NBT.TAG_INT)
-					  && nbtMaxOldPos.hasKey("Z", NBT.TAG_INT) ) {
+					if ( nbtMinOldPos.contains("X", NBT.TAG_INT)
+				      && nbtMinOldPos.contains("Y", NBT.TAG_INT)
+				      && nbtMinOldPos.contains("Z", NBT.TAG_INT)
+					  && nbtMaxOldPos.contains("X", NBT.TAG_INT)
+					  && nbtMaxOldPos.contains("Y", NBT.TAG_INT)
+					  && nbtMaxOldPos.contains("Z", NBT.TAG_INT) ) {
 						final BlockPos blockPosNew1 = transformation.apply(
-								nbtMinOldPos.getInteger("X"),
-								nbtMinOldPos.getInteger("Y"),
-								nbtMinOldPos.getInteger("Z") );
+								nbtMinOldPos.getInt("X"),
+								nbtMinOldPos.getInt("Y"),
+								nbtMinOldPos.getInt("Z") );
 						final BlockPos blockPosNew2 = transformation.apply(
-								nbtMaxOldPos.getInteger("X"),
-								nbtMaxOldPos.getInteger("Y"),
-								nbtMaxOldPos.getInteger("Z") );
+								nbtMaxOldPos.getInt("X"),
+								nbtMaxOldPos.getInt("Y"),
+								nbtMaxOldPos.getInt("Z") );
 						
-						nbtMinOldPos.setInteger("X", Math.min(blockPosNew1.getX(), blockPosNew2.getX()));
-						nbtMinOldPos.setInteger("Y", Math.min(blockPosNew1.getY(), blockPosNew2.getY()));
-						nbtMinOldPos.setInteger("Z", Math.min(blockPosNew1.getZ(), blockPosNew2.getZ()));
-						nbtMaxOldPos.setInteger("X", Math.max(blockPosNew1.getX(), blockPosNew2.getX()));
-						nbtMaxOldPos.setInteger("Y", Math.max(blockPosNew1.getY(), blockPosNew2.getY()));
-						nbtMaxOldPos.setInteger("Z", Math.max(blockPosNew1.getZ(), blockPosNew2.getZ()));
+						nbtMinOldPos.putInt("X", Math.min(blockPosNew1.getX(), blockPosNew2.getX()));
+						nbtMinOldPos.putInt("Y", Math.min(blockPosNew1.getY(), blockPosNew2.getY()));
+						nbtMinOldPos.putInt("Z", Math.min(blockPosNew1.getZ(), blockPosNew2.getZ()));
+						nbtMaxOldPos.putInt("X", Math.max(blockPosNew1.getX(), blockPosNew2.getX()));
+						nbtMaxOldPos.putInt("Y", Math.max(blockPosNew1.getY(), blockPosNew2.getY()));
+						nbtMaxOldPos.putInt("Z", Math.max(blockPosNew1.getZ(), blockPosNew2.getZ()));
 					} else {
 						WarpDrive.logger.warn(String.format("Missing X/Y/Z components for inner volume of controller %s:%s %s",
 						                                    block, metadata, nbtTileEntity));
@@ -346,22 +347,22 @@ public class CompatTConstruct implements IBlockTransformer {
 				}
 				
 				// optional list of tank's absolute position
-				if (nbtTileEntity.hasKey("tanks", NBT.TAG_LIST)) {
-					final NBTTagList listTanks = nbtTileEntity.getTagList("tanks", NBT.TAG_COMPOUND);
-					for (int index = 0; index < listTanks.tagCount(); index++) {
-						final NBTTagCompound nbtValue = (NBTTagCompound) listTanks.get(index);
+				if (nbtTileEntity.contains("tanks", NBT.TAG_LIST)) {
+					final ListNBT listTanks = nbtTileEntity.getList("tanks", NBT.TAG_COMPOUND);
+					for (int index = 0; index < listTanks.size(); index++) {
+						final CompoundNBT nbtValue = (CompoundNBT) listTanks.get(index);
 						
-						if ( nbtValue.hasKey("X", NBT.TAG_INT)
-						  && nbtValue.hasKey("Y", NBT.TAG_INT)
-						  && nbtValue.hasKey("Z", NBT.TAG_INT) ) {
+						if ( nbtValue.contains("X", NBT.TAG_INT)
+						  && nbtValue.contains("Y", NBT.TAG_INT)
+						  && nbtValue.contains("Z", NBT.TAG_INT) ) {
 							final BlockPos blockPosNew = transformation.apply(
-									nbtValue.getInteger("X"),
-									nbtValue.getInteger("Y"),
-									nbtValue.getInteger("Z") );
+									nbtValue.getInt("X"),
+									nbtValue.getInt("Y"),
+									nbtValue.getInt("Z") );
 							
-							nbtValue.setInteger("X", blockPosNew.getX());
-							nbtValue.setInteger("Y", blockPosNew.getY());
-							nbtValue.setInteger("Z", blockPosNew.getZ());
+							nbtValue.putInt("X", blockPosNew.getX());
+							nbtValue.putInt("Y", blockPosNew.getY());
+							nbtValue.putInt("Z", blockPosNew.getZ());
 						} else {
 							WarpDrive.logger.warn(String.format("Missing X/Y/Z components for tank#%d of controller %s:%s %s",
 							                                    index, block, metadata, nbtTileEntity));
@@ -371,19 +372,19 @@ public class CompatTConstruct implements IBlockTransformer {
 				}
 				
 				// optional insidePos absolute position
-				if (nbtTileEntity.hasKey("insidePos", NBT.TAG_COMPOUND)) {
-					final NBTTagCompound nbtInsidePos = nbtTileEntity.getCompoundTag("insidePos");
-					if ( nbtInsidePos.hasKey("X", NBT.TAG_INT)
-					  && nbtInsidePos.hasKey("Y", NBT.TAG_INT)
-					  && nbtInsidePos.hasKey("Z", NBT.TAG_INT) ) {
+				if (nbtTileEntity.contains("insidePos", NBT.TAG_COMPOUND)) {
+					final CompoundNBT nbtInsidePos = nbtTileEntity.getCompound("insidePos");
+					if ( nbtInsidePos.contains("X", NBT.TAG_INT)
+					  && nbtInsidePos.contains("Y", NBT.TAG_INT)
+					  && nbtInsidePos.contains("Z", NBT.TAG_INT) ) {
 						final BlockPos blockPosNew = transformation.apply(
-								nbtInsidePos.getInteger("X"),
-								nbtInsidePos.getInteger("Y"),
-								nbtInsidePos.getInteger("Z") );
+								nbtInsidePos.getInt("X"),
+								nbtInsidePos.getInt("Y"),
+								nbtInsidePos.getInt("Z") );
 						
-						nbtInsidePos.setInteger("X", blockPosNew.getX());
-						nbtInsidePos.setInteger("Y", blockPosNew.getY());
-						nbtInsidePos.setInteger("Z", blockPosNew.getZ());
+						nbtInsidePos.putInt("X", blockPosNew.getX());
+						nbtInsidePos.putInt("Y", blockPosNew.getY());
+						nbtInsidePos.putInt("Z", blockPosNew.getZ());
 					} else {
 						WarpDrive.logger.warn(String.format("Missing X/Y/Z components for insidePos of controller %s:%s %s",
 						                                    block, metadata, nbtTileEntity));
@@ -394,11 +395,11 @@ public class CompatTConstruct implements IBlockTransformer {
 		
 		// *** metadata rotation
 		if (rotationSteps == 0) {
-			return metadata;
+			return blockState;
 		}
 		
 		// Rack is custom type & facing
-		if (classBlockRack.isInstance(block)) {
+		if (classBlockRack.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotRack[metadata];
@@ -407,12 +408,12 @@ public class CompatTConstruct implements IBlockTransformer {
 			case 3:
 				return mrotRack[mrotRack[mrotRack[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// Seared furnace is horizontal facing
-		if (classBlockSearedFurnaceController.isInstance(block)) {
+		if (classBlockSearedFurnaceController.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotHorizontal[metadata];
@@ -421,14 +422,14 @@ public class CompatTConstruct implements IBlockTransformer {
 			case 3:
 				return mrotHorizontal[mrotHorizontal[mrotHorizontal[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// Faucet, Smeltery controller, Tinker Tank are just facing
-		if ( classBlockFaucet.isInstance(block)
-		  || classBlockSmelteryController.isInstance(block)
-		  || classBlockTinkerTankController.isInstance(block) ) {
+		if ( classBlockFaucet.isInstance(blockState.getBlock())
+		  || classBlockSmelteryController.isInstance(blockState.getBlock())
+		  || classBlockTinkerTankController.isInstance(blockState.getBlock()) ) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotFacing[metadata];
@@ -437,12 +438,12 @@ public class CompatTConstruct implements IBlockTransformer {
 			case 3:
 				return mrotFacing[mrotFacing[mrotFacing[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// Smeltery drain is type & horizontal facing
-		if (classBlockSmelteryIO.isInstance(block)) {
+		if (classBlockSmelteryIO.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotDrain[metadata];
@@ -451,12 +452,12 @@ public class CompatTConstruct implements IBlockTransformer {
 			case 3:
 				return mrotDrain[mrotDrain[mrotDrain[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// Stairs is like vanilla
-		if (classBlockStairsBase.isInstance(block)) {
+		if (classBlockStairsBase.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotStair[metadata];
@@ -465,17 +466,17 @@ public class CompatTConstruct implements IBlockTransformer {
 			case 3:
 				return mrotStair[mrotStair[mrotStair[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

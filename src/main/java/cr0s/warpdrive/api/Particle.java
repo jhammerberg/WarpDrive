@@ -7,13 +7,13 @@ import cr0s.warpdrive.data.Vector3;
 import javax.annotation.Nonnull;
 import java.util.Locale;
 
-import net.minecraft.item.EnumRarity;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.item.Rarity;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.Explosion.Mode;
 import net.minecraft.world.World;
 
-import net.minecraftforge.common.IRarity;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class Particle {
 	
@@ -22,7 +22,7 @@ public class Particle {
 	protected int color;
 	protected int colorIndex;
 	
-	protected IRarity rarity = EnumRarity.COMMON;
+	protected Rarity rarity = Rarity.COMMON;
 	private int entityLifespan;
 	private float radiationLevel = 0.0F;
 	private float explosionStrength = 0.0F;
@@ -31,7 +31,7 @@ public class Particle {
 		this.registryName = registryName.toLowerCase(Locale.ENGLISH);
 	}
 	
-	public Particle setRarity(@Nonnull final IRarity rarity) {
+	public Particle setRarity(@Nonnull final Rarity rarity) {
 		this.rarity = rarity;
 		return this;
 	}
@@ -71,16 +71,16 @@ public class Particle {
 		return this.registryName;
 	}
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public String getLocalizedName() {
 		final String unlocalizedName = getTranslationKey();
-		return unlocalizedName == null ? "" : new TextComponentTranslation(unlocalizedName + ".name").getFormattedText();
+		return unlocalizedName == null ? "" : new TranslationTextComponent(unlocalizedName + ".name").getFormattedText();
 	}
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public String getLocalizedTooltip() {
 		final String unlocalizedName = getTranslationKey();
-		return unlocalizedName == null ? "" : new TextComponentTranslation(unlocalizedName + ".tooltip").getFormattedText();
+		return unlocalizedName == null ? "" : new TranslationTextComponent(unlocalizedName + ".tooltip").getFormattedText();
 	}
 	
 	public String getTranslationKey()
@@ -91,7 +91,7 @@ public class Particle {
 	/* Default Accessors */
 	
 	@Nonnull
-	public IRarity getForgeRarity() {
+	public Rarity getRarity() {
 		return rarity;
 	}
 	
@@ -110,7 +110,7 @@ public class Particle {
 	/* Effector */
 	
 	public void onWorldEffect(final World world, final Vector3 v3Position, final int amount) {
-		if (world.isRemote) {
+		if (world.isRemote()) {
 			return;
 		}
 		if (radiationLevel > 0.0F) {
@@ -119,7 +119,7 @@ public class Particle {
 		}
 		if (explosionStrength > 0.0F) {
 			final float amountFactor = Math.max(1.25F, amount / 1000.0F);
-			world.newExplosion(null, v3Position.x, v3Position.y, v3Position.z, explosionStrength * amountFactor, true, true);
+			world.createExplosion(null, v3Position.x, v3Position.y, v3Position.z, explosionStrength * amountFactor, true, Mode.DESTROY);
 			WarpDrive.logger.info(String.format("Explosion %s with strength %.3f due to %d mg of %s",
 			                                    Commons.format(world, v3Position),
 			                                    explosionStrength * amountFactor,

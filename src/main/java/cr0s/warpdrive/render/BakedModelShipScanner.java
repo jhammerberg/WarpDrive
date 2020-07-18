@@ -4,13 +4,16 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.model.BakedQuad;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.client.renderer.texture.AtlasTexture;
+import net.minecraft.util.Direction;
+
+import net.minecraftforge.client.model.data.IModelData;
 
 public class BakedModelShipScanner extends BakedModelAbstractBase {
 	
@@ -18,14 +21,15 @@ public class BakedModelShipScanner extends BakedModelAbstractBase {
 	
 	private void initSprite() {
 		if (spriteBorder == null) {
-			final TextureMap textureMapBlocks = Minecraft.getMinecraft().getTextureMapBlocks();
-			spriteBorder = textureMapBlocks.getAtlasSprite("warpdrive:blocks/building/ship_scanner-border");
+			// MC1.15 getAtlasSprite for ship scanner
+			// final AtlasTexture textureMapBlocks = Minecraft.getInstance().getTextureMapBlocks();
+			// spriteBorder = textureMapBlocks.getAtlasSprite("warpdrive:blocks/building/ship_scanner-border");
 		}
 	}
 	
 	@Nonnull
 	@Override
-	public List<BakedQuad> getQuads(@Nullable final IBlockState blockState, @Nullable final EnumFacing enumFacing, final long rand) {
+	public List<BakedQuad> getQuads(@Nullable final BlockState blockState, @Nullable final Direction side, @Nonnull final Random rand, @Nonnull IModelData modelData) {
 		
 		initSprite();
 		

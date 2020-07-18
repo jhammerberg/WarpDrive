@@ -11,18 +11,16 @@ import li.cil.oc.api.machine.Context;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.nbt.NBTTagCompound;
-
-import net.minecraftforge.fml.common.Optional;
-
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 
 public abstract class TileEntityAbstractEnergyBase extends TileEntityAbstractMachine implements IEnergyBase {
 	
 	// persistent properties
 	private String energy_displayUnits = null;
 	
-	public TileEntityAbstractEnergyBase() {
-		super();
+	public TileEntityAbstractEnergyBase(@Nonnull TileEntityType<? extends TileEntityAbstractEnergyBase> tileEntityType) {
+		super(tileEntityType);
 		
 		addMethods(new String[] {
 				"energyDisplayUnits",
@@ -32,27 +30,27 @@ public abstract class TileEntityAbstractEnergyBase extends TileEntityAbstractMac
 	
 	// Forge overrides
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		if (tagCompound.hasKey(EnergyWrapper.TAG_DISPLAY_UNITS)) {
+		if (tagCompound.contains(EnergyWrapper.TAG_DISPLAY_UNITS)) {
 			energy_displayUnits = tagCompound.getString(EnergyWrapper.TAG_DISPLAY_UNITS);
 		}
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
 		if (energy_displayUnits != null) {
-			tagCompound.setString(EnergyWrapper.TAG_DISPLAY_UNITS, energy_displayUnits);
+			tagCompound.putString(EnergyWrapper.TAG_DISPLAY_UNITS, energy_displayUnits);
 		}
 		return tagCompound;
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
 		
 		return tagCompound;
@@ -68,7 +66,7 @@ public abstract class TileEntityAbstractEnergyBase extends TileEntityAbstractMac
 	@Override
 	public WarpDriveText getStatus() {
 		final WarpDriveText textEnergyStatus = getEnergyStatusText();
-		if (textEnergyStatus.getUnformattedText().isEmpty()) {
+		if (textEnergyStatus.getUnformattedComponentText().isEmpty()) {
 			return super.getStatus();
 		} else {
 			return super.getStatus().append(textEnergyStatus);
@@ -80,9 +78,9 @@ public abstract class TileEntityAbstractEnergyBase extends TileEntityAbstractMac
 	public Object[] energyDisplayUnits(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1) {
 			final Object value = arguments[0];
-			if (!(value instanceof String)
-			    || (((String) value).isEmpty())
-			    || value.equals("-")) {
+			if ( !(value instanceof String)
+			  || (((String) value).isEmpty())
+			  || value.equals("-") ) {
 				energy_displayUnits = null;
 			} else {
 				energy_displayUnits = (String) value;
@@ -98,21 +96,18 @@ public abstract class TileEntityAbstractEnergyBase extends TileEntityAbstractMac
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] energyDisplayUnits(final Context context, final Arguments arguments) {
 		return energyDisplayUnits(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getEnergyStatus(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getEnergyStatus();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "energyDisplayUnits":

@@ -8,11 +8,11 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.state.IProperty;
+import net.minecraft.util.ResourceLocation;
 
-import net.minecraftforge.common.config.ConfigCategory;
-import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import com.google.common.base.Optional;
 
@@ -26,7 +26,7 @@ public class WarpDriveDataFixer {
 	
 	// Blocks data fixer
 	public static HashMap<String, Block> BLOCKS = null;
-	public static HashMap<String, IBlockState> BLOCKSTATES = null;
+	public static HashMap<String, BlockState> BLOCKSTATES = null;
 	
 	// Entities data fixer
 	// private static HashSet<ResourceLocation> ENTITIES = null;
@@ -323,9 +323,9 @@ public class WarpDriveDataFixer {
 				for (final String nameLegacy : taggedBlock.getValue().replace("\t", " ").replace(",", " ").replace("  ", " ").split(" ")) {
 					BLOCKS.put(nameLegacy, (Block) object);
 				}
-			} else if (object instanceof IBlockState) {
+			} else if (object instanceof BlockState) {
 				for (final String nameLegacy : taggedBlock.getValue().replace("\t", " ").replace(",", " ").replace("  ", " ").split(" ")) {
-					BLOCKSTATES.put(nameLegacy, (IBlockState) object);
+					BLOCKSTATES.put(nameLegacy, (BlockState) object);
 				}
 			}
 		}
@@ -334,7 +334,7 @@ public class WarpDriveDataFixer {
 	@Nullable
 	private static Object getBlockOrBlockState(@Nonnull final String nameFull) {
 		final Block blockEntry;
-		IBlockState blockStateEntry;
+		BlockState blockStateEntry;
 		
 		final int indexAt = nameFull.indexOf('@');
 		final int indexBracket = nameFull.indexOf('[');
@@ -353,7 +353,7 @@ public class WarpDriveDataFixer {
 			}
 			
 			// then check if the block exists in the game
-			blockEntry = Block.getBlockFromName(nameBlock);
+			blockEntry = ForgeRegistries.BLOCKS.getValue(nameBlock);
 			if (blockEntry == null) {
 				WarpDrive.logger.info(String.format("Ignoring missing in-game block %s in %s",
 				                                    nameBlock, nameFull ));
@@ -393,7 +393,7 @@ public class WarpDriveDataFixer {
 			}
 			
 			// then check if the block exists in the game
-			blockEntry = Block.getBlockFromName(nameBlock);
+			blockEntry = ForgeRegistries.BLOCKS.getValue(nameBlock);
 			if (blockEntry == null) {
 				WarpDrive.logger.info(String.format("Ignoring missing in-game block %s in %s",
 				                                    nameBlock, nameFull ));
@@ -402,7 +402,7 @@ public class WarpDriveDataFixer {
 			
 			// finally build the blockstate itself
 			blockStateEntry = blockEntry.getDefaultState();
-			for (final IProperty<?> property : blockStateEntry.getPropertyKeys()) {
+			for (final IProperty<?> property : blockStateEntry.getProperties()) {
 				final String stringValue = propertyValues.get(property.getName());
 				if (stringValue == null) {
 					continue;
@@ -419,11 +419,11 @@ public class WarpDriveDataFixer {
 			}
 			if (!propertyValues.isEmpty()) {
 				throw new RuntimeException(String.format("Extraneous properties %s in %s, expecting one of %s",
-				                                         propertyValues, nameFull, blockStateEntry.getPropertyKeys() ));
+				                                         propertyValues, nameFull, blockStateEntry.getProperties() ));
 			}
 			
 		} else {// (just a block)
-			blockEntry = Block.getBlockFromName(nameFull);
+			blockEntry = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(nameFull));
 			if (blockEntry == null) {
 				WarpDrive.logger.info(String.format("Ignoring missing in-game block %s",
 				                                    nameFull ));
@@ -436,11 +436,11 @@ public class WarpDriveDataFixer {
 	}
 	
 	@Nullable
-	public static IBlockState getBlockState(@Nonnull final String nameFull) {
+	public static BlockState getBlockState(@Nonnull final String nameFull) {
 		// try existing blocks first
 		final Object object = getBlockOrBlockState(nameFull);
-		if (object instanceof IBlockState) {
-			return (IBlockState) object;
+		if (object instanceof BlockState) {
+			return (BlockState) object;
 		} else if (object instanceof Block) {
 			return ((Block) object).getDefaultState();
 		}
@@ -450,7 +450,7 @@ public class WarpDriveDataFixer {
 	}
 	
 	@Nullable
-	private static IBlockState getFixedBlockState(@Nonnull final String nameFull) {
+	private static BlockState getFixedBlockState(@Nonnull final String nameFull) {
 		// ensure metadata is defined
 		final int indexAt = nameFull.indexOf('@');
 		if (indexAt <= 0) {
@@ -458,7 +458,7 @@ public class WarpDriveDataFixer {
 		}
 		
 		// try an exact match first
-		IBlockState blockState = BLOCKSTATES.get(nameFull);
+		BlockState blockState = BLOCKSTATES.get(nameFull);
 		if (blockState != null) {
 			return blockState;
 		}

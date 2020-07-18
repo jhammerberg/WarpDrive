@@ -8,61 +8,68 @@ import cr0s.warpdrive.data.FluidWrapper;
 import cr0s.warpdrive.data.InventoryWrapper;
 import cr0s.warpdrive.data.Vector3;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.enchantment.Enchantments;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.item.Items;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.SoundCategory;
+import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 
 public abstract class TileEntityAbstractMiner extends TileEntityAbstractLaser {
 	
 	// machine type
-	protected EnumFacing laserOutputSide = EnumFacing.NORTH;
+	protected Direction      laserOutputSide = Direction.NORTH;
 	
 	// machine state
 	protected boolean		 enableSilktouch = false;
+	protected Item           itemTool = Items.DIAMOND_PICKAXE;
+	protected ItemStack      itemStackToolNoSilktouch = null;
+	protected ItemStack      itemStackToolWithSilktouch = null;
 	
 	// pre-computation
 	protected Vector3        laserOutput = null;
 	
-	public TileEntityAbstractMiner() {
-		super();
+	public TileEntityAbstractMiner(@Nonnull TileEntityType<? extends TileEntityAbstractMiner> tileEntityType) {
+		super(tileEntityType);
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		laserOutput = new Vector3(this).translate(0.5D).translate(laserOutputSide, 0.5D);
 	}
 	
-	protected void harvestBlock(@Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
+	protected void harvestBlock(@Nonnull final BlockPos blockPos, @Nonnull final BlockState blockState) {
+		assert world != null;
 		if (blockState.getBlock().isAir(blockState, world, blockPos)) {
 			return;
 		}
 		if (FluidWrapper.isFluid(blockState)) {
 			// Evaporate fluid
-			world.playSound(null, blockPos, net.minecraft.init.SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.5F,
+			world.playSound(null, blockPos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.5F,
 					2.6F + (world.rand.nextFloat() - world.rand.nextFloat()) * 0.8F);
 			
 			// remove without updating neighbours
 			world.setBlockState(blockPos, Blocks.AIR.getDefaultState(), 2);
 			
 		} else {
-			final List<ItemStack> itemStackDrops = getItemStackFromBlock(blockPos, blockState);
+			final NonNullList<ItemStack> itemStackDrops = getItemStackFromBlock(blockPos, blockState);
 			
-			final EntityPlayer entityPlayer = CommonProxy.getFakePlayer(null, (WorldServer) world, blockPos);
+			final PlayerEntity entityPlayer = CommonProxy.getFakePlayer(null, (ServerWorld) world, blockPos);
 			net.minecraftforge.event.ForgeEventFactory.fireBlockHarvesting(itemStackDrops, getWorld(), blockPos, blockState,
 			                                                               0, 1.0f, true, entityPlayer);
 			
@@ -73,47 +80,32 @@ public abstract class TileEntityAbstractMiner extends TileEntityAbstractLaser {
 			world.playEvent(2001, blockPos, Block.getStateId(blockState));
 			
 			// remove while updating neighbours
-			world.setBlockToAir(blockPos); // setBlockState(blockPos, Blocks.AIR.getDefaultState(), 3);
+			world.removeBlock(blockPos, false); // setBlockState(blockPos, Blocks.AIR.getDefaultState(), 3);
 		}
 	}
 	
 	@Nullable
-	private NonNullList<ItemStack> getItemStackFromBlock(final BlockPos blockPos, final IBlockState blockState) {
+	private NonNullList<ItemStack> getItemStackFromBlock(final BlockPos blockPos, final BlockState blockState) {
+		assert world != null;
 		if (blockState == null) {
 			WarpDrive.logger.error(String.format("%s Invalid block %s",
 			                                     this, Commons.format(world, blockPos)));
 			return null;
 		}
 		final NonNullList<ItemStack> itemStackDrops = NonNullList.create();
-		boolean isHarvested = false;
-		if (enableSilktouch) {
-			boolean isSilkHarvestable = false;
-			try {
-				isSilkHarvestable = blockState.getBlock().canSilkHarvest(world, blockPos, blockState, null);
-			} catch (final Exception exception) {// protect in case the mined block is corrupted
-				exception.printStackTrace(WarpDrive.printStreamError);
-			}
-			if (isSilkHarvestable) {
-				// intended code if AccessTransformer was working with gradlew:
-				// itemStackDrops.add(blockState.getBlock().getSilkTouchDrop(blockState));
-				
-				final ItemStack itemStackDrop;
-				try {
-					itemStackDrop = (ItemStack) WarpDrive.methodBlock_getSilkTouch.invoke(blockState.getBlock(), blockState);
-				} catch (final IllegalAccessException | InvocationTargetException exception) {
-					throw new RuntimeException(exception);
-				}
-				if (!itemStackDrop.isEmpty()) {
-					itemStackDrops.add(itemStackDrop);
-				}
-				isHarvested = true;
-			}
-		}
-		
 		try {
-			if (!isHarvested) {
-				blockState.getBlock().getDrops(itemStackDrops, world, blockPos, blockState, 0);
+			if (itemStackToolNoSilktouch == null) {
+				itemStackToolNoSilktouch = new ItemStack(itemTool, 1);
+				itemStackToolNoSilktouch.addEnchantment(Enchantments.UNBREAKING, 1000);
+				itemStackToolWithSilktouch = new ItemStack(itemTool, 1);
+				itemStackToolWithSilktouch.addEnchantment(Enchantments.UNBREAKING, 1000);
+				itemStackToolWithSilktouch.addEnchantment(Enchantments.SILK_TOUCH, 1);
 			}
+			final ItemStack itemStackTool = enableSilktouch ? itemStackToolWithSilktouch : itemStackToolNoSilktouch;
+			
+			final TileEntity tileEntity = world.getTileEntity(blockPos);
+			
+			itemStackDrops.addAll(Block.getDrops(blockState, (ServerWorld) world, blockPos, tileEntity, null, itemStackTool));
 		} catch (final Exception exception) {// protect in case the mined block is corrupted
 			exception.printStackTrace(WarpDrive.printStreamError);
 			return null;
@@ -124,16 +116,16 @@ public abstract class TileEntityAbstractMiner extends TileEntityAbstractLaser {
 	
 	// NBT DATA
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		enableSilktouch = tagCompound.getBoolean("enableSilktouch");
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
-		tagCompound.setBoolean("enableSilktouch", enableSilktouch);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
+		tagCompound.putBoolean("enableSilktouch", enableSilktouch);
 		return tagCompound;
 	}
 }

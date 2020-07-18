@@ -5,9 +5,6 @@ import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.EnumCameraType;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.GlStateManager.DestFactor;
-import net.minecraft.client.renderer.GlStateManager.SourceFactor;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
@@ -16,23 +13,27 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-@SideOnly(Side.CLIENT)
+import com.mojang.blaze3d.platform.GlStateManager.DestFactor;
+import com.mojang.blaze3d.platform.GlStateManager.SourceFactor;
+import com.mojang.blaze3d.systems.RenderSystem;
+
+@OnlyIn(Dist.CLIENT)
 public class RenderOverlayCamera {
 	
 	private static final int ANIMATION_FRAMES = 200;
 	
-	private final Minecraft minecraft = Minecraft.getMinecraft();
+	private final Minecraft minecraft = Minecraft.getInstance();
 	private int frameCount = 0;
 	
 	private void renderOverlay(final int scaledWidth, final int scaledHeight) {
-		GlStateManager.disableDepth();
-		GlStateManager.depthMask(false);
-		GlStateManager.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
-		GlStateManager.disableAlpha();
+		RenderSystem.disableDepthTest();
+		RenderSystem.depthMask(false);
+		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
+		RenderSystem.disableAlphaTest();
 		
 		try {
 			final String strHelp;
@@ -47,11 +48,11 @@ public class RenderOverlayCamera {
 			final Tessellator tessellator = Tessellator.getInstance();
 			final BufferBuilder vertexBuffer = tessellator.getBuffer();
 			
-			vertexBuffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_COLOR);
-			vertexBuffer.pos(       0.0D, scaledHeight, -90.0D).tex(0.0D, 1.0D).color(1.0F, 1.0F, 1.0F, 1.0F).endVertex();
-			vertexBuffer.pos(scaledWidth, scaledHeight, -90.0D).tex(1.0D, 1.0D).color(1.0F, 1.0F, 1.0F, 1.0F).endVertex();
-			vertexBuffer.pos(scaledWidth,         0.0D, -90.0D).tex(1.0D, 0.0D).color(1.0F, 1.0F, 1.0F, 1.0F).endVertex();
-			vertexBuffer.pos(       0.0D,         0.0D, -90.0D).tex(0.0D, 0.0D).color(1.0F, 1.0F, 1.0F, 1.0F).endVertex();
+			vertexBuffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
+			vertexBuffer.pos(       0.0D, scaledHeight, -90.0D).tex(0.0F, 1.0F).color(1.0F, 1.0F, 1.0F, 1.0F).endVertex();
+			vertexBuffer.pos(scaledWidth, scaledHeight, -90.0D).tex(1.0F, 1.0F).color(1.0F, 1.0F, 1.0F, 1.0F).endVertex();
+			vertexBuffer.pos(scaledWidth,         0.0D, -90.0D).tex(1.0F, 0.0F).color(1.0F, 1.0F, 1.0F, 1.0F).endVertex();
+			vertexBuffer.pos(       0.0D,         0.0D, -90.0D).tex(0.0F, 0.0F).color(1.0F, 1.0F, 1.0F, 1.0F).endVertex();
 			tessellator.draw();
 			
 			frameCount++;
@@ -62,30 +63,30 @@ public class RenderOverlayCamera {
 			final int color = (RenderCommons.colorGradient(time, 0x40, 0xA0) << 16)
 			                + (RenderCommons.colorGradient(time, 0x80, 0x00) << 8)
 			                +  RenderCommons.colorGradient(time, 0x80, 0xFF);
-			minecraft.fontRenderer.drawString(strHelp,
-			                                     (scaledWidth - minecraft.fontRenderer.getStringWidth(strHelp)) / 2,
-			                                     (int)(scaledHeight * 0.19) - minecraft.fontRenderer.FONT_HEIGHT,
-			                                     color, true);
+			minecraft.fontRenderer.drawStringWithShadow(strHelp,
+			                                            (scaledWidth - minecraft.fontRenderer.getStringWidth(strHelp)) / 2.0F,
+			                                            (int)(scaledHeight * 0.19F) - minecraft.fontRenderer.FONT_HEIGHT,
+			                                            color);
 			
-			final String strZoom = "Zoom " + (ClientCameraHandler.originalFOV / minecraft.gameSettings.fovSetting) + "x";
-			minecraft.fontRenderer.drawString(strZoom,
-			                                     (int) (scaledWidth * 0.91) - minecraft.fontRenderer.getStringWidth(strZoom),
-			                                     (int) (scaledHeight * 0.81),
-			                                     0x40A080, true);
+			final String strZoom = "Zoom " + (ClientCameraHandler.originalFOV / minecraft.gameSettings.fov) + "x";
+			minecraft.fontRenderer.drawStringWithShadow(strZoom,
+			                                            (int) (scaledWidth  * 0.91F) - minecraft.fontRenderer.getStringWidth(strZoom),
+			                                            (int) (scaledHeight * 0.81F),
+			                                            0x40A080);
 			
 			if (WarpDriveConfig.LOGGING_CAMERA) {
-				minecraft.fontRenderer.drawString(ClientCameraHandler.overlayLoggingMessage,
-				                                     (scaledWidth - minecraft.fontRenderer.getStringWidth(ClientCameraHandler.overlayLoggingMessage)) / 2,
-				                                     (int) (scaledHeight * 0.19),
-				                                     0xFF008F, true);
+				minecraft.fontRenderer.drawStringWithShadow(ClientCameraHandler.overlayLoggingMessage,
+				                                            (scaledWidth - minecraft.fontRenderer.getStringWidth(ClientCameraHandler.overlayLoggingMessage)) / 2.0F,
+				                                            (int) (scaledHeight * 0.19F),
+				                                            0xFF008F);
 			}
 		} catch (final Exception exception) {
 			exception.printStackTrace(WarpDrive.printStreamError);
 		}
 		
-		GlStateManager.depthMask(true);
-		GlStateManager.enableDepth();
-		GlStateManager.enableAlpha();
+		RenderSystem.depthMask(true);
+		RenderSystem.enableDepthTest();
+		RenderSystem.enableAlphaTest();
 	}
 	
 	@SubscribeEvent
@@ -93,7 +94,7 @@ public class RenderOverlayCamera {
 		if (ClientCameraHandler.isOverlayEnabled) {
 			switch (event.getType()) {
 			case HELMET:
-				renderOverlay(event.getResolution().getScaledWidth(), event.getResolution().getScaledHeight());
+				renderOverlay(event.getWindow().getScaledWidth(), event.getWindow().getScaledHeight());
 				break;
 				
 			case AIR:

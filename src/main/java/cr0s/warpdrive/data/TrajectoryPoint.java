@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 
 import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -73,12 +73,12 @@ public class TrajectoryPoint extends VectorI {
 	public final int controlChannel;
 	
 	// next block direction in positive movement
-	public final EnumFacing directionForward;
-	public final EnumFacing directionBackward;
+	public final Direction directionForward;
+	public final Direction directionBackward;
 	public final VectorI vJunctionForward;
 	public final VectorI vJunctionBackward;
 	
-	public TrajectoryPoint(@Nonnull final World world, @Nonnull final VectorI vPosition, @Nonnull final EnumFacing directionForward) {
+	public TrajectoryPoint(@Nonnull final World world, @Nonnull final VectorI vPosition, @Nonnull final Direction directionForward) {
 		this(world, vPosition.x, vPosition.y, vPosition.z, directionForward);
 	}
 	
@@ -86,8 +86,8 @@ public class TrajectoryPoint extends VectorI {
 	                       final int type,
 	                       final VectorI vControlPoint,
 	                       final int controlChannel,
-	                       final EnumFacing directionForward,
-	                       final EnumFacing directionBackward,
+	                       final Direction directionForward,
+	                       final Direction directionBackward,
 	                       final VectorI vJunctionForward,
 	                       final VectorI vJunctionBackward) {
 		super(x, y, z);
@@ -101,7 +101,7 @@ public class TrajectoryPoint extends VectorI {
 	}
 	
 	// get next point on an acceleration pipe
-	private TrajectoryPoint(@Nonnull final World world, final int x, final int y, final int z, @Nonnull final EnumFacing directionMain) {
+	private TrajectoryPoint(@Nonnull final World world, final int x, final int y, final int z, @Nonnull final Direction directionMain) {
 		super(x, y, z);
 		int typeNew = NO_TYPE;
 		
@@ -113,8 +113,8 @@ public class TrajectoryPoint extends VectorI {
 		}
 		
 		// get main blocks
-		final EnumFacing directionLeft  = directionMain.rotateYCCW();
-		final EnumFacing directionRight = directionMain.rotateY();
+		final Direction directionLeft  = directionMain.rotateYCCW();
+		final Direction directionRight = directionMain.rotateY();
 		final Block blockForward   = world.getBlockState(blockPos.offset(directionMain)).getBlock();
 		final Block blockUp        = world.getBlockState(blockPos.up()).getBlock();
 		final Block blockDown      = world.getBlockState(blockPos.down()).getBlock();
@@ -124,15 +124,15 @@ public class TrajectoryPoint extends VectorI {
 		
 		// check main magnets
 		if (blockUp instanceof BlockElectromagnetPlain && blockDown instanceof BlockElectromagnetPlain) {
-			final int tierUp = ((BlockElectromagnetPlain) blockUp).enumTier.getIndex();
-			if (tierUp == ((BlockElectromagnetPlain) blockDown).enumTier.getIndex()) {
+			final int tierUp = ((BlockElectromagnetPlain) blockUp).getTier().getIndex();
+			if (tierUp == ((BlockElectromagnetPlain) blockDown).getTier().getIndex()) {
 				tier = tier == 0 || tier == tierUp ? tierUp : -1;
 				typeNew |= MAGNETS_VERTICAL;
 			}
 		}
 		if (blockLeft instanceof BlockElectromagnetPlain && blockRight instanceof BlockElectromagnetPlain) {
-			final int tierLeft = ((BlockElectromagnetPlain) blockLeft).enumTier.getIndex();
-			if (tierLeft == ((BlockElectromagnetPlain) blockRight).enumTier.getIndex()) {
+			final int tierLeft = ((BlockElectromagnetPlain) blockLeft).getTier().getIndex();
+			if (tierLeft == ((BlockElectromagnetPlain) blockRight).getTier().getIndex()) {
 				tier = tier == 0 || tier == tierLeft ? tierLeft : -1;
 				typeNew |= MAGNETS_HORIZONTAL;
 			}
@@ -155,7 +155,7 @@ public class TrajectoryPoint extends VectorI {
 		VectorI new_vControlPoint = null;
 		int new_controlChannel = -1;
 		if (isShellValid) {
-			for (final EnumFacing direction : EnumFacing.VALUES) {
+			for (final Direction direction : Direction.values()) {
 				final BlockPos blockPosOffset = blockPos.offset(direction, 2);
 				final Block block = world.getBlockState(blockPosOffset).getBlock();
 				
@@ -312,8 +312,8 @@ public class TrajectoryPoint extends VectorI {
 		// (up and down magnets should have same tier, but different from current one)
 		boolean hasVerticalMagnets = false;
 		if (blockUp instanceof BlockElectromagnetPlain && blockDown instanceof BlockElectromagnetPlain) {
-			final int tierUp = ((BlockElectromagnetPlain) blockUp).enumTier.getIndex();
-			if (tierUp == ((BlockElectromagnetPlain) blockDown).enumTier.getIndex()) {
+			final int tierUp = ((BlockElectromagnetPlain) blockUp).getTier().getIndex();
+			if (tierUp == ((BlockElectromagnetPlain) blockDown).getTier().getIndex()) {
 				hasVerticalMagnets = tier == tierUp;
 			}
 		}
@@ -337,9 +337,9 @@ public class TrajectoryPoint extends VectorI {
 			// when transfer line is at 45deg, we can't input/output in a turning corner, so we skip that case
 			if (isStraightLine) {
 				// we just do a basic check of void shells, the full validation of magnets is done in the node evaluator
-				final EnumFacing directionMain  = directionBackward.getOpposite();
-				final EnumFacing directionLeft  = directionMain.rotateYCCW();
-				final EnumFacing directionRight = directionLeft.rotateY();
+				final Direction directionMain  = directionBackward.getOpposite();
+				final Direction directionLeft  = directionMain.rotateYCCW();
+				final Direction directionRight = directionLeft.rotateY();
 				final Block blockLeft      = world.getBlockState(new BlockPos(x + directionLeft .getXOffset(), y, z + directionLeft .getZOffset())).getBlock();
 				final Block blockRight     = world.getBlockState(new BlockPos(x + directionRight.getXOffset(), y, z + directionRight.getZOffset())).getBlock();
 				isTurning = blockLeft instanceof BlockVoidShellPlain || blockRight instanceof BlockVoidShellPlain;
@@ -413,7 +413,7 @@ public class TrajectoryPoint extends VectorI {
 	public boolean getStatus(final WarpDriveText textReason) {
 		final int errorCode = type & MASK_ERRORS;
 		if (errorCode != ERROR_NONE) {
-			final String strReasonBefore = textReason.getUnformattedText();
+			final String strReasonBefore = textReason.getUnformattedComponentText();
 			final String strPosition = String.format("(%d %d %d)",
 			                                         x, y, z );
 			if ((errorCode & ERROR_DOUBLE_JUNCTION) != 0) {
@@ -448,7 +448,7 @@ public class TrajectoryPoint extends VectorI {
 				textReason.append(Commons.getStyleWarning(), "warpdrive.accelerator.status_line.too_many_void_shells",
 				                  strPosition );
 			}
-			if (strReasonBefore.equals(textReason.getUnformattedText())) {
+			if (strReasonBefore.equals(textReason.getUnformattedComponentText())) {
 				textReason.append(Commons.getStyleWarning(), "warpdrive.accelerator.status_line.invalid_error_code",
 				                  errorCode, strPosition);
 			}
@@ -469,7 +469,7 @@ public class TrajectoryPoint extends VectorI {
 		return (type & MASK_IS_OUTPUT) != 0;
 	}
 	
-	public Vector3 getJunctionOut(final EnumFacing directionCurrent) {
+	public Vector3 getJunctionOut(final Direction directionCurrent) {
 		// skip erroneous setup
 		if ((type & MASK_ERRORS) != ERROR_NONE) {
 			return null;
@@ -485,7 +485,7 @@ public class TrajectoryPoint extends VectorI {
 		return null;
 	}
 	
-	public EnumFacing getTurnedDirection(final EnumFacing directionCurrent) {
+	public Direction getTurnedDirection(final Direction directionCurrent) {
 		// skip erroneous setup
 		if ((type & ERROR_MISSING_TURNING_MAGNET) != ERROR_NONE) {
 			return null;
@@ -505,7 +505,7 @@ public class TrajectoryPoint extends VectorI {
 		return null;
 	}
 	
-	public EnumFacing getJunctionIn(final Vector3 vectorCurrent) {
+	public Direction getJunctionIn(final Vector3 vectorCurrent) {
 		// skip erroneous setup
 		if ((type & MASK_ERRORS) != ERROR_NONE) {
 			return null;
@@ -589,7 +589,7 @@ public class TrajectoryPoint extends VectorI {
 							y + offsetY,
 							z + offsetZ)).getBlock();
 						if (blockCheck instanceof BlockElectromagnetPlain) {
-							final int tierCheck = ((BlockElectromagnetPlain) blockCheck).enumTier.getIndex();
+							final int tierCheck = ((BlockElectromagnetPlain) blockCheck).getTier().getIndex();
 							if (tierCheck == tierMain) {
 								countMainMagnet++;
 							} else if (tierCheck > tierMain) {
@@ -602,7 +602,7 @@ public class TrajectoryPoint extends VectorI {
 						} else if (blockCheck instanceof BlockParticlesCollider) {
 							countCollider++;
 						} else if (blockCheck instanceof BlockParticlesInjector) {
-							final int tierCheck = ((BlockParticlesInjector) blockCheck).enumTier.getIndex();
+							final int tierCheck = ((BlockParticlesInjector) blockCheck).getTier().getIndex();
 							if (tierCheck == tierMain) {
 								countMainMagnet++;
 							}
@@ -657,11 +657,11 @@ public class TrajectoryPoint extends VectorI {
 		public boolean isForward;
 		public boolean isShellValid;
 		public boolean isTurning;
-		public EnumFacing directionForward;
-		public EnumFacing directionBackward;
+		public Direction directionForward;
+		public Direction directionBackward;
 		
-		public TurnEvaluator(final World world, final int x, final int y, final int z, final EnumFacing directionMain, final int typeOriginal,
-		                     final EnumFacing directionLeft, final EnumFacing directionRight,
+		public TurnEvaluator(final World world, final int x, final int y, final int z, final Direction directionMain, final int typeOriginal,
+		                     final Direction directionLeft, final Direction directionRight,
 		                     final Block blockForward, final Block blockUp, final Block blockDown, final Block blockLeft, final Block blockRight,
 		                     final int tier) {
 			this.typeNew = typeOriginal;
@@ -701,10 +701,10 @@ public class TrajectoryPoint extends VectorI {
 					y,
 					z - directionMain.getZOffset() + directionRight.getZOffset())).getBlock();
 				if ( tier > 0
-				  && blockForwardLeft   instanceof BlockElectromagnetPlain && tier == ((BlockElectromagnetPlain) blockForwardLeft  ).enumTier.getIndex()
-				  && blockForwardRight  instanceof BlockElectromagnetPlain && tier == ((BlockElectromagnetPlain) blockForwardRight ).enumTier.getIndex()
-				  && blockBackwardLeft  instanceof BlockElectromagnetPlain && tier == ((BlockElectromagnetPlain) blockBackwardLeft ).enumTier.getIndex()
-				  && blockBackwardRight instanceof BlockElectromagnetPlain && tier == ((BlockElectromagnetPlain) blockBackwardRight).enumTier.getIndex()
+				  && blockForwardLeft   instanceof BlockElectromagnetPlain && tier == ((BlockElectromagnetPlain) blockForwardLeft  ).getTier().getIndex()
+				  && blockForwardRight  instanceof BlockElectromagnetPlain && tier == ((BlockElectromagnetPlain) blockForwardRight ).getTier().getIndex()
+				  && blockBackwardLeft  instanceof BlockElectromagnetPlain && tier == ((BlockElectromagnetPlain) blockBackwardLeft ).getTier().getIndex()
+				  && blockBackwardRight instanceof BlockElectromagnetPlain && tier == ((BlockElectromagnetPlain) blockBackwardRight).getTier().getIndex()
 				  && ((typeNew & MAGNETS_VERTICAL) == MAGNETS_VERTICAL) ) {
 					// also validate the sided magnet
 					isTurning = (isForward   || blockForward instanceof BlockElectromagnetPlain || blockForward instanceof BlockParticlesInjector)
@@ -734,7 +734,7 @@ public class TrajectoryPoint extends VectorI {
 				assert isLeftTurn && isRightTurn;
 				// it's probably an input/output, in that case, magnets are all around, just pick one side to detect the direction
 				final Block blockUpRight   = world.getBlockState(new BlockPos(x + directionRight.getXOffset(), y + 1, z + directionRight.getZOffset())).getBlock();
-				if (blockUpRight instanceof BlockElectromagnetPlain && tier != ((BlockElectromagnetPlain) blockUpRight).enumTier.getIndex()) {
+				if (blockUpRight instanceof BlockElectromagnetPlain && tier != ((BlockElectromagnetPlain) blockUpRight).getTier().getIndex()) {
 					directionForward = directionLeft;
 				} else {
 					directionForward = directionRight;

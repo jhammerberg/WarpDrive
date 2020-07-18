@@ -1,30 +1,41 @@
 package cr0s.warpdrive.render;
 
-import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.client.ClientProxy;
 import cr0s.warpdrive.network.PacketHandler;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.MoverType;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.EntityEquipmentSlot;
+import net.minecraft.entity.Pose;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumHandSide;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.IPacket;
+import net.minecraft.network.play.server.SSpawnObjectPacket;
+import net.minecraft.util.HandSide;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 
-public final class EntityCamera extends EntityLivingBase {
+public final class EntityCamera extends LivingEntity {
 	
+	public static final EntityType<EntityCamera> TYPE;
+	public static final Vec3d VECTOR_NO_MOTION = new Vec3d(0.0D, 0.0D, 0.0D);
+	
+	// persistent properties
+	// (none)
+	
+	// computed properties
 	// entity coordinates (x, y, z) are dynamically changed by player
 	
 	// camera block coordinates are fixed
@@ -32,9 +43,9 @@ public final class EntityCamera extends EntityLivingBase {
 	private int cameraY;
 	private int cameraZ;
 	
-	private EntityPlayer player;
+	private PlayerEntity player;
 	
-	private final Minecraft mc = Minecraft.getMinecraft();
+	private final Minecraft mc = Minecraft.getInstance();
 	
 	private int dx = 0, dy = 0, dz = 0;
 	
@@ -46,17 +57,23 @@ public final class EntityCamera extends EntityLivingBase {
 	
 	private boolean isCentered = true;
 	
-	// required for registration?
-	public EntityCamera(final World world) {
-		super(world);
+	static {
+		TYPE = EntityType.Builder.<EntityCamera>create(EntityCamera::new, EntityClassification.MISC)
+				       .setTrackingRange(300)
+				       .setUpdateInterval(1)
+				       .setShouldReceiveVelocityUpdates(false)
+				       .build("entity_camera");
+		TYPE.setRegistryName(WarpDrive.MODID, "entity_camera");
 	}
 	
-	public EntityCamera(final World world, final int x, final int y, final int z, final EntityPlayer player) {
-		super(world);
+	public EntityCamera(final EntityType<EntityCamera> entityType, final World world) {
+		super(entityType, world);
+	}
+	
+	public EntityCamera(final World world, final int x, final int y, final int z, final PlayerEntity player) {
+		super(TYPE, world);
 		
-		posX = x;
-		posY = y;
-		posZ = z;
+		setRawPosition(x, y, z);
 		cameraX = x;
 		cameraY = y;
 		cameraZ = z;
@@ -64,8 +81,8 @@ public final class EntityCamera extends EntityLivingBase {
 	}
 		
 	@Override
-	protected void entityInit() {
-		super.entityInit();
+	protected void registerData() {
+		super.registerData();
 		setInvisible(true);
 		// set viewpoint inside camera
 		noClip = true;
@@ -73,16 +90,14 @@ public final class EntityCamera extends EntityLivingBase {
 	
 	// set viewpoint inside camera
 	@Override
-	public float getEyeHeight() {
+	public float getEyeHeight(@Nonnull final Pose pose) {
 		return 1.62F;
 	}
 	
-	// override to skip the block bounding override on client side
+	@Nonnull
 	@Override
-	public void setPositionAndRotation(final double x, final double y, final double z, final float yaw, final float pitch) {
-		//	super.setPositionAndRotation(x, y, z, yaw, pitch);
-		this.setPosition(x, y, z);
-		this.setRotation(yaw, pitch);
+	public IPacket<?> createSpawnPacket() {
+		return new SSpawnObjectPacket(this);
 	}
 	
 	private void closeCamera() {
@@ -91,14 +106,15 @@ public final class EntityCamera extends EntityLivingBase {
 		}
 		
 		ClientCameraHandler.resetViewpoint();
-		world.removeEntity(this);
+		remove();
 		isActive = false;
 	}
 	
 	@Override
-	public void onEntityUpdate() {
-		if (world.isRemote) {
-			if (player == null || player.isDead) {
+	public void tick() {
+		if (world.isRemote()) {
+			if ( player == null
+			  || !player.isAlive() ) {
 				WarpDrive.logger.error(String.format("%s Player is null or dead, closing camera...",
 				                                     this));
 				closeCamera();
@@ -118,12 +134,10 @@ public final class EntityCamera extends EntityLivingBase {
 				mc.getRenderViewEntity().rotationPitch = player.rotationPitch;
 			}
 			
-			ClientCameraHandler.overlayLoggingMessage = "Mouse " + Mouse.isButtonDown(0) + " " + Mouse.isButtonDown(1) + " " + Mouse.isButtonDown(2) + " " + Mouse.isButtonDown(3)
-			                                          + "\nBackspace " + Keyboard.isKeyDown(Keyboard.KEY_BACKSLASH)
-			                                          + " Space " + Keyboard.isKeyDown(Keyboard.KEY_SPACE)
-			                                          + " Shift " + "";
+			ClientCameraHandler.overlayLoggingMessage = "ZoomIn/Out with " + ClientProxy.keyBindingCameraZoomIn.getKey().getTranslationKey() + "/" + ClientProxy.keyBindingCameraZoomOut.getKey().getTranslationKey()
+			                                          + "\nShoot with " + ClientProxy.keyBindingCameraShoot.getKey().getTranslationKey();
 			// Perform zoom
-			if (Mouse.isButtonDown(0)) {
+			if (ClientProxy.keyBindingCameraZoomIn.isKeyDown()) {
 				zoomWaitTicks++;
 				if (zoomWaitTicks >= 2) {
 					zoomWaitTicks = 0;
@@ -136,7 +150,7 @@ public final class EntityCamera extends EntityLivingBase {
 			if (bootUpTicks > 0) {
 				bootUpTicks--;
 			} else {
-				if (Mouse.isButtonDown(1)) {
+				if (ClientProxy.keyBindingCameraZoomOut.isKeyDown()) {
 					closeWaitTicks++;
 					if (closeWaitTicks >= 2) {
 						closeWaitTicks = 0;
@@ -147,13 +161,13 @@ public final class EntityCamera extends EntityLivingBase {
 				}
 			}
 			
-			if (Keyboard.isKeyDown(Keyboard.KEY_SPACE)) {
+			if (ClientProxy.keyBindingCameraShoot.isKeyDown()) {
 				fireWaitTicks++;
 				if (fireWaitTicks >= 2) {
 					fireWaitTicks = 0;
 					
 					// Make a shoot with camera-laser
-					if (block.isAssociatedBlock(WarpDrive.blockLaserCamera)) {
+					if (block == WarpDrive.blockLaserCamera) {
 						PacketHandler.sendLaserTargetingPacket(cameraX, cameraY, cameraZ, mc.getRenderViewEntity().rotationYaw, mc.getRenderViewEntity().rotationPitch);
 					}
 				}
@@ -161,19 +175,19 @@ public final class EntityCamera extends EntityLivingBase {
 				fireWaitTicks = 0;
 			}
 			
-			if (Keyboard.isKeyDown(Keyboard.KEY_DOWN)) {
+			if (mc.gameSettings.keyBindDrop.isKeyDown()) {
 				dy = -1;
-			} else if (Keyboard.isKeyDown(Keyboard.KEY_UP)) {
+			} else if (mc.gameSettings.keyBindJump.isKeyDown()) {
 				dy = 2;
-			} else if (Commons.isKeyPressed(mc.gameSettings.keyBindLeft)) {
+			} else if (mc.gameSettings.keyBindLeft.isKeyDown()) {
 				dz = -1;
-			} else if (Commons.isKeyPressed(mc.gameSettings.keyBindRight)) {
+			} else if (mc.gameSettings.keyBindRight.isKeyDown()) {
 				dz = 1;
-			} else if (Commons.isKeyPressed(mc.gameSettings.keyBindForward)) {
+			} else if (mc.gameSettings.keyBindForward.isKeyDown()) {
 				dx = 1;
-			} else if (Commons.isKeyPressed(mc.gameSettings.keyBindBack)) {
+			} else if (mc.gameSettings.keyBindBack.isKeyDown()) {
 				dx = -1;
-			} else if (Keyboard.isKeyDown(Keyboard.KEY_C)) { // centering view
+			} else if (ClientProxy.keyBindingCameraCenter.isKeyDown()) { // centering view
 				dx = 0;
 				dy = 0;
 				dz = 0;
@@ -187,16 +201,12 @@ public final class EntityCamera extends EntityLivingBase {
 				setPosition(cameraX + dx, cameraY + dy, cameraZ + dz);
 			}
 		}
+		
+		setMotion(VECTOR_NO_MOTION);
 	}
 	
 	@Override
-	public void onUpdate() {
-		super.onUpdate();
-		motionX = motionY = motionZ = 0.0D;
-	}
-	
-	@Override
-	public boolean shouldRenderInPass(final int pass) {
+	public boolean isInRangeToRenderDist(double distance) {
 		return false;
 	}
 	
@@ -211,19 +221,9 @@ public final class EntityCamera extends EntityLivingBase {
 	
 	@Override
 	public AxisAlignedBB getCollisionBoundingBox() {
-		return Block.NULL_AABB;
-	}
-	/*
-	@Override
-	public AxisAlignedBB getEntityBoundingBox() {
 		return null;
 	}
 	
-	@Override
-	public AxisAlignedBB getRenderBoundingBox() {
-		return null;
-	}
-	/**/
 	@Override
 	public boolean canBePushed() {
 		return false;
@@ -231,28 +231,28 @@ public final class EntityCamera extends EntityLivingBase {
 	
 	@Nonnull
 	@Override
-	public EnumHandSide getPrimaryHand() {
-		return EnumHandSide.RIGHT;
+	public HandSide getPrimaryHand() {
+		return HandSide.RIGHT;
 	}
 	
 	@Override
-	public void move(final MoverType type, final double x, final double y, final double z) {
+	public void move(@Nonnull final MoverType type, @Nonnull final Vec3d position) {
 	}
 	
 	@Override
-	public void readEntityFromNBT(@Nonnull final NBTTagCompound tagCompound) {
+	public void readAdditional(@Nonnull final CompoundNBT tagCompound) {
 		// nothing to save, skip ancestor call
-		cameraX = tagCompound.getInteger("x");
-		cameraY = tagCompound.getInteger("y");
-		cameraZ = tagCompound.getInteger("z");
+		cameraX = tagCompound.getInt("x");
+		cameraY = tagCompound.getInt("y");
+		cameraZ = tagCompound.getInt("z");
 	}
 	
 	@Override
-	public void writeEntityToNBT(final NBTTagCompound nbttagcompound) {
+	public void writeAdditional(final CompoundNBT nbttagcompound) {
 		// nothing to save, skip ancestor call
-		nbttagcompound.setInteger("x", cameraX);
-		nbttagcompound.setInteger("y", cameraY);
-		nbttagcompound.setInteger("z", cameraZ);
+		nbttagcompound.putInt("x", cameraX);
+		nbttagcompound.putInt("y", cameraY);
+		nbttagcompound.putInt("z", cameraZ);
 	}
 	
 	@Nonnull
@@ -263,12 +263,12 @@ public final class EntityCamera extends EntityLivingBase {
 	
 	@Nonnull
 	@Override
-	public ItemStack getItemStackFromSlot(@Nonnull final EntityEquipmentSlot slotIn) {
+	public ItemStack getItemStackFromSlot(@Nonnull final EquipmentSlotType slotIn) {
 		return ItemStack.EMPTY;
 	}
 	
 	@Override
-	public void setItemStackToSlot(@Nonnull final EntityEquipmentSlot slotIn, @Nullable final ItemStack itemStack) {
+	public void setItemStackToSlot(@Nonnull final EquipmentSlotType slotIn, @Nullable final ItemStack itemStack) {
 		
 	}
 }

@@ -5,10 +5,9 @@ import cr0s.warpdrive.api.ITransformation;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -27,64 +26,65 @@ public class CompatEvilCraft implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockConfigurableBlockContainer.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockConfigurableBlockContainer.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
 	private static final int[]  rotRotation       = {  0,  1,  5,  4,  2,  3,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0 || nbtTileEntity == null) {
-			return metadata;
+			return blockState;
 		}
 		
 		// tile entity rotations
-		if (nbtTileEntity.hasKey("rotatable")) {
+		if (nbtTileEntity.contains("rotatable")) {
 			if (!nbtTileEntity.getBoolean("rotatable")) {
-				return metadata;
+				return blockState;
 			}
-			final int rotation = nbtTileEntity.getInteger("rotation");
+			final int rotation = nbtTileEntity.getInt("rotation");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setInteger("rotation", rotRotation[rotation]);
-				return metadata;
+				nbtTileEntity.putInt("rotation", rotRotation[rotation]);
+				return blockState;
 			case 2:
-				nbtTileEntity.setInteger("rotation", rotRotation[rotRotation[rotation]]);
-				return metadata;
+				nbtTileEntity.putInt("rotation", rotRotation[rotRotation[rotation]]);
+				return blockState;
 			case 3:
-				nbtTileEntity.setInteger("rotation", rotRotation[rotRotation[rotRotation[rotation]]]);
-				return metadata;
+				nbtTileEntity.putInt("rotation", rotRotation[rotRotation[rotRotation[rotation]]]);
+				return blockState;
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

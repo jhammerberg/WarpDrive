@@ -4,14 +4,14 @@ package cr0s.warpdrive.data;
 import javax.annotation.Nonnull;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
 
 /**
@@ -39,9 +39,9 @@ public class VectorI implements Cloneable {
 	}
 	
 	public VectorI(final Entity entity) {
-		x = ((int) Math.floor(entity.posX));
-		y = ((int) Math.floor(entity.posY));
-		z = ((int) Math.floor(entity.posZ));
+		x = ((int) Math.floor(entity.getPosX()));
+		y = ((int) Math.floor(entity.getPosY()));
+		z = ((int) Math.floor(entity.getPosZ()));
 	}
 	
 	public VectorI(final TileEntity tileEntity) {
@@ -51,9 +51,9 @@ public class VectorI implements Cloneable {
 	}
 	
 	public VectorI(final RayTraceResult movingObject) {
-		x = movingObject.getBlockPos().getX();
-		y = movingObject.getBlockPos().getY();
-		z = movingObject.getBlockPos().getZ();
+		x = (int) Math.floor(movingObject.getHitVec().getX());
+		y = (int) Math.floor(movingObject.getHitVec().getY());
+		z = (int) Math.floor(movingObject.getHitVec().getZ());
 	}
 	
 	public VectorI(final BlockPos blockPos) {
@@ -62,7 +62,7 @@ public class VectorI implements Cloneable {
 		z = blockPos.getZ();
 	}
 	
-	public VectorI(final EnumFacing direction) {
+	public VectorI(final Direction direction) {
 		x = direction.getXOffset();
 		y = direction.getYOffset();
 		z = direction.getZOffset();
@@ -84,23 +84,23 @@ public class VectorI implements Cloneable {
 	}
 	
 	// clone in a given direction
-	public VectorI clone(final EnumFacing side) {
+	public VectorI clone(final Direction side) {
 		return new VectorI(x + side.getXOffset(), y + side.getYOffset(), z + side.getZOffset());
 	}
 	
-	public Block getBlock(final IBlockAccess blockAccess) {
-		return blockAccess.getBlockState(new BlockPos(x, y, z)).getBlock();
+	public Block getBlock(final IWorldReader worldReader) {
+		return worldReader.getBlockState(new BlockPos(x, y, z)).getBlock();
 	}
 	
-	public IBlockState getBlockState(final IBlockAccess blockAccess) {
-		return blockAccess.getBlockState(new BlockPos(x, y, z));
+	public BlockState getBlockState(final IWorldReader worldReader) {
+		return worldReader.getBlockState(new BlockPos(x, y, z));
 	}
 	
-	public TileEntity getTileEntity(final IBlockAccess blockAccess) {
-		return blockAccess.getTileEntity(new BlockPos(x, y, z));
+	public TileEntity getTileEntity(final IWorldReader worldReader) {
+		return worldReader.getTileEntity(new BlockPos(x, y, z));
 	}
 	
-	public void setBlockState(final World world, final IBlockState blockState) {
+	public void setBlockState(final World world, final BlockState blockState) {
 		world.setBlockState(getBlockPos(), blockState, 3);
 	}
 	
@@ -122,7 +122,7 @@ public class VectorI implements Cloneable {
 	}
 	
 	// modify current vector by translation of amount block in side direction
-	public VectorI translate(final EnumFacing side, final int amount) {
+	public VectorI translate(final Direction side, final int amount) {
 		switch (side) {
 		case DOWN:
 			y -= amount;
@@ -150,7 +150,7 @@ public class VectorI implements Cloneable {
 	}
 	
 	// modify current vector by translation of 1 block in side direction
-	public VectorI translate(final EnumFacing side) {
+	public VectorI translate(final Direction side) {
 		x += side.getXOffset();
 		y += side.getYOffset();
 		z += side.getZOffset();
@@ -223,22 +223,22 @@ public class VectorI implements Cloneable {
 	}
 	
 	
-	public static VectorI createFromNBT(final NBTTagCompound tagCompound) {
+	public static VectorI createFromNBT(final CompoundNBT tagCompound) {
 		final VectorI vector = new VectorI();
-		vector.readFromNBT(tagCompound);
+		vector.read(tagCompound);
 		return vector;
 	}
 	
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		x = tagCompound.getInteger("x");
-		y = tagCompound.getInteger("y");
-		z = tagCompound.getInteger("z");
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		x = tagCompound.getInt("x");
+		y = tagCompound.getInt("y");
+		z = tagCompound.getInt("z");
 	}
 	
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		tagCompound.setInteger("x", x);
-		tagCompound.setInteger("y", y);
-		tagCompound.setInteger("z", z);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		tagCompound.putInt("x", x);
+		tagCompound.putInt("y", y);
+		tagCompound.putInt("z", z);
 		return tagCompound;
 	}
 	
@@ -266,9 +266,9 @@ public class VectorI implements Cloneable {
 	}
 	
 	public double distance2To(final Entity entity) {
-		final double newX = entity.posX - x;
-		final double newY = entity.posY - y;
-		final double newZ = entity.posZ - z;
+		final double newX = entity.getPosX() - x;
+		final double newY = entity.getPosY() - y;
+		final double newZ = entity.getPosZ() - z;
 		return newX * newX + newY * newY + newZ * newZ;
 	}
 	

@@ -3,15 +3,13 @@ package cr0s.warpdrive.config;
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IBlockTransformer;
+/*
 import cr0s.warpdrive.compat.CompatActuallyAdditions;
-import cr0s.warpdrive.compat.CompatAdvancedRepulsionSystems;
 import cr0s.warpdrive.compat.CompatAppliedEnergistics2;
-import cr0s.warpdrive.compat.CompatArsMagica2;
 import cr0s.warpdrive.compat.CompatBiblioCraft;
 import cr0s.warpdrive.compat.CompatBlockcraftery;
 import cr0s.warpdrive.compat.CompatBotania;
 import cr0s.warpdrive.compat.CompatBuildCraft;
-import cr0s.warpdrive.compat.CompatCarpentersBlocks;
 import cr0s.warpdrive.compat.CompatComputerCraft;
 import cr0s.warpdrive.compat.CompatCustomNPCs;
 import cr0s.warpdrive.compat.CompatDecocraft;
@@ -34,7 +32,6 @@ import cr0s.warpdrive.compat.CompatMetalChests;
 import cr0s.warpdrive.compat.CompatMysticalAgriculture;
 import cr0s.warpdrive.compat.CompatNatura;
 import cr0s.warpdrive.compat.CompatOpenComputers;
-import cr0s.warpdrive.compat.CompatParziStarWars;
 import cr0s.warpdrive.compat.CompatPneumaticCraft;
 import cr0s.warpdrive.compat.CompatRealFilingCabinet;
 import cr0s.warpdrive.compat.CompatRedstonePaste;
@@ -52,6 +49,7 @@ import cr0s.warpdrive.compat.CompatUndergroundBiomes;
 import cr0s.warpdrive.compat.CompatVariedCommodities;
 import cr0s.warpdrive.compat.CompatWarpDrive;
 import cr0s.warpdrive.compat.CompatWoot;
+*/
 import cr0s.warpdrive.config.structures.StructureManager;
 import cr0s.warpdrive.data.CelestialObject;
 import cr0s.warpdrive.data.CelestialObjectManager;
@@ -63,26 +61,30 @@ import cr0s.warpdrive.data.EnumTooltipCondition;
 import cr0s.warpdrive.network.PacketHandler;
 
 import net.minecraft.block.Block;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.block.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.nbt.NBTException;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.Tag;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 
-import net.minecraftforge.common.ForgeChunkManager;
-import net.minecraftforge.common.ForgeModContainer;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.common.config.Property;
+import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
+import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
+import net.minecraftforge.common.ForgeConfigSpec.DoubleValue;
+import net.minecraftforge.common.ForgeConfigSpec.EnumValue;
+import net.minecraftforge.common.ForgeConfigSpec.IntValue;
+import net.minecraftforge.common.ForgeConfigSpec.LongValue;
 import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.fml.common.FMLLog;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.registries.ForgeRegistries;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXParseException;
 
@@ -1507,26 +1509,18 @@ public class WarpDriveConfig {
 	}
 	
 	public static void onFMLInitialization() {
+		/* MC1.15 compatibility classes
 		CompatWarpDrive.register();
 		
 		// apply compatibility modules
-		if (isAdvancedRepulsionSystemLoaded) {
-			CompatAdvancedRepulsionSystems.register();
-		}
-		
-		final boolean isAppliedEnergistics2Loaded = Loader.isModLoaded("appliedenergistics2");
+		final boolean isAppliedEnergistics2Loaded = ModList.get().isLoaded("appliedenergistics2");
 		if (isAppliedEnergistics2Loaded) {
 			CompatAppliedEnergistics2.register();
 		}
 		
-		final boolean isActuallyAdditionsLoaded = Loader.isModLoaded("actuallyadditions");
+		final boolean isActuallyAdditionsLoaded = ModList.get().isLoaded("actuallyadditions");
 		if (isActuallyAdditionsLoaded) {
 			CompatActuallyAdditions.register();
-		}
-		
-		final boolean isArsMagica2Loaded = Loader.isModLoaded("arsmagica2");
-		if (isArsMagica2Loaded) {
-			CompatArsMagica2.register();
 		}
 		
 		if (isComputerCraftLoaded) {
@@ -1541,7 +1535,7 @@ public class WarpDriveConfig {
 			isForgeMultipartLoaded = CompatForgeMultipart.register();
 		}
 		
-		final boolean isImmersiveEngineeringLoaded = Loader.isModLoaded("immersiveengineering");
+		final boolean isImmersiveEngineeringLoaded = ModList.get().isLoaded("immersiveengineering");
 		if (isImmersiveEngineeringLoaded) {
 			CompatImmersiveEngineering.register();
 		}
@@ -1559,190 +1553,181 @@ public class WarpDriveConfig {
 			CompatThermalExpansion.register();
 		}
 		
-		final boolean isBotaniaLoaded = Loader.isModLoaded("botania");
+		final boolean isBotaniaLoaded = ModList.get().isLoaded("botania");
 		if (isBotaniaLoaded) {
 			CompatBotania.register();
 		}
 		
-		final boolean isBiblioCraftLoaded = Loader.isModLoaded("bibliocraft");
+		final boolean isBiblioCraftLoaded = ModList.get().isLoaded("bibliocraft");
 		if (isBiblioCraftLoaded) {
 			CompatBiblioCraft.register();
 		}
 		
-		final boolean isBlockcrafteryLoaded = Loader.isModLoaded("blockcraftery");
+		final boolean isBlockcrafteryLoaded = ModList.get().isLoaded("blockcraftery");
 		if (isBlockcrafteryLoaded) {
 			CompatBlockcraftery.register();
 		}
 		
-		final boolean isBuildCraftLoaded = Loader.isModLoaded("buildcraftcore");
+		final boolean isBuildCraftLoaded = ModList.get().isLoaded("buildcraftcore");
 		if (isBuildCraftLoaded) {
 			CompatBuildCraft.register();
 		}
 		
-		final boolean isCarpentersBlocksLoaded = Loader.isModLoaded("CarpentersBlocks");
-		if (isCarpentersBlocksLoaded) {
-			CompatCarpentersBlocks.register();
-		}
-		
-		final boolean isCustomNPCsLoaded = Loader.isModLoaded("customnpcs");
+		final boolean isCustomNPCsLoaded = ModList.get().isLoaded("customnpcs");
 		if (isCustomNPCsLoaded) {
 			CompatCustomNPCs.register();
 		}
 		
-		final boolean isDecocraftLoaded = Loader.isModLoaded("props");
+		final boolean isDecocraftLoaded = ModList.get().isLoaded("props");
 		if (isDecocraftLoaded) {
 			CompatDecocraft.register();
 		}
 		
-		final boolean isDeepResonanceLoaded = Loader.isModLoaded("deepresonance");
+		final boolean isDeepResonanceLoaded = ModList.get().isLoaded("deepresonance");
 		if (isDeepResonanceLoaded) {
 			CompatDeepResonance.register();
 		}
 		
-		final boolean isDraconicEvolutionLoaded = Loader.isModLoaded("draconicevolution");
+		final boolean isDraconicEvolutionLoaded = ModList.get().isLoaded("draconicevolution");
 		if (isDraconicEvolutionLoaded) {
 			CompatDraconicEvolution.register();
 		}
 		
-		final boolean isEmbersLoaded = Loader.isModLoaded("embers");
+		final boolean isEmbersLoaded = ModList.get().isLoaded("embers");
 		if (isEmbersLoaded) {
 			CompatEmbers.register();
 		}
 		
-		final boolean isEnvironmentalTechLoaded = Loader.isModLoaded("environmentaltech");
+		final boolean isEnvironmentalTechLoaded = ModList.get().isLoaded("environmentaltech");
 		if (isEnvironmentalTechLoaded) {
 			CompatEnvironmentalTech.register();
 		}
 		
-		final boolean isExtraUtilities2Loaded = Loader.isModLoaded("extrautils2");
+		final boolean isExtraUtilities2Loaded = ModList.get().isLoaded("extrautils2");
 		if (isExtraUtilities2Loaded) {
 			CompatExtraUtilities2.register();
 		}
 		
-		final boolean isEvilCraftLoaded = Loader.isModLoaded("evilcraft");
+		final boolean isEvilCraftLoaded = ModList.get().isLoaded("evilcraft");
 		if (isEvilCraftLoaded) {
 			CompatEvilCraft.register();
 		}
 		
-		final boolean isGalacticraftCoreLoaded = Loader.isModLoaded("galacticraftcore");
+		final boolean isGalacticraftCoreLoaded = ModList.get().isLoaded("galacticraftcore");
 		if (isGalacticraftCoreLoaded) {
 			CompatGalacticraft.register();
 		}
 		
-		// final boolean isGregTechLoaded = Loader.isModLoaded("gregtech");
+		// final boolean isGregTechLoaded = ModList.get().isLoaded("gregtech");
 		if (isGregtechLoaded) {
 			CompatGregTech.register();
 		}
 		
-		final boolean isIndustrialForegoingLoaded = Loader.isModLoaded("industrialforegoing");
+		final boolean isIndustrialForegoingLoaded = ModList.get().isLoaded("industrialforegoing");
 		if (isIndustrialForegoingLoaded) {
 			CompatIndustrialForegoing.register();
 		}
 		
-		final boolean isIronChestLoaded = Loader.isModLoaded("ironchest");
+		final boolean isIronChestLoaded = ModList.get().isLoaded("ironchest");
 		if (isIronChestLoaded) {
 			CompatIronChest.register();
 		}
 		
-		final boolean isMekanismLoaded = Loader.isModLoaded("mekanism");
+		final boolean isMekanismLoaded = ModList.get().isLoaded("mekanism");
 		if (isMekanismLoaded) {
 			CompatMekanism.register();
 		}
 		
-		final boolean isMetalChestsLoaded = Loader.isModLoaded("metalchests");
+		final boolean isMetalChestsLoaded = ModList.get().isLoaded("metalchests");
 		if (isMetalChestsLoaded) {
 			CompatMetalChests.register();
 		}
 		
-		final boolean isMysticalAgricultureLoaded = Loader.isModLoaded("mysticalagriculture");
+		final boolean isMysticalAgricultureLoaded = ModList.get().isLoaded("mysticalagriculture");
 		if (isMysticalAgricultureLoaded) {
 			CompatMysticalAgriculture.register();
 		}
 		
-		final boolean isNaturaLoaded = Loader.isModLoaded("natura");
+		final boolean isNaturaLoaded = ModList.get().isLoaded("natura");
 		if (isNaturaLoaded) {
 			CompatNatura.register();
 		}
 		
-		final boolean isPneumaticCraftLoaded = Loader.isModLoaded("pneumaticcraft");
+		final boolean isPneumaticCraftLoaded = ModList.get().isLoaded("pneumaticcraft");
 		if (isPneumaticCraftLoaded) {
 			CompatPneumaticCraft.register();
 		}
 		
-		final boolean isRootsLoaded = Loader.isModLoaded("roots");
+		final boolean isRootsLoaded = ModList.get().isLoaded("roots");
 		if (isRootsLoaded) {
 			CompatRoots.register();
 		}
 		
-		final boolean isRusticLoaded = Loader.isModLoaded("rustic");
+		final boolean isRusticLoaded = ModList.get().isLoaded("rustic");
 		if (isRusticLoaded) {
 			CompatRustic.register();
 		}
 		
-		final boolean isParziStarWarsLoaded = Loader.isModLoaded("starwarsmod");
-		if (isParziStarWarsLoaded) {
-			CompatParziStarWars.register();
-		}
-		
-		final boolean isRedstonePasteLoaded = Loader.isModLoaded("redstonepaste");
+		final boolean isRedstonePasteLoaded = ModList.get().isLoaded("redstonepaste");
 		if (isRedstonePasteLoaded) {
 			CompatRedstonePaste.register();
 		}
 		
-		final boolean isRealFilingCabinetLoaded = Loader.isModLoaded("realfilingcabinet");
+		final boolean isRealFilingCabinetLoaded = ModList.get().isLoaded("realfilingcabinet");
 		if (isRealFilingCabinetLoaded) {
 			CompatRealFilingCabinet.register();
 		}
 		
-		final boolean isRefinedStorageLoaded = Loader.isModLoaded("refinedstorage");
+		final boolean isRefinedStorageLoaded = ModList.get().isLoaded("refinedstorage");
 		if (isRefinedStorageLoaded) {
 			CompatRefinedStorage.register();
 		}
 		
-		final boolean isSGCraftLoaded = Loader.isModLoaded("sgcraft");
+		final boolean isSGCraftLoaded = ModList.get().isLoaded("sgcraft");
 		if (isSGCraftLoaded) {
 			CompatSGCraft.register();
 		}
 		
-		final boolean isStorageDrawersLoaded = Loader.isModLoaded("storagedrawers");
+		final boolean isStorageDrawersLoaded = ModList.get().isLoaded("storagedrawers");
 		if (isStorageDrawersLoaded) {
 			CompatStorageDrawers.register();
 		}
 		
-		final boolean isTConstructLoaded = Loader.isModLoaded("tconstruct");
+		final boolean isTConstructLoaded = ModList.get().isLoaded("tconstruct");
 		if (isTConstructLoaded) {
 			CompatTConstruct.register();
 		}
 		
-		final boolean isTechgunsLoaded = Loader.isModLoaded("techguns");
+		final boolean isTechgunsLoaded = ModList.get().isLoaded("techguns");
 		if (isTechgunsLoaded) {
 			CompatTechguns.register();
 		}
 		
-		final boolean isThaumcraftLoaded = Loader.isModLoaded("thaumcraft");
+		final boolean isThaumcraftLoaded = ModList.get().isLoaded("thaumcraft");
 		if (isThaumcraftLoaded) {
 			CompatThaumcraft.register();
 		}
 		
-		final boolean isThermalDynamicsLoaded = Loader.isModLoaded("thermaldynamics");
+		final boolean isThermalDynamicsLoaded = ModList.get().isLoaded("thermaldynamics");
 		if (isThermalDynamicsLoaded) {
 			CompatThermalDynamics.register();
 		}
 		
-		final boolean isUndergroundBiomesLoaded = Loader.isModLoaded("undergroundbiomes");
+		final boolean isUndergroundBiomesLoaded = ModList.get().isLoaded("undergroundbiomes");
 		if (isUndergroundBiomesLoaded) {
 			CompatUndergroundBiomes.register();
 		}
 		
-		final boolean isVariedCommoditiesLoaded = Loader.isModLoaded("variedcommodities");
+		final boolean isVariedCommoditiesLoaded = ModList.get().isLoaded("variedcommodities");
 		if (isVariedCommoditiesLoaded) {
 			CompatVariedCommodities.register();
 		}
 		
-		final boolean isWootloaded = Loader.isModLoaded("woot");
+		final boolean isWootloaded = ModList.get().isLoaded("woot");
 		if (isWootloaded) {
 			CompatWoot.register();
 		}
+		*/
 	}
 	
 	public static void onFMLPostInitialization() {

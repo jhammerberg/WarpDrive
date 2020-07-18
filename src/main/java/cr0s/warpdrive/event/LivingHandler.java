@@ -24,30 +24,30 @@ import java.util.UUID;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DamageSource;
-import net.minecraft.inventory.EntityEquipmentSlot;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 
-import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.event.entity.living.EnderTeleportEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.entity.living.LivingFallEvent;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class LivingHandler {
 	
 	private static final HashMap<UUID, Integer> player_cloakTicks = new HashMap<>();
 	private static final HashMap<UUID, Integer> player_borderBypassTicks = new HashMap<>();
-	private static final HashMap<Long, Double> entity_yMotion = new HashMap<>();
+	private static final HashMap<ResourceLocation, HashMap<Integer, Double>> entity_yMotionByDimensionId = new HashMap<>();
 	
 	private static final int CLOAK_CHECK_TIMEOUT_TICKS = 100;
 	
@@ -66,19 +66,23 @@ public class LivingHandler {
 		if (tickUpdate < 0) {
 			tickUpdate = PURGE_PERIOD_TICKS;
 			LocalProfiler.start("LivingHandler cleanup");
-			final Iterator<Long> iterator = entity_yMotion.keySet().iterator();
-			while (iterator.hasNext()) {
-				final Long key = iterator.next();
-				final int dimensionId = (int) (key >> 32);
-				final WorldServer worldServer = DimensionManager.getWorld(dimensionId);
+			final Iterator<ResourceLocation> iteratorDimensionId = entity_yMotionByDimensionId.keySet().iterator();
+			while (iteratorDimensionId.hasNext()) {
+				final ResourceLocation dimensionId = iteratorDimensionId.next();
+				final ServerWorld worldServer = Commons.getLoadedWorldServer(dimensionId);
 				if (worldServer == null) {
-					iterator.remove();
+					iteratorDimensionId.remove();
 					continue;
 				}
-				final Entity entity = worldServer.getEntityByID((int) (key & 0xFFFFFFFFL));
-				if (entity == null) {
-					iterator.remove();
-					// continue;
+				
+				final Iterator<Integer> iteratorEntity = entity_yMotionByDimensionId.get(dimensionId).keySet().iterator();
+				while (iteratorEntity.hasNext()) {
+					final int entityId = iteratorEntity.next();
+					final Entity entity = worldServer.getEntityByID(entityId);
+					if (entity == null) {
+						iteratorEntity.remove();
+						// continue;
+					}
 				}
 			}
 			LocalProfiler.stop(1000);
@@ -88,19 +92,20 @@ public class LivingHandler {
 	@SubscribeEvent
 	public void onLivingUpdate(@Nonnull final LivingUpdateEvent event) {
 		if ( event.getEntityLiving() == null
-		  || event.getEntityLiving().world.isRemote ) {
+		  || event.getEntityLiving().world.isRemote() ) {
 			return;
 		}
 		
-		final EntityLivingBase entityLivingBase = event.getEntityLiving();
-		final int x = MathHelper.floor(entityLivingBase.posX);
-		final int y = MathHelper.floor(entityLivingBase.posY);
-		final int z = MathHelper.floor(entityLivingBase.posZ);
+		final LivingEntity entityLivingBase = event.getEntityLiving();
+		final int x = MathHelper.floor(entityLivingBase.getPosX());
+		final int y = MathHelper.floor(entityLivingBase.getPosY());
+		final int z = MathHelper.floor(entityLivingBase.getPosZ());
 		
 		// *** save motion for fall damage computation
 		// note: dead entities don't tick. Checking health level is too taxing. Hence, cleanup is done indirectly.
 		if (!entityLivingBase.onGround) {
-			entity_yMotion.put((long) entityLivingBase.dimension << 32 | entityLivingBase.getEntityId(), entityLivingBase.motionY);
+			final HashMap<Integer, Double> entity_yMotion = entity_yMotionByDimensionId.computeIfAbsent(entityLivingBase.dimension.getRegistryName(), k -> new HashMap<>(300));
+			entity_yMotion.put(entityLivingBase.getEntityId(), entityLivingBase.getMotion().y);
 		}
 		
 		// *** world border handling
@@ -112,44 +117,46 @@ public class LivingHandler {
 		}
 		final double distanceSquared = celestialObject.getSquareDistanceOutsideBorder(x, z);
 		if (distanceSquared <= 0.0D) {
-			if (entityLivingBase instanceof EntityPlayer) {
+			if (entityLivingBase instanceof PlayerEntity) {
 				// are we close to the border?
 				if ( Math.abs(distanceSquared) <= BORDER_WARNING_RANGE_BLOCKS_SQUARED
 				  && entityLivingBase.ticksExisted % 40 == 0) {
-					((EntityPlayer) entityLivingBase).sendStatusMessage(
+					((PlayerEntity) entityLivingBase).sendStatusMessage(
 							new WarpDriveText(Commons.getStyleWarning(), "warpdrive.world_border.in_range",
-							                  (int) Math.sqrt(Math.abs(distanceSquared))), true );
+							                  (int) Math.sqrt(Math.abs(distanceSquared)) ), true );
 				}
 				// clear bypass counter
 				player_borderBypassTicks.remove(entityLivingBase.getUniqueID());
 			}
 			
 		} else {
-			if (entityLivingBase instanceof EntityPlayer) {
-				if (((EntityPlayer) entityLivingBase).capabilities.disableDamage) {
+			if (entityLivingBase instanceof PlayerEntity) {
+				if (((PlayerEntity) entityLivingBase).abilities.disableDamage) {
 					if (entityLivingBase.ticksExisted % 100 == 0) {
-						((EntityPlayer) entityLivingBase).sendStatusMessage(
+						((PlayerEntity) entityLivingBase).sendStatusMessage(
 								new WarpDriveText(Commons.getStyleWarning(), "warpdrive.world_border.outside",
-								                  (int) Math.sqrt(Math.abs(distanceSquared))), true );
+								                  (int) Math.sqrt(Math.abs(distanceSquared)) ), true );
 					}
 					return;
 				}
 			}
 			
 			// pull back the entity
-			final double relativeX = entityLivingBase.posX - celestialObject.dimensionCenterX;
-			final double relativeZ = entityLivingBase.posZ - celestialObject.dimensionCenterZ;
+			final double relativeX = entityLivingBase.getPosX() - celestialObject.dimensionCenterX;
+			final double relativeZ = entityLivingBase.getPosZ() - celestialObject.dimensionCenterZ;
 			final double newAbsoluteX = Math.min(Math.abs(relativeX), Math.max(0.0D, celestialObject.borderRadiusX - BORDER_BYPASS_PULL_BACK_BLOCKS));
 			final double newAbsoluteZ = Math.min(Math.abs(relativeZ), Math.max(0.0D, celestialObject.borderRadiusZ - BORDER_BYPASS_PULL_BACK_BLOCKS));
 			final double newEntityX = celestialObject.dimensionCenterX + Math.signum(relativeX) * newAbsoluteX;
-			final double newEntityY = entityLivingBase.posY + 0.1D;
+			final double newEntityY = entityLivingBase.getPosY() + 0.1D;
 			final double newEntityZ = celestialObject.dimensionCenterX + Math.signum(relativeZ) * newAbsoluteZ;
 			// entityLivingBase.isAirBorne = true;
 			Commons.moveEntity(entityLivingBase, entityLivingBase.world, new Vector3(newEntityX, newEntityY, newEntityZ));
 			
 			// give a survival chance for players, notably when switching dimension
 			boolean isDelayed = false;
-			if (entityLivingBase instanceof EntityPlayer && !entityLivingBase.isDead && entityLivingBase.deathTime <= 0) {
+			if ( entityLivingBase instanceof PlayerEntity
+			  && entityLivingBase.isAlive()
+			  && entityLivingBase.deathTime <= 0 ) {
 				// spam player's chat
 				Commons.addChatMessage(entityLivingBase, new WarpDriveText(Commons.getStyleWarning(), "warpdrive.world_border.reached"));
 				
@@ -171,32 +178,33 @@ public class LivingHandler {
 			}
 		}
 		
-		if (entityLivingBase instanceof EntityPlayerMP) {
+		if (entityLivingBase instanceof ServerPlayerEntity) {
 			// *** cloak handling
 			updatePlayerCloakState(entityLivingBase);
 			
 			// *** air handling
 			if ( WarpDriveConfig.BREATHING_AIR_AT_ENTITY_DEBUG
-			  && entityLivingBase.world.getWorldTime() % 20 == 0 ) {
-				StateAir.dumpAroundEntity((EntityPlayer) entityLivingBase);
+			  && entityLivingBase.world.getGameTime() % 20 == 0 ) {
+				StateAir.dumpAroundEntity((PlayerEntity) entityLivingBase);
 			}
 			
 			// *** offline avatar handling
 			if (WarpDriveConfig.OFFLINE_AVATAR_ENABLE) {
-				OfflineAvatarManager.onTick((EntityPlayer) entityLivingBase);
+				OfflineAvatarManager.onTick((PlayerEntity) entityLivingBase);
 			}
 		}
 		
 		// skip dead or invulnerable entities
-		if (entityLivingBase.isDead || entityLivingBase.isEntityInvulnerable(WarpDrive.damageAsphyxia)) {
+		if ( !entityLivingBase.isAlive()
+		  || entityLivingBase.isInvulnerableTo(WarpDrive.damageAsphyxia) ) {
 			return;
 		}
 		
 		// If entity is in vacuum, check and start consuming air cells
 		if (!celestialObject.hasAtmosphere()) {
 			// skip players in creative
-			if ( !(entityLivingBase instanceof EntityPlayerMP)
-			  || !((EntityPlayerMP) entityLivingBase).capabilities.disableDamage ) {
+			if ( !(entityLivingBase instanceof ServerPlayerEntity)
+			  || !((ServerPlayerEntity) entityLivingBase).abilities.disableDamage ) {
 				BreathingManager.onLivingUpdateEvent(entityLivingBase, x, y, z);
 			}
 		}
@@ -204,7 +212,7 @@ public class LivingHandler {
 		
 		// *** world transition handling
 		// If entity is falling down, teleport to child celestial object or wrap around, as needed
-		if (entityLivingBase.posY < -10.0D) {
+		if (entityLivingBase.getPosY() < -10.0D) {
 			// skip blacklisted entities (lookup of entities id is slow, use with care)
 			if ( Dictionary.isLeftBehind(entityLivingBase)
 			  || Dictionary.isAnchor(entityLivingBase) ) {
@@ -213,26 +221,27 @@ public class LivingHandler {
 			
 			final CelestialObject celestialObjectChild = CelestialObjectManager.getClosestChild(entityLivingBase.world, x, z);
 			// are we actually in orbit?
+			assert entityLivingBase.world.getDimension().getType().getRegistryName() != null;
 			if ( celestialObjectChild != null
 			  && !celestialObjectChild.isVirtual()
 			  && !celestialObject.isHyperspace()
-			  && celestialObjectChild.isInOrbit(entityLivingBase.world.provider.getDimension(), x, z) ) {
+			  && celestialObjectChild.isInOrbit(entityLivingBase.world.getDimension().getType().getRegistryName(), x, z) ) {
 				
-				final WorldServer worldTarget = Commons.getOrCreateWorldServer(celestialObjectChild.dimensionId);
+				final ServerWorld worldTarget = Commons.getOrCreateWorldServer(celestialObjectChild.dimensionId);
 				if (worldTarget == null) {
-					WarpDrive.logger.error(String.format("Unable to initialize dimension %d for %s",
+					WarpDrive.logger.error(String.format("Unable to initialize dimension %s for %s",
 					                                     celestialObjectChild.dimensionId,
 					                                     entityLivingBase));
 					// inform player then roll around to cooldown
 					Commons.addChatMessage( entityLivingBase,
 					                        new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.exception_loading_dimension",
 					                                          celestialObjectChild.dimensionId ));
-					entityLivingBase.setPositionAndUpdate(entityLivingBase.posX, 260.0D, entityLivingBase.posZ);
+					entityLivingBase.setPositionAndUpdate(entityLivingBase.getPosX(), 260.0D, entityLivingBase.getPosZ());
 				} else {
 					final VectorI vEntry = celestialObjectChild.getEntryOffset();
-					final double xTarget = entityLivingBase.posX + vEntry.x;
+					final double xTarget = entityLivingBase.getPosX() + vEntry.x;
 					final double yTarget = celestialObject.isSpace() ? 1500 : worldTarget.getActualHeight() + 5;
-					final double zTarget = entityLivingBase.posZ + vEntry.z;
+					final double zTarget = entityLivingBase.getPosZ() + vEntry.z;
 					
 					// add tolerance to fall distance
 					entityLivingBase.fallDistance = -5.0F;
@@ -249,12 +258,12 @@ public class LivingHandler {
 			} else if ( celestialObject.isHyperspace()
 			         || celestialObject.isSpace() ) {
 				// player is in space or hyperspace, let's roll around
-				entityLivingBase.setPositionAndUpdate(entityLivingBase.posX, 260.0D, entityLivingBase.posZ);
+				entityLivingBase.setPositionAndUpdate(entityLivingBase.getPosX(), 260.0D, entityLivingBase.getPosZ());
 			}
 		}
 	}
 	
-	private void applyAtmosphericEntryEffect(@Nonnull final EntityLivingBase entityLivingBase) {
+	private void applyAtmosphericEntryEffect(@Nonnull final LivingEntity entityLivingBase) {
 		final Iterable<ItemStack> inventoryArmor = entityLivingBase.getArmorInventoryList();
 		int countReentryArmor = 0;
 		for (final ItemStack itemStack : inventoryArmor) {
@@ -265,16 +274,16 @@ public class LivingHandler {
 		}
 		// no damage for player in full armor or entity with at least 1 element
 		if ( countReentryArmor == 4
-		  || ( !(entityLivingBase instanceof EntityPlayer)
+		  || ( !(entityLivingBase instanceof PlayerEntity)
 		    && countReentryArmor>= 1 ) ) {
 			return;
 		}
 		entityLivingBase.setFire(30);
 	}
 	
-	private void updatePlayerCloakState(final EntityLivingBase entity) {
+	private void updatePlayerCloakState(final LivingEntity entity) {
 		try {
-			final EntityPlayerMP player = (EntityPlayerMP) entity;
+			final ServerPlayerEntity player = (ServerPlayerEntity) entity;
 			final Integer cloakTicks = player_cloakTicks.get(player.getUniqueID());
 			
 			if (cloakTicks == null) {
@@ -306,15 +315,16 @@ public class LivingHandler {
 		// 3.346 blocks high is motionY -0.717
 		
 		// cancel in case of very low speed
-		final EntityLivingBase entityLivingBase = event.getEntityLiving();
-		Double motionY = entity_yMotion.get((long) entityLivingBase.dimension << 32 | entityLivingBase.getEntityId());
+		final LivingEntity entityLivingBase = event.getEntityLiving();
+		final HashMap<Integer, Double> entity_yMotion = entity_yMotionByDimensionId.get(entityLivingBase.dimension.getRegistryName());
+		Double motionY = entity_yMotion == null ? null : entity_yMotion.get(entityLivingBase.getEntityId());
 		if (motionY == null) {
-			motionY = entityLivingBase.motionY;
+			motionY = entityLivingBase.getMotion().y;
 		}
 		if (motionY > -0.65170D) {
 			event.setCanceled(true); // Don't damage entity
 			if ( WarpDriveConfig.LOGGING_GRAVITY
-			  && entityLivingBase instanceof EntityPlayerMP ) {
+			  && entityLivingBase instanceof ServerPlayerEntity ) {
 				WarpDrive.logger.warn(String.format("(low speed     ) Entity fall damage at motionY %.3f from distance %.3f of %s, isCancelled %s",
 				                                    motionY, event.getDistance(), entityLivingBase, event.isCanceled()));
 			}
@@ -329,7 +339,7 @@ public class LivingHandler {
 		if (check <= 0) {
 			event.setCanceled(true); // Don't damage entity
 			if ( WarpDriveConfig.LOGGING_GRAVITY
-			  && entityLivingBase instanceof EntityPlayerMP ) {
+			  && entityLivingBase instanceof ServerPlayerEntity ) {
 				WarpDrive.logger.warn(String.format("(short distance) Entity fall damage at motionY %.3f from distance %.3f of %s, isCancelled %s",
 				                                    motionY, event.getDistance(), entityLivingBase, event.isCanceled()));
 			}
@@ -342,12 +352,12 @@ public class LivingHandler {
 		}
 		
 		// check for equipment with NOFALLDAMAGE tag
-		for (final EntityEquipmentSlot entityEquipmentSlot : EntityEquipmentSlot.values()) {
+		for (final EquipmentSlotType entityEquipmentSlot : EquipmentSlotType.values()) {
 			final ItemStack itemStackInSlot = entityLivingBase.getItemStackFromSlot(entityEquipmentSlot);
 			if (!itemStackInSlot.isEmpty()) {
 				if (Dictionary.ITEMS_NOFALLDAMAGE.contains(itemStackInSlot.getItem())) {
 					event.setCanceled(true); // Don't damage entity
-					if (WarpDrive.isDev && entityLivingBase instanceof EntityPlayerMP) {
+					if (WarpDrive.isDev && entityLivingBase instanceof ServerPlayerEntity) {
 						WarpDrive.logger.warn(String.format("(boot absorbed ) Entity fall damage at motionY %.3f from distance %.3f of %s, isCancelled %s",
 						                                    motionY, event.getDistance(), entityLivingBase, event.isCanceled()));
 					}
@@ -360,7 +370,7 @@ public class LivingHandler {
 		// adjust distance to 'vanilla' scale and let it fall...
 		event.setDistance( (float) (-6.582D + 4.148D * Math.exp(1.200D * Math.abs(motionY))) );
 		if ( WarpDriveConfig.LOGGING_GRAVITY
-		  && entityLivingBase instanceof EntityPlayerMP ) {
+		  && entityLivingBase instanceof ServerPlayerEntity ) {
 			WarpDrive.logger.warn(String.format("(full damage   ) Entity fall damage at motionY %.3f from distance %.3f of %s, isCancelled %s",
 			                                    motionY, event.getDistance(), entityLivingBase, event.isCanceled()));
 		}
@@ -369,7 +379,7 @@ public class LivingHandler {
 	@SubscribeEvent
 	public void onEnderTeleport(@Nonnull final EnderTeleportEvent event) {
 		if ( event.getEntityLiving() == null
-		  || event.getEntityLiving().world.isRemote ) {
+		  || event.getEntityLiving().world.isRemote() ) {
 			return;
 		}
 		
@@ -378,7 +388,7 @@ public class LivingHandler {
 		final int y = MathHelper.floor(event.getTargetY());
 		final int z = MathHelper.floor(event.getTargetZ());
 		
-		final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos(x, y, z);
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(x, y, z);
 		for (int xLoop = x - 1; xLoop <= x + 1; xLoop++) {
 			for (int zLoop = z - 1; zLoop <= z + 1; zLoop++) {
 				for (int yLoop = y - 1; yLoop <= y + 1; yLoop++) {
@@ -398,7 +408,7 @@ public class LivingHandler {
 	
 	@SubscribeEvent(priority = EventPriority.LOWEST)
 	void onLivingDeath(@Nonnull final LivingDeathEvent event) {
-		final EntityLivingBase entityLivingBase = event.getEntityLiving();
+		final LivingEntity entityLivingBase = event.getEntityLiving();
 		if (entityLivingBase != null) {
 			BreathingManager.onEntityLivingDeath(entityLivingBase);
 		}

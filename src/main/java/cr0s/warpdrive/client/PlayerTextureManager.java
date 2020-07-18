@@ -47,7 +47,7 @@ public class PlayerTextureManager {
 			mapIdPlayerTextures = mapIdTypeTextureNew;
 			
 			Commons.getGameProfile(uuidPlayer, namePlayer, (gameProfileFilled) ->
-					Minecraft.getMinecraft().getSkinManager().loadProfileTextures(gameProfileFilled, (type, location, profileTexture) -> {
+					Minecraft.getInstance().getSkinManager().loadProfileTextures(gameProfileFilled, (type, location, profileTexture) -> {
 						switch (type) {
 						case SKIN:
 							playerTextures.resourceLocationSkin = location;

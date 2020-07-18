@@ -11,10 +11,16 @@ import cr0s.warpdrive.item.ItemComponent;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.block.Blocks;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
+
+import net.minecraftforge.client.model.data.IModelData;
 
 public class TileEntityCapacitor extends TileEntityAbstractEnergy {
+	
+	public static TileEntityType<TileEntityCapacitor> TYPE;
 	
 	// global properties
 	private static final String TAG_MODE_SIDE = "modeSide";
@@ -35,7 +41,7 @@ public class TileEntityCapacitor extends TileEntityAbstractEnergy {
 	private EnumDisabledInputOutput[] modeSide = MODE_DEFAULT_SIDES.clone();
 	
 	public TileEntityCapacitor() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveCapacitor";
 		doRequireUpgradeToInterface();
@@ -105,11 +111,11 @@ public class TileEntityCapacitor extends TileEntityAbstractEnergy {
 	}
 	
 	@Override
-	public boolean energy_canInput(final EnumFacing from) {
+	public boolean energy_canInput(final Direction from) {
 		if (from != null) {
 			return modeSide[from.ordinal()] == EnumDisabledInputOutput.INPUT;
 		} else {
-			for (final EnumFacing enumFacing : EnumFacing.VALUES) {
+			for (final Direction enumFacing : Direction.values()) {
 				if (modeSide[enumFacing.ordinal()] == EnumDisabledInputOutput.INPUT) {
 					return true;
 				}
@@ -119,11 +125,11 @@ public class TileEntityCapacitor extends TileEntityAbstractEnergy {
 	}
 	
 	@Override
-	public boolean energy_canOutput(final EnumFacing to) {
+	public boolean energy_canOutput(final Direction to) {
 		if (to != null) {
 			return modeSide[to.ordinal()] == EnumDisabledInputOutput.OUTPUT;
 		} else {
-			for (final EnumFacing enumFacing : EnumFacing.VALUES) {
+			for (final Direction enumFacing : Direction.values()) {
 				if (modeSide[enumFacing.ordinal()] == EnumDisabledInputOutput.OUTPUT) {
 					return true;
 				}
@@ -132,11 +138,11 @@ public class TileEntityCapacitor extends TileEntityAbstractEnergy {
 		}
 	}
 	
-	protected EnumDisabledInputOutput getMode(final EnumFacing facing) {
+	protected EnumDisabledInputOutput getMode(final Direction facing) {
 		return modeSide[facing.ordinal()];
 	}
 	
-	void setMode(final EnumFacing facing, final EnumDisabledInputOutput enumDisabledInputOutput) {
+	void setMode(final Direction facing, final EnumDisabledInputOutput enumDisabledInputOutput) {
 		modeSide[facing.ordinal()] = enumDisabledInputOutput;
 		markDirty();
 		energy_refreshConnections();
@@ -145,41 +151,47 @@ public class TileEntityCapacitor extends TileEntityAbstractEnergy {
 	// Forge overrides
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public IModelData getModelData() {// TODO MC1.15 Capacitor rendering
+		return null;
+	}
+	
+	@Nonnull
+	@Override
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		final byte[] bytes = new byte[EnumFacing.values().length];
-		for (final EnumFacing enumFacing : EnumFacing.values()) {
+		final byte[] bytes = new byte[Direction.values().length];
+		for (final Direction enumFacing : Direction.values()) {
 			bytes[enumFacing.ordinal()] = (byte) modeSide[enumFacing.ordinal()].getIndex();
 		}
-		tagCompound.setByteArray(TAG_MODE_SIDE, bytes);
+		tagCompound.putByteArray(TAG_MODE_SIDE, bytes);
 		return tagCompound;
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
 		final byte[] bytes = tagCompound.getByteArray(TAG_MODE_SIDE);
 		if (bytes.length != 6) {
 			modeSide = MODE_DEFAULT_SIDES.clone();
 		} else {
 			boolean isUpdated = false;
-			for (final EnumFacing enumFacing : EnumFacing.values()) {
+			for (final Direction enumFacing : Direction.values()) {
 				isUpdated |= modeSide[enumFacing.ordinal()] != EnumDisabledInputOutput.get(bytes[enumFacing.ordinal()]);
 				modeSide[enumFacing.ordinal()] = EnumDisabledInputOutput.get(bytes[enumFacing.ordinal()]);
 			}
 			// refresh client side rendering has needed
 			if ( isUpdated
-			  && hasWorld()
-			  && world.isRemote ) {
-				world.markBlockRangeForRenderUpdate(pos, pos);
+			  && world != null
+			  && world.isRemote() ) {
+				world.markBlockRangeForRenderUpdate(pos, Blocks.AIR.getDefaultState(), getBlockState());
 			}
 		}
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
 		return tagCompound;
 	}

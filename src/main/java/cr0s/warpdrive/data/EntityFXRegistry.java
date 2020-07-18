@@ -4,8 +4,9 @@ import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.render.AbstractEntityFX;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.World;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
@@ -28,22 +29,20 @@ public class EntityFXRegistry {
 	public EntityFXRegistry() {
 	}
 	
-	private static int computeHashcode(final AbstractEntityFX entityFX) {
-		return computeHashcode(entityFX.getWorld().provider.getDimension(),
-		                       MathHelper.floor(entityFX.getX()),
+	private static int computeHashcode(@Nonnull final AbstractEntityFX entityFX) {
+		return computeHashcode(MathHelper.floor(entityFX.getX()),
 		                       MathHelper.floor(entityFX.getY()),
 		                       MathHelper.floor(entityFX.getZ()));
 	}
 	
-	private static int computeHashcode(final World world, final Vector3 v3Position) {
-		return computeHashcode(world.provider.getDimension(),
-		                       MathHelper.floor(v3Position.x),
+	private static int computeHashcode(@Nonnull final Vector3 v3Position) {
+		return computeHashcode(MathHelper.floor(v3Position.x),
 		                       MathHelper.floor(v3Position.y),
 		                       MathHelper.floor(v3Position.z));
 	}
 	
-	private static int computeHashcode(final int dimensionId, final int x, final int y, final int z) {
-		return (dimensionId << 24) ^ ((x & 0xFFFF) << 8) ^ (y << 16) ^ (z & 0xFFFF);
+	private static int computeHashcode(final int x, final int y, final int z) {
+		return ((x & 0xFFFF) << 8) ^ (y << 16) ^ (z & 0xFFFF);
 	}
 	
 	private static void logStats(final int trigger) {
@@ -65,14 +64,14 @@ public class EntityFXRegistry {
 		                                    sizeTotal, REGISTRY.size(), sizeClusterMax));
 	}
 	
-	public static AbstractEntityFX get(final World world, final Vector3 v3Position, final double rangeMax) {
+	public static AbstractEntityFX get(final Vector3 v3Position, final double rangeMax) {
 		countRead++;
 		if (WarpDriveConfig.LOGGING_ENTITY_FX) {
 			logStats(countRead);
 		}
 		
 		// get by hashcode
-		final Integer hashcode = computeHashcode(world, v3Position);
+		final Integer hashcode = computeHashcode(v3Position);
 		final CopyOnWriteArraySet<WeakReference<AbstractEntityFX>> setRegistryItems = REGISTRY.get(hashcode);
 		if (setRegistryItems == null) {
 			return null;

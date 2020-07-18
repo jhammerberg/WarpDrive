@@ -1,5 +1,6 @@
 package cr0s.warpdrive.config;
 
+import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IParticleContainerItem;
 import cr0s.warpdrive.api.ParticleStack;
 
@@ -7,58 +8,71 @@ import javax.annotation.Nonnull;
 
 import java.util.List;
 
-import net.minecraft.block.Block;
-import net.minecraft.inventory.InventoryCrafting;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemPotion;
+import net.minecraft.inventory.CraftingInventory;
+import net.minecraft.item.PotionItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.potion.PotionEffect;
+import net.minecraft.item.crafting.ShapedRecipe;
+import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.PotionUtils;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
-
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.common.crafting.CraftingHelper.ShapedPrimer;
-import net.minecraftforge.oredict.OreDictionary;
-import net.minecraftforge.oredict.ShapedOreRecipe;
+import net.minecraft.world.World;
 
 // Adds support for IParticleContainerItem ingredients
 // Adds support for potions ingredients
 // Loosely inspired from vanilla ShapedOreRecipe
-public class RecipeParticleShapedOre extends ShapedOreRecipe {
+public class RecipeParticleShapedOre extends ShapedRecipe {
 	
-	public RecipeParticleShapedOre(final ResourceLocation group, final Block result, final Object... recipe){ this(group, new ItemStack(result), CraftingHelper.parseShaped(recipe)); }
-	public RecipeParticleShapedOre(final ResourceLocation group, final Item result, final Object... recipe){ this(group, new ItemStack(result), CraftingHelper.parseShaped(recipe)); }
-	public RecipeParticleShapedOre(final ResourceLocation group, @Nonnull final ItemStack result, final Object... recipe) { this(group, result, CraftingHelper.parseShaped(recipe)); }
-	public RecipeParticleShapedOre(final ResourceLocation group, @Nonnull final ItemStack result, final ShapedPrimer primer) {
-		super(group, result, primer);
+	private final NonNullList<Ingredient> ingredients;
+	private final ItemStack itemStackOutput;
+	
+	public RecipeParticleShapedOre(final String group, final String suffix, @Nonnull final ItemStack itemStackOutput, final Object... recipe) {
+		this(group, suffix, null, itemStackOutput);
+	}
+	public RecipeParticleShapedOre(final String group, final String suffix, NonNullList<Ingredient> ingredients, @Nonnull final ItemStack itemStackOutput) {
+		super(Recipes.buildRecipeId(suffix, itemStackOutput), group, 3, 3, ingredients, itemStackOutput);
 		
-		// add lower priority vanilla Shaped recipe for NEI support
-		// WarpDrive.register(new ShapedOreRecipe(group, result, primer));
+		this.ingredients = ingredients;
+		this.itemStackOutput = itemStackOutput;
+	}
+	public boolean matches(@Nonnull final CraftingInventory craftingInventory, @Nonnull final World world) {
+		for(int x = 0; x <= craftingInventory.getWidth() - getRecipeWidth(); ++x) {
+			for(int y = 0; y <= craftingInventory.getHeight() - getRecipeHeight(); ++y) {
+				if (this.checkMatch(craftingInventory, x, y, true)) {
+					return true;
+				}
+				
+				if (this.checkMatch(craftingInventory, x, y, false)) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
 	}
 	
-	@Override
-	protected boolean checkMatch(@Nonnull final InventoryCrafting inventoryCrafting, final int startX, final int startY, final boolean mirror) {
-		for (int x = 0; x < inventoryCrafting.getWidth(); x++) {
-			for (int y = 0; y < inventoryCrafting.getHeight(); y++) {
+	private boolean checkMatch(@Nonnull final CraftingInventory craftingInventory, final int startX, final int startY, final boolean mirror) {
+		for (int x = 0; x < craftingInventory.getWidth(); x++) {
+			for (int y = 0; y < craftingInventory.getHeight(); y++) {
 				final int subX = x - startX;
 				final int subY = y - startY;
-				Ingredient target = Ingredient.EMPTY;
+				Ingredient ingredient = Ingredient.EMPTY;
 				
-				if (subX >= 0 && subY >= 0 && subX < width && subY < height) {
+				if (subX >= 0 && subY >= 0 && subX < getRecipeWidth() && subY < getRecipeHeight()) {
 					if (mirror) {
-						target = input.get(width - subX - 1 + subY * width);
+						ingredient = ingredients.get(getRecipeWidth() - subX - 1 + subY * getRecipeWidth());
 					} else {
-						target = input.get(subX + subY * width);
+						ingredient = ingredients.get(subX + subY * getRecipeWidth());
 					}
 				}
 				
-				final ItemStack itemStackSlot = inventoryCrafting.getStackInRowAndColumn(x, y);
-				final ItemStack[] itemStackTargets = target.getMatchingStacks();
+				final ItemStack itemStackSlot = craftingInventory.getStackInSlot(x + y * craftingInventory.getWidth());
+				final ItemStack[] itemStackTargets = ingredient.getMatchingStacks();
 				if (itemStackTargets.length == 1) {// simple ingredient
 					final ItemStack itemStackTarget = itemStackTargets[0];
 					if ( !itemStackSlot.isEmpty()
-					  && itemStackSlot.hasTagCompound() ) {
+					  && itemStackSlot.hasTag() ) {
 						if ( itemStackSlot.getItem() instanceof IParticleContainerItem
 						  && itemStackTarget.getItem() instanceof IParticleContainerItem ) {
 							final IParticleContainerItem particleContainerItemSlot = (IParticleContainerItem) itemStackSlot.getItem();
@@ -77,10 +91,10 @@ public class RecipeParticleShapedOre extends ShapedOreRecipe {
 							particleContainerItemSlot.setAmountToConsume(itemStackSlot, particleStackTarget.getAmount());
 							continue;
 							
-						} else if ( itemStackSlot.getItem() instanceof ItemPotion
-						         && itemStackTarget.getItem() instanceof ItemPotion ) {
-							final List<PotionEffect> potionEffectsSlot = PotionUtils.getEffectsFromStack(itemStackSlot);
-							final List<PotionEffect> potionEffectsTarget = PotionUtils.getEffectsFromStack(itemStackTarget);
+						} else if ( itemStackSlot.getItem() instanceof PotionItem
+						         && itemStackTarget.getItem() instanceof PotionItem) {
+							final List<EffectInstance> potionEffectsSlot = PotionUtils.getEffectsFromStack(itemStackSlot);
+							final List<EffectInstance> potionEffectsTarget = PotionUtils.getEffectsFromStack(itemStackTarget);
 							
 							// reject different amount of potion effects 
 							if (potionEffectsSlot.size() != potionEffectsTarget.size()) {
@@ -88,7 +102,7 @@ public class RecipeParticleShapedOre extends ShapedOreRecipe {
 							}
 							
 							// verify matching effects
-							for (final PotionEffect potionEffectTarget : potionEffectsTarget) {
+							for (final EffectInstance potionEffectTarget : potionEffectsTarget) {
 								if (!potionEffectsSlot.contains(potionEffectTarget)) {
 									return false;
 								}
@@ -100,11 +114,11 @@ public class RecipeParticleShapedOre extends ShapedOreRecipe {
 						// (single item stack but neither particle nor potion => default to ore dictionary matching)
 					}
 					
-					if (!OreDictionary.itemMatches(itemStackTarget, itemStackSlot, false)) {
+					if (!ingredient.test(itemStackTarget)) {
 						return false;
 					}
 					
-				} else if (!target.apply(itemStackSlot)) {
+				} else if (!ingredient.test(itemStackSlot)) {
 					return false;
 				}
 			}

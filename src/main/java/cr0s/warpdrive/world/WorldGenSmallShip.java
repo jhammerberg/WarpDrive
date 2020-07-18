@@ -8,32 +8,43 @@ import cr0s.warpdrive.data.EnumTier;
 import javax.annotation.Nonnull;
 import java.util.Random;
 
-import net.minecraft.entity.monster.EntityPigZombie;
-import net.minecraft.entity.monster.EntityZombie;
-import net.minecraft.entity.passive.EntityVillager;
-import net.minecraft.init.Blocks;
-import net.minecraft.inventory.EntityEquipmentSlot;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.ChestBlock;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.monster.ZombiePigmanEntity;
+import net.minecraft.entity.monster.ZombieEntity;
+import net.minecraft.entity.merchant.villager.VillagerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
-import net.minecraft.world.gen.feature.WorldGenerator;
+import net.minecraft.world.gen.ChunkGenerator;
+import net.minecraft.world.gen.GenerationSettings;
+import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.gen.feature.NoFeatureConfig;
 
-public class WorldGenSmallShip extends WorldGenerator {
+public class WorldGenSmallShip extends Feature<NoFeatureConfig> {
 	
 	private final boolean isCorrupted;
 	private final boolean isCreative;
 	
 	public WorldGenSmallShip(final boolean isCorrupted, final boolean isCreative) {
-		super();
+		super(NoFeatureConfig::deserialize);
 		
 		this.isCorrupted = isCorrupted;
 		this.isCreative = isCreative;
 	}
 	
 	@Override
-	public boolean generate(@Nonnull final World world, @Nonnull final Random rand, @Nonnull final BlockPos blockPos) {
+	public boolean place(@Nonnull final IWorld worldInterface, @Nonnull final ChunkGenerator<? extends GenerationSettings> generator, @Nonnull final Random rand,
+	                     @Nonnull final BlockPos blockPos, @Nonnull final NoFeatureConfig config) {
+		return place((World) worldInterface, rand, blockPos);
+	}
+	
+	public boolean place(@Nonnull final World world, @Nonnull final Random rand, @Nonnull final BlockPos blockPos) {
 		final WorldGenStructure genStructure = new WorldGenStructure(isCorrupted, rand);
 		final boolean hasGlassRoof = rand.nextBoolean();
 		final boolean hasWings = rand.nextBoolean();
@@ -121,8 +132,8 @@ public class WorldGenSmallShip extends WorldGenerator {
 		world.setBlockState(new BlockPos(x + 5, y + 2, z + 4), Blocks.GLOWSTONE.getDefaultState());
 		genStructure.setHullPlain(world, x + 5, y + 2, z + 5);
 		genStructure.setHullPlain(world, x + 5, y + 2, z + 6);
-		world.setBlockState(new BlockPos(x + 5, y + 2, z + 7), Blocks.WOOL.getStateFromMeta(14), 2);
-		world.setBlockState(new BlockPos(x + 5, y + 2, z + 8), Blocks.WOOL.getStateFromMeta(8), 2);
+		world.setBlockState(new BlockPos(x + 5, y + 2, z + 7), Blocks.RED_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 5, y + 2, z + 8), Blocks.LIGHT_GRAY_WOOL.getDefaultState(), 2);
 		genStructure.setHullPlain(world, x + 5, y + 2, z + 9);
 		world.setBlockState(new BlockPos(x + 5, y + 2, z + 10), Blocks.GLOWSTONE.getDefaultState());
 		genStructure.setHullPlain(world, x + 5, y + 2, z + 11);
@@ -149,22 +160,22 @@ public class WorldGenSmallShip extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 6, y + 2, z + 3);
 		genStructure.setHullPlain(world, x + 6, y + 2, z + 4);
 		genStructure.setHullPlain(world, x + 6, y + 2, z + 5);
-		world.setBlockState(new BlockPos(x + 6, y + 2, z + 6), Blocks.WOOL.getStateFromMeta(14), 2);
-		world.setBlockState(new BlockPos(x + 6, y + 2, z + 7), Blocks.WOOL.getStateFromMeta(8), 2);
-		world.setBlockState(new BlockPos(x + 6, y + 2, z + 8), Blocks.WOOL.getStateFromMeta(14), 2);
+		world.setBlockState(new BlockPos(x + 6, y + 2, z + 6), Blocks.RED_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 6, y + 2, z + 7), Blocks.LIGHT_GRAY_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 6, y + 2, z + 8), Blocks.RED_WOOL.getDefaultState(), 2);
 		genStructure.setHullPlain(world, x + 6, y + 2, z + 9);
 		genStructure.setHullPlain(world, x + 6, y + 2, z + 10);
 		genStructure.setHullPlain(world, x + 6, y + 2, z + 11);
 		genStructure.setHullPlain(world, x + 6, y + 3, z + 2);
-		world.setBlockState(new BlockPos(x + 6, y + 3, z + 3), Blocks.CHEST.getStateFromMeta(3), 2);
+		world.setBlockState(new BlockPos(x + 6, y + 3, z + 3), Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.WEST), 2);
 		genStructure.fillInventoryWithLoot(world, rand, x + 6, y + 3, z + 3, "ship");
-		world.setBlockState(new BlockPos(x + 6, y + 3, z + 11), Blocks.CHEST.getStateFromMeta(2), 2);
+		world.setBlockState(new BlockPos(x + 6, y + 3, z + 11), Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.SOUTH), 2);
 		genStructure.fillInventoryWithLoot(world, rand, x + 6, y + 3, z + 11, "ship");
 		genStructure.setHullPlain(world, x + 6, y + 3, z + 12);
 		genStructure.setHullPlain(world, x + 6, y + 4, z + 2);
-		world.setBlockState(new BlockPos(x + 6, y + 4, z + 3), Blocks.CHEST.getStateFromMeta(3), 2);
+		world.setBlockState(new BlockPos(x + 6, y + 4, z + 3), Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.WEST), 2);
 		genStructure.fillInventoryWithLoot(world, rand, x + 6, y + 4, z + 3, "ship");
-		world.setBlockState(new BlockPos(x + 6, y + 4, z + 11), Blocks.CHEST.getStateFromMeta(2), 2);
+		world.setBlockState(new BlockPos(x + 6, y + 4, z + 11), Blocks.CHEST.getDefaultState().with(ChestBlock.FACING, Direction.NORTH), 2);
 		genStructure.fillInventoryWithLoot(world, rand, x + 6, y + 4, z + 11, "ship");
 		genStructure.setHullPlain(world, x + 6, y + 4, z + 12);
 		genStructure.setHullPlain(world, x + 6, y + 5, z + 2);
@@ -195,9 +206,9 @@ public class WorldGenSmallShip extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 7, y + 2, z + 4);
 		genStructure.setHullPlain(world, x + 7, y + 2, z + 5);
 		genStructure.setHullPlain(world, x + 7, y + 2, z + 6);
-		world.setBlockState(new BlockPos(x + 7, y + 2, z + 7), Blocks.WOOL.getStateFromMeta(8), 2);
-		world.setBlockState(new BlockPos(x + 7, y + 2, z + 8), Blocks.WOOL.getStateFromMeta(8), 2);
-		world.setBlockState(new BlockPos(x + 7, y + 2, z + 9), Blocks.WOOL.getStateFromMeta(14), 2);
+		world.setBlockState(new BlockPos(x + 7, y + 2, z + 7), Blocks.LIGHT_GRAY_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 7, y + 2, z + 8), Blocks.LIGHT_GRAY_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 7, y + 2, z + 9), Blocks.RED_WOOL.getDefaultState(), 2);
 		genStructure.setHullPlain(world, x + 7, y + 2, z + 10);
 		genStructure.setHullPlain(world, x + 7, y + 2, z + 11);
 		genStructure.setHullPlain(world, x + 7, y + 3, z + 2);
@@ -231,9 +242,9 @@ public class WorldGenSmallShip extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 8, y + 2, z + 3);
 		genStructure.setHullPlain(world, x + 8, y + 2, z + 4);
 		genStructure.setHullPlain(world, x + 8, y + 2, z + 5);
-		world.setBlockState(new BlockPos(x + 8, y + 2, z + 6), Blocks.WOOL.getStateFromMeta(14), 2);
-		world.setBlockState(new BlockPos(x + 8, y + 2, z + 7), Blocks.WOOL.getStateFromMeta(14), 2);
-		world.setBlockState(new BlockPos(x + 8, y + 2, z + 8), Blocks.WOOL.getStateFromMeta(14), 2);
+		world.setBlockState(new BlockPos(x + 8, y + 2, z + 6), Blocks.RED_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 8, y + 2, z + 7), Blocks.RED_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 8, y + 2, z + 8), Blocks.RED_WOOL.getDefaultState(), 2);
 		genStructure.setHullPlain(world, x + 8, y + 2, z + 9);
 		genStructure.setHullPlain(world, x + 8, y + 2, z + 10);
 		genStructure.setHullPlain(world, x + 8, y + 2, z + 11);
@@ -267,12 +278,12 @@ public class WorldGenSmallShip extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 9, y + 1, z + 10);
 		genStructure.setHullPlain(world, x + 9, y + 2, z + 3);
 		genStructure.setHullPlain(world, x + 9, y + 2, z + 4);
-		world.setBlockState(new BlockPos(x + 9, y + 2, z + 5), Blocks.WOOL.getStateFromMeta(14), 2);
-		world.setBlockState(new BlockPos(x + 9, y + 2, z + 6), Blocks.WOOL.getStateFromMeta(8), 2);
-		world.setBlockState(new BlockPos(x + 9, y + 2, z + 7), Blocks.WOOL.getStateFromMeta(14), 2);
+		world.setBlockState(new BlockPos(x + 9, y + 2, z + 5), Blocks.RED_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 9, y + 2, z + 6), Blocks.LIGHT_GRAY_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 9, y + 2, z + 7), Blocks.RED_WOOL.getDefaultState(), 2);
 		genStructure.setHullPlain(world, x + 9, y + 2, z + 8);
 		genStructure.setHullPlain(world, x + 9, y + 2, z + 9);
-		world.setBlockState(new BlockPos(x + 9, y + 2, z + 10), Blocks.WOOL.getStateFromMeta(14), 2);
+		world.setBlockState(new BlockPos(x + 9, y + 2, z + 10), Blocks.RED_WOOL.getDefaultState(), 2);
 		genStructure.setHullPlain(world, x + 9, y + 2, z + 11);
 		genStructure.setHullPlain(world, x + 9, y + 3, z + 2);
 		genStructure.setHullPlain(world, x + 9, y + 3, z + 12);
@@ -282,7 +293,7 @@ public class WorldGenSmallShip extends WorldGenerator {
 		genStructure.setHullGlass(world, x + 9, y + 5, z + 12);
 		genStructure.setHullPlain(world, x + 9, y + 6, z + 3);
 		if (!isCorrupted || rand.nextBoolean()) {
-			world.setBlockState(new BlockPos(x + 9, y + 6, z + 7), WarpDrive.blockAirGeneratorTiered[1].getStateFromMeta(4), 2);
+			world.setBlockState(new BlockPos(x + 9, y + 6, z + 7), WarpDrive.blockAirGeneratorTiered[1].getDefaultState().with(BlockProperties.FACING, Direction.WEST), 2);
 		}
 		genStructure.setHullPlain(world, x + 9, y + 6, z + 11);
 		genStructure.setHullPlain(world, x + 9, y + 7, z + 4);
@@ -303,12 +314,12 @@ public class WorldGenSmallShip extends WorldGenerator {
 		genStructure.setHullPlain(world, x + 10, y + 1, z + 10);
 		genStructure.setHullPlain(world, x + 10, y + 2, z + 3);
 		genStructure.setHullPlain(world, x + 10, y + 2, z + 4);
-		world.setBlockState(new BlockPos(x + 10, y + 2, z + 5), Blocks.WOOL.getStateFromMeta(8), 2);
-		world.setBlockState(new BlockPos(x + 10, y + 2, z + 6), Blocks.WOOL.getStateFromMeta(8), 2);
+		world.setBlockState(new BlockPos(x + 10, y + 2, z + 5), Blocks.LIGHT_GRAY_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 10, y + 2, z + 6), Blocks.LIGHT_GRAY_WOOL.getDefaultState(), 2);
 		genStructure.setHullPlain(world, x + 10, y + 2, z + 7);
 		genStructure.setHullPlain(world, x + 10, y + 2, z + 8);
-		world.setBlockState(new BlockPos(x + 10, y + 2, z + 9), Blocks.WOOL.getStateFromMeta(8), 2);
-		world.setBlockState(new BlockPos(x + 10, y + 2, z + 10), Blocks.WOOL.getStateFromMeta(14), 2);
+		world.setBlockState(new BlockPos(x + 10, y + 2, z + 9), Blocks.LIGHT_GRAY_WOOL.getDefaultState(), 2);
+		world.setBlockState(new BlockPos(x + 10, y + 2, z + 10), Blocks.RED_WOOL.getDefaultState(), 2);
 		genStructure.setHullPlain(world, x + 10, y + 2, z + 11);
 		genStructure.setHullPlain(world, x + 10, y + 3, z + 2);
 		genStructure.setHullPlain(world, x + 10, y + 3, z + 12);
@@ -420,7 +431,7 @@ public class WorldGenSmallShip extends WorldGenerator {
 		genStructure.setHullGlass(world, x + 12, y + 5, z + 6);
 		if (!isCorrupted || rand.nextBoolean()) {
 			world.setBlockState(new BlockPos(x + 12, y + 5, z + 7),
-			                    WarpDrive.blockShipCores[1].getDefaultState().withProperty(BlockProperties.FACING, EnumFacing.WEST));
+			                    WarpDrive.blockShipCores[1].getDefaultState().with(BlockProperties.FACING, Direction.WEST));
 			if (isCreative) {// fill with energy
 				final TileEntity tileEntity = world.getTileEntity(new BlockPos(x + 12, y + 5, z + 7));
 				if (tileEntity instanceof TileEntityAbstractEnergy) {
@@ -463,8 +474,8 @@ public class WorldGenSmallShip extends WorldGenerator {
 			genStructure.setHullPlain(world, x + 13, y + 3, z + 3);
 			genStructure.setHullGlass(world, x + 13, y + 4, z + 3);
 		} else if (!isCorrupted || rand.nextBoolean()) {
-			world.setBlockState(new BlockPos(x + 13, y + 3, z + 3), WarpDrive.blockAirShield.getDefaultState());
-			world.setBlockState(new BlockPos(x + 13, y + 4, z + 3), WarpDrive.blockAirShield.getDefaultState());
+			world.setBlockState(new BlockPos(x + 13, y + 3, z + 3), WarpDrive.blockAirShields[0].getDefaultState());
+			world.setBlockState(new BlockPos(x + 13, y + 4, z + 3), WarpDrive.blockAirShields[0].getDefaultState());
 		}
 		genStructure.setHullPlain(world, x + 13, y + 3, z + 4);
 		genStructure.setHullPlain(world, x + 13, y + 3, z + 5);
@@ -477,8 +488,8 @@ public class WorldGenSmallShip extends WorldGenerator {
 			genStructure.setHullPlain(world, x + 13, y + 3, z + 11);
 			genStructure.setHullGlass(world, x + 13, y + 4, z + 11);
 		} else if (!isCorrupted || rand.nextBoolean()) {
-			world.setBlockState(new BlockPos(x + 13, y + 3, z + 11), WarpDrive.blockAirShield.getDefaultState());
-			world.setBlockState(new BlockPos(x + 13, y + 4, z + 11), WarpDrive.blockAirShield.getDefaultState());
+			world.setBlockState(new BlockPos(x + 13, y + 3, z + 11), WarpDrive.blockAirShields[0].getDefaultState());
+			world.setBlockState(new BlockPos(x + 13, y + 4, z + 11), WarpDrive.blockAirShields[0].getDefaultState());
 		}
 		genStructure.setHullPlain(world, x + 13, y + 3, z + 12);
 		genStructure.setHullPlain(world, x + 13, y + 4, z + 2);
@@ -569,22 +580,24 @@ public class WorldGenSmallShip extends WorldGenerator {
 		
 		if (world.rand.nextBoolean()) {// Villagers
 			for (int idx = 0; idx < countMobs; idx++) {
-				final EntityVillager entityVillager = new EntityVillager(world, 0);
+				final VillagerEntity entityVillager = new VillagerEntity(EntityType.VILLAGER, world);
 				entityVillager.setLocationAndAngles(x + 0.5D, y, z + 0.5D, 0.0F, 0.0F);
-				entityVillager.setItemStackToSlot(EntityEquipmentSlot.HEAD, new ItemStack(WarpDrive.itemWarpArmor[EnumTier.BASIC.getIndex()][3], 1, 1));
-				world.spawnEntity(entityVillager);
+				final ItemStack itemStackHelmet = new ItemStack(WarpDrive.itemWarpArmor[EnumTier.BASIC.getIndex()][3], 1);
+				itemStackHelmet.setDamage(1);
+				entityVillager.setItemStackToSlot(EquipmentSlotType.HEAD, itemStackHelmet);
+				world.addEntity(entityVillager);
 			}
 		} else if (world.rand.nextBoolean()) {// Zombies
 			for (int idx = 0; idx < countMobs; idx++) {
-				final EntityZombie entityZombie = new EntityZombie(world);
+				final ZombieEntity entityZombie = new ZombieEntity(world);
 				entityZombie.setLocationAndAngles(x + 0.5D, y, z + 0.5D, 0.0F, 0.0F);
-				world.spawnEntity(entityZombie);
+				world.addEntity(entityZombie);
 			}
 		} else {// Zombie pigmen
 			for (int idx = 0; idx < countMobs; idx++) {
-				final EntityPigZombie entityZombie = new EntityPigZombie(world);
+				final ZombiePigmanEntity entityZombie = new ZombiePigmanEntity(EntityType.ZOMBIE_PIGMAN, world);
 				entityZombie.setLocationAndAngles(x + 0.5D, y, z + 0.5D, 0.0F, 0.0F);
-				world.spawnEntity(entityZombie);
+				world.addEntity(entityZombie);
 			}
 		}
 	}

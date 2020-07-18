@@ -11,17 +11,17 @@ import cr0s.warpdrive.config.structures.StructureGroup;
 
 import javax.annotation.Nonnull;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import org.w3c.dom.Element;
 
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
 
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.nbt.NBTException;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.StringNBT;
 import net.minecraft.util.IStringSerializable;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -58,10 +58,10 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 	
 	private String displayName;
 	private String description;
-	private NBTTagCompound tagCompound;
+	private CompoundNBT tagCompound;
 	
 	private boolean isVirtual;
-	public int dimensionId;
+	public ResourceLocation dimensionId;
 	public int dimensionCenterX, dimensionCenterZ;
 	private double gravity;
 	private boolean isBreathable;
@@ -69,6 +69,7 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 	
 	private final RandomCollection<StructureGroup> randomStructures = new RandomCollection<>();
 	
+	public float ambientBrightness;
 	public ColorData backgroundColor;
 	public int boxRepeat;
 	public ResourceLocation[] boxTextures;
@@ -95,7 +96,7 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 		loadFromXmlElement(location, parentId, elementCelestialObject);
 	}
 	
-	public CelestialObject(final int parDimensionId, final int parDimensionCenterX, final int parDimensionCenterZ,
+	public CelestialObject(final ResourceLocation parDimensionId, final int parDimensionCenterX, final int parDimensionCenterZ,
 	                       final int parBorderRadiusX, final int parBorderRadiusZ,
 	                       final String parParentId, final int parParentCenterX, final int parParentCenterZ) {
 		isVirtual = false;
@@ -114,8 +115,8 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 		cache_aabbAreaInParent = null;
 	}
 	
-	public CelestialObject(final NBTTagCompound tagCompound) {
-		readFromNBT(tagCompound);
+	public CelestialObject(final CompoundNBT tagCompound) {
+		read(tagCompound);
 	}
 	
 	@Nonnull
@@ -218,7 +219,7 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 				if (!stringNBT.isEmpty()) {
 					try {
 						tagCompound = JsonToNBT.getTagFromJson(stringNBT);
-					} catch (final NBTException exception) {
+					} catch (final CommandSyntaxException exception) {
 						WarpDrive.logger.error(exception.getMessage());
 						throw new InvalidXmlException(String.format("Invalid nbt for Celestial object %s",
 						                                            id));
@@ -235,7 +236,7 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 		}
 		if (listDimensions.size() == 0) {
 			isVirtual = true;
-			dimensionId = 0;
+			dimensionId = null;
 			gravity = GRAVITY_NORMAL;
 			isBreathable = true;
 			provider = PROVIDER_NONE;
@@ -246,7 +247,7 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 			isVirtual = false;
 			
 			final Element elementDimension = listDimensions.get(0);
-			dimensionId = Integer.parseInt(elementDimension.getAttribute("id"));
+			dimensionId = new ResourceLocation(elementDimension.getAttribute("id"));
 			gravity = parseGravity(elementDimension.getAttribute("gravity"));
 			isBreathable = Boolean.parseBoolean(elementDimension.getAttribute("isBreathable"));
 			isHyperspace = Boolean.parseBoolean(elementDimension.getAttribute("isHyperspace"));
@@ -484,7 +485,7 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 	}
 	
 	@Override
-	public NBTTagCompound getTag() {
+	public CompoundNBT getTag() {
 		return tagCompound;
 	}
 	
@@ -563,7 +564,7 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 	 * @return true if we're fully inside the border
 	 */
 	@Override
-	public boolean isInsideBorder(final AxisAlignedBB aabb) {
+	public boolean isInsideBorder(@Nonnull final AxisAlignedBB aabb) {
 		final double rangeX = Math.max(Math.abs(aabb.minX - dimensionCenterX), Math.abs(aabb.maxX - dimensionCenterX));
 		final double rangeZ = Math.max(Math.abs(aabb.minZ - dimensionCenterZ), Math.abs(aabb.maxZ - dimensionCenterZ));
 		return (rangeX <= borderRadiusX) && (rangeZ <= borderRadiusZ);
@@ -620,9 +621,9 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 	 * @param z current position in parent dimension
 	 * @return square distance to transition borders, 0 if we're in orbit of the object
 	 */
-	public double getSquareDistanceInParent(final int dimensionId, final double x, final double z) {
+	public double getSquareDistanceInParent(final ResourceLocation dimensionId, final double x, final double z) {
 		// are we in another dimension?
-		if (!isParentResolved || parent == null || dimensionId != parent.dimensionId) {
+		if (!isParentResolved || parent == null || !dimensionId.equals(parent.dimensionId)) {
 			return Double.POSITIVE_INFINITY;
 		}
 		// are we in orbit?
@@ -645,9 +646,9 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 	 * @return true if we're in orbit of the object
 	 */
 	@Override
-	public boolean isInOrbit(final int dimensionId, final double x, final double z) {
+	public boolean isInOrbit(@Nonnull final ResourceLocation dimensionId, final double x, final double z) {
 		// are we in another dimension?
-		if (!isParentResolved || parent == null || dimensionId != parent.dimensionId) {
+		if (!isParentResolved || parent == null || !dimensionId.equals(parent.dimensionId)) {
 			return false;
 		}
 		// are we in orbit?
@@ -655,22 +656,22 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 		    && (Math.abs(z - parentCenterZ) <= borderRadiusZ);
 	}
 	
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
+	public void read(@Nonnull final CompoundNBT tagCompound) {
 		id = tagCompound.getString("id");
 		
 		parentId = tagCompound.getString("parentId");
-		parentCenterX = tagCompound.getInteger("parentCenterX");
-		parentCenterZ = tagCompound.getInteger("parentCenterZ");
+		parentCenterX = tagCompound.getInt("parentCenterX");
+		parentCenterZ = tagCompound.getInt("parentCenterZ");
 		
-		borderRadiusX = tagCompound.getInteger("borderRadiusX");
-		borderRadiusZ = tagCompound.getInteger("borderRadiusZ");
+		borderRadiusX = tagCompound.getInt("borderRadiusX");
+		borderRadiusZ = tagCompound.getInt("borderRadiusZ");
 		
 		displayName = tagCompound.getString("displayName");
 		description = tagCompound.getString("description");
 		
 		isVirtual = tagCompound.getBoolean("isVirtual");
 		if (isVirtual) {
-			dimensionId = 0;
+			dimensionId = null;
 			dimensionCenterX = 0;
 			dimensionCenterZ = 0;
 			gravity = GRAVITY_NORMAL;
@@ -678,9 +679,9 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 			isHyperspace = false;
 			provider = PROVIDER_NONE;
 		} else {
-			dimensionId = tagCompound.getInteger("dimensionId");
-			dimensionCenterX = tagCompound.getInteger("dimensionCenterX");
-			dimensionCenterZ = tagCompound.getInteger("dimensionCenterZ");
+			dimensionId = new ResourceLocation(tagCompound.getString("dimensionId"));
+			dimensionCenterX = tagCompound.getInt("dimensionCenterX");
+			dimensionCenterZ = tagCompound.getInt("dimensionCenterZ");
 			gravity = tagCompound.getDouble("gravity");
 			isBreathable = tagCompound.getBoolean("isBreathable");
 			isHyperspace = tagCompound.getBoolean("isHyperspace");
@@ -689,14 +690,14 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 		
 		// randomStructures are server side only
 		
-		backgroundColor = new ColorData(tagCompound.getCompoundTag("backgroundColor"));
-		boxRepeat = tagCompound.getInteger("boxRepeat");
+		backgroundColor = new ColorData(tagCompound.getCompound("backgroundColor"));
+		boxRepeat = tagCompound.getInt("boxRepeat");
 		
-		final NBTTagList tagListBoxTextures = tagCompound.getTagList("boxTextures", NBT.TAG_STRING);
-		final int countBoxTextures = tagListBoxTextures.tagCount();
+		final ListNBT tagListBoxTextures = tagCompound.getList("boxTextures", NBT.TAG_STRING);
+		final int countBoxTextures = tagListBoxTextures.size();
 		boxTextures = new ResourceLocation[countBoxTextures];
 		for (int indexBoxTexture = 0; indexBoxTexture < countBoxTextures; indexBoxTexture++) {
-			final String texture = tagListBoxTextures.getStringTagAt(indexBoxTexture);
+			final String texture = tagListBoxTextures.getString(indexBoxTexture);
 			boxTextures[indexBoxTexture] = new ResourceLocation(texture);
 		}
 		
@@ -704,14 +705,14 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 		baseStarBrightness = tagCompound.getFloat("baseStarBrightness");
 		vanillaStarBrightness = tagCompound.getFloat("vanillaStarBrightness");
 		opacityCelestialObjects = tagCompound.getFloat("opacityCelestialObjects");
-		colorFog = new ColorData(tagCompound.getCompoundTag("colorFog"));
-		factorFog = new ColorData(tagCompound.getCompoundTag("factorFog"));
+		colorFog = new ColorData(tagCompound.getCompound("colorFog"));
+		factorFog = new ColorData(tagCompound.getCompound("factorFog"));
 		
-		final NBTTagList tagListRenderData = tagCompound.getTagList("renderData", NBT.TAG_COMPOUND);
-		final int countRender = tagListRenderData.tagCount();
+		final ListNBT tagListRenderData = tagCompound.getList("renderData", NBT.TAG_COMPOUND);
+		final int countRender = tagListRenderData.size();
 		setRenderData = new LinkedHashSet<>(countRender);
 		for (int indexRenderData = 0; indexRenderData < countRender; indexRenderData++) {
-			final NBTTagCompound tagCompoundRenderData = tagListRenderData.getCompoundTagAt(indexRenderData);
+			final CompoundNBT tagCompoundRenderData = tagListRenderData.getCompound(indexRenderData);
 			setRenderData.add(new RenderData(tagCompoundRenderData));
 		}
 		
@@ -721,63 +722,63 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 		cache_aabbAreaInParent = null;
 	}
 	
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		tagCompound.setString("id", id);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		tagCompound.putString("id", id);
 		
-		tagCompound.setString("parentId", parentId);
-		tagCompound.setInteger("parentCenterX", parentCenterX);
-		tagCompound.setInteger("parentCenterZ", parentCenterZ);
+		tagCompound.putString("parentId", parentId);
+		tagCompound.putInt("parentCenterX", parentCenterX);
+		tagCompound.putInt("parentCenterZ", parentCenterZ);
 		
-		tagCompound.setInteger("borderRadiusX", borderRadiusX);
-		tagCompound.setInteger("borderRadiusZ", borderRadiusZ);
+		tagCompound.putInt("borderRadiusX", borderRadiusX);
+		tagCompound.putInt("borderRadiusZ", borderRadiusZ);
 		
 		if (displayName != null && !displayName.isEmpty()) {
-			tagCompound.setString("displayName", displayName);
+			tagCompound.putString("displayName", displayName);
 		}
 		if (description != null && !description.isEmpty()) {
-			tagCompound.setString("description", description);
+			tagCompound.putString("description", description);
 		}
 		
-		tagCompound.setBoolean("isVirtual", isVirtual);
+		tagCompound.putBoolean("isVirtual", isVirtual);
 		if (!isVirtual) {
-			tagCompound.setInteger("dimensionId", dimensionId);
-			tagCompound.setInteger("dimensionCenterX", dimensionCenterX);
-			tagCompound.setInteger("dimensionCenterZ", dimensionCenterZ);
-			tagCompound.setDouble("gravity", gravity);
-			tagCompound.setBoolean("isBreathable", isBreathable);
-			tagCompound.setBoolean("isHyperspace", isHyperspace);
-			tagCompound.setString("provider", provider);
+			tagCompound.putString("dimensionId", dimensionId.toString());
+			tagCompound.putInt("dimensionCenterX", dimensionCenterX);
+			tagCompound.putInt("dimensionCenterZ", dimensionCenterZ);
+			tagCompound.putDouble("gravity", gravity);
+			tagCompound.putBoolean("isBreathable", isBreathable);
+			tagCompound.putBoolean("isHyperspace", isHyperspace);
+			tagCompound.putString("provider", provider);
 		}
 		
 		// randomStructures are server side only
 		
-		tagCompound.setTag("backgroundColor", backgroundColor.writeToNBT(new NBTTagCompound()));
-		tagCompound.setInteger("boxRepeat", boxRepeat);
+		tagCompound.put("backgroundColor", backgroundColor.write(new CompoundNBT()));
+		tagCompound.putInt("boxRepeat", boxRepeat);
 		
-		final NBTTagList nbtTagListBoxTextures = new NBTTagList();
+		final ListNBT nbtTagListBoxTextures = new ListNBT();
 		for (final ResourceLocation resourceLocation : boxTextures) {
-			nbtTagListBoxTextures.appendTag(new NBTTagString(resourceLocation.toString()));
+			nbtTagListBoxTextures.add(StringNBT.valueOf(resourceLocation.toString()));
 		}
-		tagCompound.setTag("boxTextures", nbtTagListBoxTextures);
+		tagCompound.put("boxTextures", nbtTagListBoxTextures);
 		
-		tagCompound.setFloat("boxBrightness", boxBrightness);
-		tagCompound.setFloat("baseStarBrightness", baseStarBrightness);
-		tagCompound.setFloat("vanillaStarBrightness", vanillaStarBrightness);
-		tagCompound.setFloat("opacityCelestialObjects", opacityCelestialObjects);
-		tagCompound.setTag("colorFog", colorFog.writeToNBT(new NBTTagCompound()));
-		tagCompound.setTag("factorFog", factorFog.writeToNBT(new NBTTagCompound()));
+		tagCompound.putFloat("boxBrightness", boxBrightness);
+		tagCompound.putFloat("baseStarBrightness", baseStarBrightness);
+		tagCompound.putFloat("vanillaStarBrightness", vanillaStarBrightness);
+		tagCompound.putFloat("opacityCelestialObjects", opacityCelestialObjects);
+		tagCompound.put("colorFog", colorFog.write(new CompoundNBT()));
+		tagCompound.put("factorFog", factorFog.write(new CompoundNBT()));
 		
-		final NBTTagList nbtTagListRenderData = new NBTTagList();
+		final ListNBT nbtTagListRenderData = new ListNBT();
 		for (final RenderData renderData : setRenderData) {
-			nbtTagListRenderData.appendTag(renderData.writeToNBT(new NBTTagCompound()));
+			nbtTagListRenderData.add(renderData.write(new CompoundNBT()));
 		}
-		tagCompound.setTag("renderData", nbtTagListRenderData);
+		tagCompound.put("renderData", nbtTagListRenderData);
 		return tagCompound;
 	}
 	
 	@Override
 	public int hashCode() {
-		return dimensionId << 16 + (dimensionCenterX >> 10) << 8 + (dimensionCenterZ >> 10);
+		return dimensionId.hashCode() << 16 + (dimensionCenterX >> 10) << 8 + (dimensionCenterZ >> 10);
 	}
 	
 	@Override
@@ -801,7 +802,7 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 	public String toString() {
 		final String stringParent;
 		if (isParentResolved && parent != null) {
-			stringParent = String.format("Parent(%d @ %d %d)",
+			stringParent = String.format("Parent(%s @ %d %d)",
 			                             parent.dimensionId, parentCenterX, parentCenterZ);
 		} else {
 			stringParent = String.format("Parent(%s @ %d %d)",
@@ -813,7 +814,7 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 			                     2 * borderRadiusX, 2 * borderRadiusZ,
 			                     stringParent);
 		} else {
-			return String.format("CelestialObject %s [Dimension %d @ %d %d Border(%d %d) %s provider %s gravity %.3f isBreathable %s]",
+			return String.format("CelestialObject %s [Dimension %s @ %d %d Border(%d %d) %s provider %s gravity %.3f isBreathable %s]",
 			                     id, dimensionId, dimensionCenterX, dimensionCenterZ,
 			                     2 * borderRadiusX, 2 * borderRadiusZ,
 			                     stringParent,
@@ -849,20 +850,20 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 			}
 		}
 		
-		ColorData(final NBTTagCompound tagCompound) {
-			readFromNBT(tagCompound);
+		ColorData(final CompoundNBT tagCompound) {
+			read(tagCompound);
 		}
 		
-		public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
+		public void read(@Nonnull final CompoundNBT tagCompound) {
 			red = tagCompound.getFloat("red");
 			green = tagCompound.getFloat("green");
 			blue = tagCompound.getFloat("blue");
 		}
 		
-		public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-			tagCompound.setFloat("red", red);
-			tagCompound.setFloat("green", green);
-			tagCompound.setFloat("blue", blue);
+		public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+			tagCompound.putFloat("red", red);
+			tagCompound.putFloat("green", green);
+			tagCompound.putFloat("blue", blue);
 			return tagCompound;
 		}
 	}
@@ -930,11 +931,11 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 			}
 		}
 		
-		RenderData(final NBTTagCompound tagCompound) {
-			readFromNBT(tagCompound);
+		RenderData(final CompoundNBT tagCompound) {
+			read(tagCompound);
 		}
 		
-		public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
+		public void read(@Nonnull final CompoundNBT tagCompound) {
 			red = tagCompound.getFloat("red");
 			green = tagCompound.getFloat("green");
 			blue = tagCompound.getFloat("blue");
@@ -954,16 +955,16 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 			}
 		}
 		
-		public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-			tagCompound.setFloat("red", red);
-			tagCompound.setFloat("green", green);
-			tagCompound.setFloat("blue", blue);
-			tagCompound.setFloat("alpha", alpha);
+		public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+			tagCompound.putFloat("red", red);
+			tagCompound.putFloat("green", green);
+			tagCompound.putFloat("blue", blue);
+			tagCompound.putFloat("alpha", alpha);
 			if (texture != null) {
-				tagCompound.setString("texture", texture);
-				tagCompound.setDouble("periodU", periodU);
-				tagCompound.setDouble("periodV", periodV);
-				tagCompound.setBoolean("isAdditive", isAdditive);
+				tagCompound.putString("texture", texture);
+				tagCompound.putDouble("periodU", periodU);
+				tagCompound.putDouble("periodV", periodV);
+				tagCompound.putBoolean("isAdditive", isAdditive);
 			}
 			return tagCompound;
 		}

@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.IStringSerializable;
 
 public class ReactorFace implements IStringSerializable {
@@ -18,7 +18,7 @@ public class ReactorFace implements IStringSerializable {
 	public final int x;
 	public final int y;
 	public final int z;
-	public final EnumFacing facingLaserProperty; // defined for laser, null otherwise
+	public final Direction facingLaserProperty; // defined for laser, null otherwise
 	
 	// cached values
 	public static final int maxInstabilities;
@@ -31,40 +31,40 @@ public class ReactorFace implements IStringSerializable {
 		UNKNOWN = new ReactorFace(null, -1, "unknown", 0, 0, 0, null);
 		
 		// basic reactor has core for core
-		new ReactorFace(EnumTier.BASIC   ,  0, "laser.basic.south"      ,  0, 0, -2, EnumFacing.NORTH);
-		new ReactorFace(EnumTier.BASIC   ,  1, "laser.basic.north"      ,  0, 0,  2, EnumFacing.SOUTH);
-		new ReactorFace(EnumTier.BASIC   ,  2, "laser.basic.east"       , -2, 0,  0, EnumFacing.WEST );
-		new ReactorFace(EnumTier.BASIC   ,  3, "laser.basic.west"       ,  2, 0,  0, EnumFacing.EAST );
+		new ReactorFace(EnumTier.BASIC   , 0, "laser.basic.south"      , 0, 0, -2, Direction.NORTH);
+		new ReactorFace(EnumTier.BASIC   , 1, "laser.basic.north"      , 0, 0, 2, Direction.SOUTH);
+		new ReactorFace(EnumTier.BASIC   , 2, "laser.basic.east"       , -2, 0, 0, Direction.WEST );
+		new ReactorFace(EnumTier.BASIC   , 3, "laser.basic.west"       , 2, 0, 0, Direction.EAST );
 		
 		// advanced reactor has core offset with small radius
-		new ReactorFace(EnumTier.ADVANCED,  0, "laser.advanced.south+"  ,  1, 2, -3, EnumFacing.NORTH);
-		new ReactorFace(EnumTier.ADVANCED,  1, "laser.advanced.south-"  , -1, 4, -3, EnumFacing.NORTH);
-		new ReactorFace(EnumTier.ADVANCED,  2, "laser.advanced.north-"  , -1, 2,  3, EnumFacing.SOUTH);
-		new ReactorFace(EnumTier.ADVANCED,  3, "laser.advanced.north+"  ,  1, 4,  3, EnumFacing.SOUTH);
-		new ReactorFace(EnumTier.ADVANCED,  4, "laser.advanced.east-"   , -3, 2, -1, EnumFacing.WEST );
-		new ReactorFace(EnumTier.ADVANCED,  5, "laser.advanced.east+"   , -3, 4,  1, EnumFacing.WEST );
-		new ReactorFace(EnumTier.ADVANCED,  6, "laser.advanced.west+"   ,  3, 2,  1, EnumFacing.EAST );
-		new ReactorFace(EnumTier.ADVANCED,  7, "laser.advanced.west-"   ,  3, 4, -1, EnumFacing.EAST );
+		new ReactorFace(EnumTier.ADVANCED, 0, "laser.advanced.south+"  , 1, 2, -3, Direction.NORTH);
+		new ReactorFace(EnumTier.ADVANCED, 1, "laser.advanced.south-"  , -1, 4, -3, Direction.NORTH);
+		new ReactorFace(EnumTier.ADVANCED, 2, "laser.advanced.north-"  , -1, 2, 3, Direction.SOUTH);
+		new ReactorFace(EnumTier.ADVANCED, 3, "laser.advanced.north+"  , 1, 4, 3, Direction.SOUTH);
+		new ReactorFace(EnumTier.ADVANCED, 4, "laser.advanced.east-"   , -3, 2, -1, Direction.WEST );
+		new ReactorFace(EnumTier.ADVANCED, 5, "laser.advanced.east+"   , -3, 4, 1, Direction.WEST );
+		new ReactorFace(EnumTier.ADVANCED, 6, "laser.advanced.west+"   , 3, 2, 1, Direction.EAST );
+		new ReactorFace(EnumTier.ADVANCED, 7, "laser.advanced.west-"   , 3, 4, -1, Direction.EAST );
 		addCoreBlocks(EnumTier.ADVANCED, 1, 0, 3, 0);
 		
 		// superior reactor has core offset with larger radius
-		new ReactorFace(EnumTier.SUPERIOR,  0, "laser.superior.south+"  ,  1, 3, -4, EnumFacing.NORTH);
-		new ReactorFace(EnumTier.SUPERIOR,  1, "laser.superior.south-"  , -1, 5, -4, EnumFacing.NORTH);
-		new ReactorFace(EnumTier.SUPERIOR,  2, "laser.superior.north-"  , -1, 3,  4, EnumFacing.SOUTH);
-		new ReactorFace(EnumTier.SUPERIOR,  3, "laser.superior.north+"  ,  1, 5,  4, EnumFacing.SOUTH);
-		new ReactorFace(EnumTier.SUPERIOR,  4, "laser.superior.east-"   , -4, 3, -1, EnumFacing.WEST );
-		new ReactorFace(EnumTier.SUPERIOR,  5, "laser.superior.east+"   , -4, 5,  1, EnumFacing.WEST );
-		new ReactorFace(EnumTier.SUPERIOR,  6, "laser.superior.west+"   ,  4, 3,  1, EnumFacing.EAST );
-		new ReactorFace(EnumTier.SUPERIOR,  7, "laser.superior.west-"   ,  4, 5, -1, EnumFacing.EAST );
+		new ReactorFace(EnumTier.SUPERIOR, 0, "laser.superior.south+"  , 1, 3, -4, Direction.NORTH);
+		new ReactorFace(EnumTier.SUPERIOR, 1, "laser.superior.south-"  , -1, 5, -4, Direction.NORTH);
+		new ReactorFace(EnumTier.SUPERIOR, 2, "laser.superior.north-"  , -1, 3, 4, Direction.SOUTH);
+		new ReactorFace(EnumTier.SUPERIOR, 3, "laser.superior.north+"  , 1, 5, 4, Direction.SOUTH);
+		new ReactorFace(EnumTier.SUPERIOR, 4, "laser.superior.east-"   , -4, 3, -1, Direction.WEST );
+		new ReactorFace(EnumTier.SUPERIOR, 5, "laser.superior.east+"   , -4, 5, 1, Direction.WEST );
+		new ReactorFace(EnumTier.SUPERIOR, 6, "laser.superior.west+"   , 4, 3, 1, Direction.EAST );
+		new ReactorFace(EnumTier.SUPERIOR, 7, "laser.superior.west-"   , 4, 5, -1, Direction.EAST );
 		
-		new ReactorFace(EnumTier.SUPERIOR,  8, "laser.superior.south--" , -2, 2, -4, EnumFacing.NORTH);
-		new ReactorFace(EnumTier.SUPERIOR,  9, "laser.superior.south++" ,  2, 6, -4, EnumFacing.NORTH);
-		new ReactorFace(EnumTier.SUPERIOR, 10, "laser.superior.north++" ,  2, 2,  4, EnumFacing.SOUTH);
-		new ReactorFace(EnumTier.SUPERIOR, 11, "laser.superior.north--" , -2, 6,  4, EnumFacing.SOUTH);
-		new ReactorFace(EnumTier.SUPERIOR, 12, "laser.superior.east++"  , -4, 2,  2, EnumFacing.WEST );
-		new ReactorFace(EnumTier.SUPERIOR, 13, "laser.superior.east--"  , -4, 6, -2, EnumFacing.WEST );
-		new ReactorFace(EnumTier.SUPERIOR, 14, "laser.superior.west--"  ,  4, 2, -2, EnumFacing.EAST );
-		new ReactorFace(EnumTier.SUPERIOR, 15, "laser.superior.west++"  ,  4, 6,  2, EnumFacing.EAST );
+		new ReactorFace(EnumTier.SUPERIOR, 8, "laser.superior.south--" , -2, 2, -4, Direction.NORTH);
+		new ReactorFace(EnumTier.SUPERIOR, 9, "laser.superior.south++" , 2, 6, -4, Direction.NORTH);
+		new ReactorFace(EnumTier.SUPERIOR, 10, "laser.superior.north++" , 2, 2, 4, Direction.SOUTH);
+		new ReactorFace(EnumTier.SUPERIOR, 11, "laser.superior.north--" , -2, 6, 4, Direction.SOUTH);
+		new ReactorFace(EnumTier.SUPERIOR, 12, "laser.superior.east++"  , -4, 2, 2, Direction.WEST );
+		new ReactorFace(EnumTier.SUPERIOR, 13, "laser.superior.east--"  , -4, 6, -2, Direction.WEST );
+		new ReactorFace(EnumTier.SUPERIOR, 14, "laser.superior.west--"  , 4, 2, -2, Direction.EAST );
+		new ReactorFace(EnumTier.SUPERIOR, 15, "laser.superior.west++"  , 4, 6, 2, Direction.EAST );
 		addCoreBlocks(EnumTier.SUPERIOR, 2, 0, 4, 0);
 		
 		// pre-build the list of lasers in the structure
@@ -130,7 +130,7 @@ public class ReactorFace implements IStringSerializable {
 	
 	ReactorFace(final EnumTier enumTier, final int indexStability, final String name,
 	            final int x, final int y, final int z,
-	            final EnumFacing facingLaserProperty) {
+	            final Direction facingLaserProperty) {
 		this.enumTier = enumTier;
 		this.indexStability = indexStability;
 		this.name = name;

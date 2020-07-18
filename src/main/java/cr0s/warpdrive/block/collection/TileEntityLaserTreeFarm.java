@@ -1,6 +1,5 @@
 package cr0s.warpdrive.block.collection;
 
-import cr0s.warpdrive.CommonProxy;
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.ExceptionChunkNotLoaded;
@@ -13,6 +12,7 @@ import cr0s.warpdrive.data.EnumComponentType;
 import cr0s.warpdrive.data.EnumLaserTreeFarmMode;
 import cr0s.warpdrive.data.EnumTaskResult;
 import cr0s.warpdrive.data.InventoryWrapper;
+import cr0s.warpdrive.data.MutableBlockItemUseContext;
 import cr0s.warpdrive.data.SoundEvents;
 import cr0s.warpdrive.data.Vector3;
 import cr0s.warpdrive.item.ItemComponent;
@@ -32,27 +32,27 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockOldLog;
-import net.minecraft.block.BlockPlanks.EnumType;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemBlock;
+import net.minecraft.block.BlockState;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.WorldServer;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.IWorldReader;
 
 import net.minecraftforge.common.IPlantable;
-import net.minecraftforge.fml.common.Optional;
 
 public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
+	
+	public static TileEntityType<TileEntityLaserTreeFarm> TYPE;
 	
 	// persistent properties
 	private int radiusX_requested = WarpDriveConfig.TREE_FARM_totalMaxRadius;
@@ -92,9 +92,9 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 	private int indexValuable = 0;
 	
 	public TileEntityLaserTreeFarm() {
-		super();
+		super(TYPE);
 		
-		laserOutputSide = EnumFacing.UP;
+		laserOutputSide = Direction.UP;
 		peripheralName = "warpdriveLaserTreeFarm";
 		addMethods(new String[] {
 				"start",
@@ -112,8 +112,10 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
+		assert world != null;
+		
 		if (currentState == STATE_PLANTING || currentState == STATE_HARVESTING) {
 			updateParameters();
 			try {
@@ -135,14 +137,15 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 	
 	@SuppressWarnings("UnnecessaryReturnStatement")
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
-		final IBlockState blockState = world.getBlockState(pos);
+		final BlockState blockState = world.getBlockState(pos);
 		if (!isEnabled) {
 			currentState = STATE_IDLE;
 			tickCurrentTask = 0;
@@ -180,11 +183,11 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 			}
 			
 			// validate environment: loaded chunks
-			final MutableBlockPos mutableBlockPos = new MutableBlockPos();
-			final IBlockState blockStateMinMin = Commons.getBlockState_noChunkLoading(world, mutableBlockPos.setPos(axisAlignedBBScan.minX, axisAlignedBBScan.minY, axisAlignedBBScan.minZ));
-			final IBlockState blockStateMinMax = Commons.getBlockState_noChunkLoading(world, mutableBlockPos.setPos(axisAlignedBBScan.minX, axisAlignedBBScan.minY, axisAlignedBBScan.maxZ));
-			final IBlockState blockStateMaxMin = Commons.getBlockState_noChunkLoading(world, mutableBlockPos.setPos(axisAlignedBBScan.maxX, axisAlignedBBScan.maxY, axisAlignedBBScan.minZ));
-			final IBlockState blockStateMaxMax = Commons.getBlockState_noChunkLoading(world, mutableBlockPos.setPos(axisAlignedBBScan.maxX, axisAlignedBBScan.maxY, axisAlignedBBScan.maxZ));
+			final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
+			final BlockState blockStateMinMin = Commons.getBlockState_noChunkLoading(world, mutableBlockPos.setPos(axisAlignedBBScan.minX, axisAlignedBBScan.minY, axisAlignedBBScan.minZ));
+			final BlockState blockStateMinMax = Commons.getBlockState_noChunkLoading(world, mutableBlockPos.setPos(axisAlignedBBScan.minX, axisAlignedBBScan.minY, axisAlignedBBScan.maxZ));
+			final BlockState blockStateMaxMin = Commons.getBlockState_noChunkLoading(world, mutableBlockPos.setPos(axisAlignedBBScan.maxX, axisAlignedBBScan.maxY, axisAlignedBBScan.minZ));
+			final BlockState blockStateMaxMax = Commons.getBlockState_noChunkLoading(world, mutableBlockPos.setPos(axisAlignedBBScan.maxX, axisAlignedBBScan.maxY, axisAlignedBBScan.maxZ));
 			if ( blockStateMinMin == null 
 			  || blockStateMinMax == null
 			  || blockStateMaxMin == null
@@ -195,7 +198,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 			}
 			
 			// validate environment: clearance above
-			final IBlockState blockStateAbove = world.getBlockState(pos.up());
+			final BlockState blockStateAbove = world.getBlockState(pos.up());
 			final Block blockAbove = blockStateAbove.getBlock();
 			if ( !Dictionary.isLog(blockAbove)
 			  && !Dictionary.isLeaf(blockAbove)
@@ -298,7 +301,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 			
 			// get current block
 			final BlockPos blockPosSoil = blockPosSoils.get(indexSoil);
-			final IBlockState blockStateSoil = world.getBlockState(blockPosSoil);
+			final BlockState blockStateSoil = world.getBlockState(blockPosSoil);
 			indexSoil++;
 			
 			switch (doPlanting(blockPosSoil, blockStateSoil)) {
@@ -339,7 +342,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 			// get current block
 			final BlockStatePos blockStatePosValuable = blockPosValuables.get(indexValuable);
 			final BlockPos blockPosValuable = blockStatePosValuable.blockPos;
-			final IBlockState blockStateValuable = world.getBlockState(blockPosValuable);
+			final BlockState blockStateValuable = world.getBlockState(blockPosValuable);
 			indexValuable++;
 			
 			// validate cache
@@ -367,15 +370,19 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		}
 	}
 	
-	private EnumTaskResult doPlanting(final BlockPos blockPosSoil, final IBlockState blockStateSoil) {
+	private EnumTaskResult doPlanting(final BlockPos blockPosSoil, final BlockState blockStateSoil) {
+		assert world != null;
 		final BlockPos blockPosPlant = blockPosSoil.add(0, 1, 0);
+		final MutableBlockItemUseContext blockItemUseContext = new MutableBlockItemUseContext(
+				world, null, Hand.MAIN_HAND, ItemStack.EMPTY,
+				new BlockRayTraceResult(new Vec3d(blockPosPlant), Direction.UP, blockPosPlant, false) );
 		
 		final Collection<Object> inventories = InventoryWrapper.getConnectedInventories(world, pos);
 		
 		int indexSlotPlant = 0;
 		int countPlantable = 0;
 		ItemStack itemStackPlant = null;
-		IBlockState blockStatePlant = null;
+		BlockState blockStatePlant = null;
 		Object inventoryPlant = null;
 		for (final Object inventoryLoop : inventories) {
 			indexSlotPlant = 0;
@@ -393,14 +400,10 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 				}
 				countPlantable++;
 				final IPlantable plantable = (IPlantable) ((itemStackPlant.getItem() instanceof IPlantable) ? itemStackPlant.getItem() : blockFromItem);
-				if (itemStackPlant.getItem() instanceof ItemBlock) {
-					final ItemBlock itemBlock = (ItemBlock) itemStackPlant.getItem();
-					final int metadata = itemBlock.getMetadata(itemStackPlant.getMetadata());
+				if (itemStackPlant.getItem() instanceof BlockItem) {
+					final BlockItem itemBlock = (BlockItem) itemStackPlant.getItem();
 					final Block block = itemBlock.getBlock();
-					final EntityPlayer playerFake = CommonProxy.getFakePlayer(null, (WorldServer) world, blockPosPlant);
-					blockStatePlant = block.getStateForPlacement(world, blockPosPlant, EnumFacing.UP,
-					                                             0.5F, 0.0F, 0.5F, metadata,
-					                                             playerFake, EnumHand.MAIN_HAND);
+					blockStatePlant = block.getDefaultState();
 				} else {
 					blockStatePlant = plantable.getPlant(world, blockPosPlant);
 				}
@@ -409,13 +412,14 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 					                                    indexSlotPlant, itemStackPlant, plantable, blockStatePlant));
 				}
 				
-				if (!blockStateSoil.getBlock().canSustainPlant(blockStateSoil, world, blockPosSoil, EnumFacing.UP, plantable)) {
+				if (!blockStateSoil.getBlock().canSustainPlant(blockStateSoil, world, blockPosSoil, Direction.UP, plantable)) {
 					blockStatePlant = null;
 					indexSlotPlant++;
 					continue;
 				}
 				
-				if (!blockStatePlant.getBlock().canPlaceBlockAt(world, blockPosPlant)) {
+				blockItemUseContext.setItemStack(itemStackPlant);
+				if (!blockItemUseContext.canPlace()) {
 					blockStatePlant = null;
 					indexSlotPlant++;
 					continue;
@@ -473,7 +477,8 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		return EnumTaskResult.CONTINUE;
 	}
 	
-	private EnumTaskResult doHarvesting(final BlockPos blockPosValuable, final IBlockState blockStateValuable) {
+	private EnumTaskResult doHarvesting(final BlockPos blockPosValuable, final BlockState blockStateValuable) {
+		assert world != null;
 		// check area protection
 		if (isBlockBreakCanceled(null, world, blockPosValuable)) {
 			if (WarpDriveConfig.LOGGING_COLLECTION) {
@@ -487,7 +492,8 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		final boolean isLog = Dictionary.isLog(blockStateValuable.getBlock());
 		if (isLog && tapTrees) {
 			// IC2 rubber tree wet spot
-			if (blockStateValuable.getBlock().isAssociatedBlock(WarpDriveConfig.IC2_rubberWood)) {
+			/* TODO MC1.15 enable IC2 support once it's updated
+			if (blockStateValuable.getBlock() == WarpDriveConfig.IC2_rubberWood) {
 				final int metadata = blockStateValuable.getBlock().getMetaFromState(blockStateValuable);
 				if (metadata >= 2 && metadata <= 5) {
 					if (WarpDriveConfig.LOGGING_COLLECTION) {
@@ -522,10 +528,10 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 					return EnumTaskResult.CONTINUE;
 				}
 			}
+			*/
 			
 			// Jungle wood to raw rubber
-			if ( blockStateValuable.getBlock() instanceof BlockOldLog
-			  && blockStateValuable.getValue(BlockOldLog.VARIANT) == EnumType.JUNGLE ) {
+			if (blockStateValuable.getBlock().getTags().contains(BlockTags.JUNGLE_LOGS.getId())) {
 				if (WarpDriveConfig.LOGGING_COLLECTION) {
 					WarpDrive.logger.info(String.format("Tapping jungle wood %s %s",
 					                                    blockStateValuable, Commons.format(world, blockPosValuable)) );
@@ -547,7 +553,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 				                             0.8F, 0.8F, 0.2F, age, 0, 50);
 				world.playSound(null, pos, SoundEvents.LASER_LOW, SoundCategory.BLOCKS, 4F, 0.5F);
 				
-				world.setBlockToAir(blockPosValuable);
+				world.removeBlock(blockPosValuable, false);
 				
 				tickCurrentTask = WarpDriveConfig.TREE_FARM_TAP_RUBBER_LOG_DELAY_TICKS;
 				return EnumTaskResult.CONTINUE;
@@ -648,7 +654,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		calculation_done();
 	}
 	
-	private static ArrayList<BlockPos> calculate_getSoilPositions(@Nonnull final IBlockAccess blockAccess,
+	private static ArrayList<BlockPos> calculate_getSoilPositions(@Nonnull final IWorldReader worldReader,
 	                                                              @Nonnull final AxisAlignedBB axisAlignedBB) throws ExceptionChunkNotLoaded {
 		final boolean isSafeThread = Commons.isSafeThread();
 		final int xMin = (int) axisAlignedBB.minX;
@@ -662,36 +668,36 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		// note: soil is only added when it has air above it
 		
 		final ArrayList<BlockPos> blockPosSoils = new ArrayList<>(volume);
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 		for (int x = xMin; x <= xMax; x++) {
 			for (int z = zMin; z <= zMax; z++) {
 				// optimized loop to avoid getting twice the blockstate of each block, we're scanning from top to bottom
 				mutableBlockPos.setPos(x, yMax + 1, z);
 				
-				IBlockState blockStateAbove = isSafeThread ? blockAccess.getBlockState(mutableBlockPos) : Commons.getBlockState_noChunkLoading(blockAccess, mutableBlockPos);
+				BlockState blockStateAbove = isSafeThread ? worldReader.getBlockState(mutableBlockPos) : Commons.getBlockState_noChunkLoading(worldReader, mutableBlockPos);
 				if (blockStateAbove == null) {
 					// chunk isn't loaded, abort treatment or it'll trigger a CME
 					throw new ExceptionChunkNotLoaded(String.format("Soil calculation aborted %s",
-					                                                Commons.format(blockAccess, mutableBlockPos)));
+					                                                Commons.format(worldReader, mutableBlockPos) ));
 				}
 				
 				do {
-					final boolean isAirAbove = blockStateAbove.getBlock().isAir(blockStateAbove, blockAccess, mutableBlockPos);
+					final boolean isAirAbove = blockStateAbove.getBlock().isAir(blockStateAbove, worldReader, mutableBlockPos);
 					mutableBlockPos.setY(mutableBlockPos.getY() - 1);
-					final IBlockState blockStateCandidate = blockAccess.getBlockState(mutableBlockPos);
+					final BlockState blockStateCandidate = worldReader.getBlockState(mutableBlockPos);
 					if (isAirAbove && Dictionary.isSoil(blockStateCandidate.getBlock())) {
 						if (WarpDriveConfig.LOGGING_COLLECTION) {
 							WarpDrive.logger.info(String.format("Found soil %s",
-							                                    Commons.format(blockAccess, mutableBlockPos) ));
+							                                    Commons.format(worldReader, mutableBlockPos) ));
 						}
 						blockPosSoils.add(mutableBlockPos.toImmutable());
 						
 						mutableBlockPos.setY(mutableBlockPos.getY() - 1);
-						blockStateAbove = isSafeThread ? blockAccess.getBlockState(mutableBlockPos) : Commons.getBlockState_noChunkLoading(blockAccess, mutableBlockPos);
+						blockStateAbove = isSafeThread ? worldReader.getBlockState(mutableBlockPos) : Commons.getBlockState_noChunkLoading(worldReader, mutableBlockPos);
 						if (blockStateAbove == null) {
 							// chunk isn't loaded, abort treatment or it'll trigger a CME
 							throw new ExceptionChunkNotLoaded(String.format("Soil calculation aborted %s",
-							                                                Commons.format(blockAccess, mutableBlockPos)));
+							                                                Commons.format(worldReader, mutableBlockPos) ));
 						}
 					} else {
 						blockStateAbove = blockStateCandidate;
@@ -706,7 +712,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		return blockPosSoils;
 	}
 	
-	private static ArrayList<BlockStatePos> calculate_getValuableStatePositions(@Nonnull final IBlockAccess blockAccess,
+	private static ArrayList<BlockStatePos> calculate_getValuableStatePositions(@Nonnull final IWorldReader worldReader,
 	                                                                            @Nonnull final AxisAlignedBB axisAlignedBB,
 	                                                                            final boolean breakLeaves,
 	                                                                            final int maxLogDistance,
@@ -722,16 +728,16 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		
 		final Collection<BlockPos> logPositions = new HashSet<>(volume);
 		
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 		for (int y = yMin; y <= yMax; y++) {
 			for (int x = xMin; x <= xMax; x++) {
 				for (int z = zMin; z <= zMax; z++) {
 					mutableBlockPos.setPos(x, y, z);
-					final IBlockState blockState = isSafeThread ? blockAccess.getBlockState(mutableBlockPos) : Commons.getBlockState_noChunkLoading(blockAccess, mutableBlockPos);
+					final BlockState blockState = isSafeThread ? worldReader.getBlockState(mutableBlockPos) : Commons.getBlockState_noChunkLoading(worldReader, mutableBlockPos);
 					if (blockState == null) {
 						// chunk isn't loaded, abort treatment or it'll trigger a CME
 						throw new ExceptionChunkNotLoaded(String.format("Valuable calculation aborted %s",
-						                                                Commons.format(blockAccess, mutableBlockPos)));
+						                                                Commons.format(worldReader, mutableBlockPos) ));
 					}
 					
 					final Block block = blockState.getBlock();
@@ -739,7 +745,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 						if (!logPositions.contains(mutableBlockPos)) {
 							if (WarpDriveConfig.LOGGING_COLLECTION) {
 								WarpDrive.logger.info(String.format("Found tree base %s",
-								                                    Commons.format(blockAccess, mutableBlockPos) ));
+								                                    Commons.format(worldReader, mutableBlockPos) ));
 							}
 							logPositions.add(mutableBlockPos.toImmutable());
 						}
@@ -755,7 +761,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		}
 		
 		final HashSet<Block> blockResults = breakLeaves ? Dictionary.getLogsAndLeaves() : Dictionary.getLogs();
-		final Set<BlockStatePos> blockStatePositions = Commons.getConnectedBlockStatePos(blockAccess, logPositions, Commons.DIRECTIONS_UP_CONE,
+		final Set<BlockStatePos> blockStatePositions = Commons.getConnectedBlockStatePos(worldReader, logPositions, Commons.DIRECTIONS_UP_CONE,
 		                                                                                 Dictionary.getLogsAndLeaves(), blockResults, maxLogDistance);
 		
 		final ArrayList<BlockStatePos> blockStatePosList = new ArrayList<>(blockStatePositions);
@@ -816,27 +822,27 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
-		tagCompound.setInteger("radiusX", radiusX_requested);
-		tagCompound.setInteger("radiusZ", radiusZ_requested);
-		tagCompound.setBoolean("breakLeaves", breakLeaves);
-		tagCompound.setBoolean("tapTrees", tapTrees);
-		tagCompound.setInteger("currentState", currentState);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
+		tagCompound.putInt("radiusX", radiusX_requested);
+		tagCompound.putInt("radiusZ", radiusZ_requested);
+		tagCompound.putBoolean("breakLeaves", breakLeaves);
+		tagCompound.putBoolean("tapTrees", tapTrees);
+		tagCompound.putInt("currentState", currentState);
 		return tagCompound;
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
-		radiusX_requested = tagCompound.getInteger("radiusX");
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
+		radiusX_requested = tagCompound.getInt("radiusX");
 		radiusX_requested = Commons.clamp(1, WarpDriveConfig.TREE_FARM_totalMaxRadius, radiusX_requested);
-		radiusZ_requested = tagCompound.getInteger("radiusZ");
+		radiusZ_requested = tagCompound.getInt("radiusZ");
 		radiusZ_requested = Commons.clamp(1, WarpDriveConfig.TREE_FARM_totalMaxRadius, radiusZ_requested);
 		
 		breakLeaves     = tagCompound.getBoolean("breakLeaves");
 		tapTrees        = tagCompound.getBoolean("tapTrees");
-		currentState    = tagCompound.getInteger("currentState");
+		currentState    = tagCompound.getInt("currentState");
 	}
 	
 	// Returns scan, wet tap, jungle tap, harvest log, harvest leaf, plant energy costs
@@ -923,39 +929,33 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] state(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return state();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] radius(final Context context, final Arguments arguments) {
 		return radius(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] breakLeaves(final Context context, final Arguments arguments) {
 		return breakLeaves(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] silktouch(final Context context, final Arguments arguments) {
 		return silktouch(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] tapTrees(final Context context, final Arguments arguments) {
 		return tapTrees(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "state":
@@ -1035,7 +1035,7 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 		return textState;
 	}
 	
-	private class ThreadCalculation extends Thread {
+	private static class ThreadCalculation extends Thread {
 		
 		private final WeakReference<TileEntity> weakTileEntity;
 		private final String stringTileEntity;
@@ -1061,7 +1061,8 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 					
 				} else {
 					// collect what we need, then release the object
-					final IBlockAccess blockAccess = tileEntity.getWorld();
+					final IWorldReader worldReader = tileEntity.getWorld();
+					assert worldReader != null;
 					final AxisAlignedBB axisAlignedBBSoil = ((TileEntityLaserTreeFarm) tileEntity).axisAlignedBBSoil;
 					final AxisAlignedBB axisAlignedBBScan = ((TileEntityLaserTreeFarm) tileEntity).axisAlignedBBScan;
 					final boolean breakLeaves = ((TileEntityLaserTreeFarm) tileEntity).breakLeaves;
@@ -1075,8 +1076,8 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 						                                     this, stringTileEntity ));
 					}
 					
-					blockPosSoils = calculate_getSoilPositions(blockAccess, axisAlignedBBSoil);
-					blockStatePosValuables = calculate_getValuableStatePositions(blockAccess, axisAlignedBBScan,
+					blockPosSoils = calculate_getSoilPositions(worldReader, axisAlignedBBSoil);
+					blockStatePosValuables = calculate_getValuableStatePositions(worldReader, axisAlignedBBScan,
 					                                                             breakLeaves, maxDistance, comparator);
 					
 					if (WarpDriveConfig.LOGGING_COLLECTION) {

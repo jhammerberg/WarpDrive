@@ -11,9 +11,11 @@ import javax.annotation.Nonnull;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.tileentity.TileEntityType;
 
 public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCoreOrController implements IEnanReactorController {
+	
+	public static TileEntityType<TileEntityEnanReactorController> TYPE;
 	
 	// persistent properties
 	// (none)
@@ -25,7 +27,11 @@ public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCor
 	private WeakReference<TileEntityEnanReactorCore> tileEntityEnanReactorCoreWeakReference = null;
 	
 	public TileEntityEnanReactorController() {
-		super();
+		this(TYPE);
+	}
+	
+	public TileEntityEnanReactorController(@Nonnull final TileEntityType<? extends TileEntityEnanReactorController> tileEntityType) {
+		super(tileEntityType);
 		
 		peripheralName = "warpdriveEnanReactorController";
 		addMethods(new String[] {
@@ -142,40 +148,34 @@ public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCor
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getInstabilities(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getInstabilities();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] instabilityTarget(final Context context, final Arguments arguments) {
 		return instabilityTarget(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] outputMode(final Context context, final Arguments arguments) {
 		return outputMode(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] stabilizerEnergy(final Context context, final Arguments arguments) {
 		return stabilizerEnergy(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] state(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return state();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "getInstabilities":

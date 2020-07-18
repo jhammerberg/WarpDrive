@@ -6,29 +6,29 @@ import javax.annotation.Nullable;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.Map;
 
-import net.minecraft.item.EnumRarity;
+import net.minecraft.item.Rarity;
 
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.FMLLog;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
-import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.fml.ModContainer;
+import net.minecraftforge.fml.ModLoadingContext;
 
 public class ParticleRegistry {
 	
 	private static final BiMap<String, Particle> particles = HashBiMap.create();
 	
-	public static final Particle ION = new Particle("ion") { }.setColor(0xE5FF54).setRarity(EnumRarity.COMMON).setColorIndex(0)
-	                                   .setEntityLifespan(200).setRadiationLevel(2.0F).setExplosionStrength(0.3F);
-	public static final Particle PROTON = new Particle("proton") { }.setColor(0xE5FF54).setRarity(EnumRarity.COMMON).setColorIndex(1)
-	                                      .setEntityLifespan(200).setRadiationLevel(4.0F).setExplosionStrength(0.5F);
-	public static final Particle ANTIMATTER = new Particle("antimatter") { }.setColor(0x1C3CAF).setRarity(EnumRarity.UNCOMMON).setColorIndex(2)
-	                                          .setEntityLifespan(60).setRadiationLevel(10.0F).setExplosionStrength(1.0F);
-	public static final Particle STRANGE_MATTER = new Particle("strange_matter") { }.setColor(0xE2414C).setRarity(EnumRarity.RARE).setColorIndex(3)
-	                                              .setEntityLifespan(40).setRadiationLevel(14.0F).setExplosionStrength(0.8F);
+	public static final Particle ION = new Particle("ion") { }.setColor(0xE5FF54).setRarity(Rarity.COMMON).setColorIndex(0)
+	                                                          .setEntityLifespan(200).setRadiationLevel(2.0F).setExplosionStrength(0.3F);
+	public static final Particle PROTON = new Particle("proton") { }.setColor(0xE5FF54).setRarity(Rarity.COMMON).setColorIndex(1)
+	                                                                .setEntityLifespan(200).setRadiationLevel(4.0F).setExplosionStrength(0.5F);
+	public static final Particle ANTIMATTER = new Particle("antimatter") { }.setColor(0x1C3CAF).setRarity(Rarity.UNCOMMON).setColorIndex(2)
+	                                                                        .setEntityLifespan(60).setRadiationLevel(10.0F).setExplosionStrength(1.0F);
+	public static final Particle STRANGE_MATTER = new Particle("strange_matter") { }.setColor(0xE2414C).setRarity(Rarity.RARE).setColorIndex(3)
+	                                                                                .setEntityLifespan(40).setRadiationLevel(14.0F).setExplosionStrength(0.8F);
 	// public static final Particle TACHYONS = new Particle("tachyons") { }.setColor(0xE5FF54).setRarity(EnumRarity.EPIC).setColorIndex(4);
 	
 	static {
@@ -58,7 +58,7 @@ public class ParticleRegistry {
 	}
 	
 	private static String getActiveModId() {
-		final ModContainer activeModContainer = Loader.instance().activeModContainer();
+		final ModContainer activeModContainer = ModLoadingContext.get().getActiveContainer();
 		return activeModContainer == null ? "minecraft" : activeModContainer.getModId();
 	}
 	

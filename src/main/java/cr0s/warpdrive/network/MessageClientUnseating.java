@@ -1,16 +1,16 @@
 package cr0s.warpdrive.network;
 
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.network.PacketHandler.IMessage;
 
-import net.minecraft.entity.player.EntityPlayerMP;
+import javax.annotation.Nonnull;
 
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.network.PacketBuffer;
 
-import io.netty.buffer.ByteBuf;
+import net.minecraftforge.fml.network.NetworkEvent.Context;
 
-public class MessageClientUnseating implements IMessage, IMessageHandler<MessageClientUnseating, IMessage> {
+public class MessageClientUnseating implements IMessage {
 		
 	@SuppressWarnings("unused")
 	public MessageClientUnseating() {
@@ -18,27 +18,27 @@ public class MessageClientUnseating implements IMessage, IMessageHandler<Message
 	}
 	
 	@Override
-	public void fromBytes(final ByteBuf buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		// no operation
 	}
 	
 	@Override
-	public void toBytes(final ByteBuf buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		// no operation
 	}
 	
-	private void handle(final EntityPlayerMP entityPlayerMP) {
-		entityPlayerMP.getServerWorld().addScheduledTask(entityPlayerMP::dismountRidingEntity);
+	private void handle(@Nonnull final ServerPlayerEntity entityServerPlayer) {
+		entityServerPlayer.stopRiding();
 	}
 	
 	@Override
-	public IMessage onMessage(final MessageClientUnseating targetingMessage, final MessageContext context) {
+	public IMessage process(@Nonnull final Context context) {
+		assert context.getSender() != null;
 		if (WarpDrive.isDev) {
 			WarpDrive.logger.info(String.format("Received client unseating packet from %s",
-			                                    context.getServerHandler().player.getName() ));
+			                                    context.getSender().getName() ));
 		}
-		
-		targetingMessage.handle(context.getServerHandler().player);
+		context.enqueueWork(() -> handle(context.getSender()));
         
 		return null;	// no response
 	}

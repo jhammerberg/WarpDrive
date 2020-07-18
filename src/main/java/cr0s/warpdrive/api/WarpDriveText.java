@@ -4,11 +4,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 
-public class WarpDriveText extends TextComponentString {
+public class WarpDriveText extends StringTextComponent {
 	
 	public WarpDriveText() {
 		super("");
@@ -17,7 +17,7 @@ public class WarpDriveText extends TextComponentString {
 	public WarpDriveText(@Nullable final Style style, final long value) {
 		super("");
 		
-		final ITextComponent textComponent = new TextComponentString(String.format("%d", value));
+		final ITextComponent textComponent = new StringTextComponent(String.format("%d", value));
 		if (style != null) {
 			textComponent.setStyle(style);
 		}
@@ -27,7 +27,7 @@ public class WarpDriveText extends TextComponentString {
 	public WarpDriveText(@Nullable final Style style, @Nonnull final String translationKey, final Object... args) {
 		super("");
 		
-		final ITextComponent textComponent = new TextComponentTranslation(translationKey, args);
+		final ITextComponent textComponent = new TranslationTextComponent(translationKey, args);
 		if (style != null) {
 			textComponent.setStyle(style);
 		}
@@ -42,12 +42,12 @@ public class WarpDriveText extends TextComponentString {
 	
 	@Nonnull
 	@Override
-	public TextComponentString createCopy() {
+	public StringTextComponent deepCopy() {
 		final WarpDriveText warpDriveText = new WarpDriveText();
 		warpDriveText.setStyle(getStyle().createShallowCopy());
 		
 		for (final ITextComponent textComponent : getSiblings()) {
-			warpDriveText.appendSibling(textComponent.createCopy());
+			warpDriveText.appendSibling(textComponent.deepCopy());
 		}
 		
 		return warpDriveText;
@@ -61,12 +61,12 @@ public class WarpDriveText extends TextComponentString {
 		if (siblings.isEmpty()) {
 			return this;
 		}
-		appendSibling(new TextComponentString("\n"));
+		appendSibling(new StringTextComponent("\n"));
 		return this;
 	}
 	
 	public WarpDriveText append(@Nonnull final ITextComponent textComponent) {
-		if (!textComponent.getUnformattedText().isEmpty()) {
+		if (!textComponent.getUnformattedComponentText().isEmpty()) {
 			appendLineBreak();
 			appendSibling(textComponent);
 		}
@@ -74,7 +74,7 @@ public class WarpDriveText extends TextComponentString {
 	}
 	
 	public WarpDriveText append(@Nullable final Style style, @Nonnull final String translationKey, final Object... args) {
-		final ITextComponent textComponent = new TextComponentTranslation(translationKey, args);
+		final ITextComponent textComponent = new TranslationTextComponent(translationKey, args);
 		if (style != null) {
 			textComponent.setStyle(style);
 		}
@@ -82,7 +82,7 @@ public class WarpDriveText extends TextComponentString {
 	}
 	
 	public WarpDriveText appendInLine(@Nullable final Style style, @Nonnull final String translationKey, final Object... args) {
-		final ITextComponent textComponent = new TextComponentTranslation(translationKey, args);
+		final ITextComponent textComponent = new TranslationTextComponent(translationKey, args);
 		if (style != null) {
 			textComponent.setStyle(style);
 		}
@@ -91,7 +91,7 @@ public class WarpDriveText extends TextComponentString {
 	}
 	
 	public WarpDriveText appendInLine(@Nullable final Style style, final long value) {
-		final ITextComponent textComponent = new TextComponentString(String.format("%d", value));
+		final ITextComponent textComponent = new StringTextComponent(String.format("%d", value));
 		if (style != null) {
 			textComponent.setStyle(style);
 		}

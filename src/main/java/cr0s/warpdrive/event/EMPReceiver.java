@@ -10,24 +10,21 @@ import javax.annotation.Nullable;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.Explosion;
 import net.minecraft.world.World;
 
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.fml.common.Optional;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import icbm.classic.api.caps.IEMPReceiver;
 import icbm.classic.api.explosion.IBlast;
 import icbm.classic.api.ICBMClassicAPI;
 
-@Optional.InterfaceList({
-	@Optional.Interface(iface = "icbm.classic.api.caps.IEMPReceiver", modid = "icbmclassic"),
-})
 public class EMPReceiver implements IEMPReceiver, ICapabilityProvider {
 	
 	public static final ResourceLocation resourceLocation = new ResourceLocation(WarpDrive.MODID, "EMPReceiver");
@@ -35,7 +32,6 @@ public class EMPReceiver implements IEMPReceiver, ICapabilityProvider {
 	private final TileEntityAbstractBase tileEntityAbstractBase;
 	
 	@SubscribeEvent
-	@Optional.Method(modid = "icbmclassic")
 	public static void onAttachCapability(final AttachCapabilitiesEvent<TileEntity> event) {
 		final TileEntity tileEntity = event.getObject();
 		if (tileEntity instanceof TileEntityAbstractBase) {
@@ -49,7 +45,6 @@ public class EMPReceiver implements IEMPReceiver, ICapabilityProvider {
 	}
 	
 	@Override
-	@Optional.Method(modid = "icbmclassic")
 	public float applyEmpAction(final World world, final double x, final double y, final double z,
 	                            final IBlast blastEMP, final float power, final boolean doAction) {
 		if (!doAction) {
@@ -57,7 +52,7 @@ public class EMPReceiver implements IEMPReceiver, ICapabilityProvider {
 		}
 		
 		// directly access the exploder since ICBM has a stack-overflow on blastEMP.getBlastSource()
-		final Entity exploder = blastEMP instanceof Explosion ? ((Explosion) blastEMP).exploder : null;
+		final Entity exploder = blastEMP instanceof Explosion ? ((Explosion) blastEMP).getExplosivePlacedBy() : null;
 		if (WarpDriveConfig.LOGGING_WEAPON) {
 			WarpDrive.logger.info(String.format("EMP received %s from %s with source %s and radius %.1f",
 			                                    Commons.format(world, x, y, z),
@@ -87,17 +82,10 @@ public class EMPReceiver implements IEMPReceiver, ICapabilityProvider {
 		return true;
 	}
 	
+	@Nonnull
 	@Override
-	@Optional.Method(modid = "icbmclassic")
-	public boolean hasCapability(@Nonnull final Capability<?> capability, @Nullable final EnumFacing facing) {
-		return capability == ICBMClassicAPI.EMP_CAPABILITY;
-	}
-	
-	@Nullable
-	@Override
-	@Optional.Method(modid = "icbmclassic")
 	@SuppressWarnings("unchecked")
-	public <T> T getCapability(@Nonnull final Capability<T> capability, @Nullable final EnumFacing facing) {
-		return capability == ICBMClassicAPI.EMP_CAPABILITY ? (T) this : null;
+	public <T> LazyOptional<T> getCapability(@Nonnull final Capability<T> capability, @Nullable final Direction facing) {
+		return capability == ICBMClassicAPI.EMP_CAPABILITY ? (LazyOptional<T>) LazyOptional.of(() -> this) : LazyOptional.empty();
 	}
 }

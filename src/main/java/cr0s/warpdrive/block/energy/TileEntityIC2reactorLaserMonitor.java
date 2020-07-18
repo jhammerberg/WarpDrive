@@ -15,27 +15,29 @@ import ic2.api.reactor.IReactorChamber;
 import javax.annotation.Nonnull;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.Optional;
 
-import net.minecraftforge.fluids.BlockFluidBase;
+import net.minecraftforge.fluids.IFluidBlock;
 
 public class TileEntityIC2reactorLaserMonitor extends TileEntityAbstractLaser {
+	
+	public static TileEntityType<TileEntityIC2reactorLaserMonitor> TileEntityIC2reactorLaserMonitor;
 	
 	// persistent properties
 	private int ticks = WarpDriveConfig.IC2_REACTOR_COOLING_INTERVAL_TICKS;
 	
 	// computed properties
-	public EnumFacing facing = null;
+	public Direction facing = null;
 	private boolean isValid = false;
 	
 	public TileEntityIC2reactorLaserMonitor() {
-		super();
+		super(TileEntityIC2reactorLaserMonitor);
 		
 		laserMedium_maxCount = 1;
 		peripheralName = "warpdriveIC2reactorLaserCooler";
@@ -43,9 +45,9 @@ public class TileEntityIC2reactorLaserMonitor extends TileEntityAbstractLaser {
 	}
 	
 	// returns IReactor tile entities
-	@Optional.Method(modid = "ic2")
 	private IReactor findReactor() {
-		for(final EnumFacing facing : EnumFacing.values()) {
+		assert world != null;
+		for(final Direction facing : Direction.values()) {
 			final TileEntity tileEntity = world.getTileEntity(pos.offset(facing, 2));
 			if (tileEntity == null) {
 				continue;
@@ -76,11 +78,11 @@ public class TileEntityIC2reactorLaserMonitor extends TileEntityAbstractLaser {
 			// if reactor or chamber was found, check the space in between
 			if (output != null) {
 				final BlockPos blockPos = pos.offset(facing);
-				final IBlockState blockState = world.getBlockState(blockPos);
+				final BlockState blockState = world.getBlockState(blockPos);
 				final Block block = blockState.getBlock();
 				final boolean isAir = block.isAir(blockState, world, blockPos);
 				isValid = ( isAir
-				         || block instanceof BlockFluidBase
+				         || block instanceof IFluidBlock
 				         || block instanceof IReactorChamber
 				         || !blockState.getMaterial().isOpaque() );
 				this.facing = facing; 
@@ -91,15 +93,13 @@ public class TileEntityIC2reactorLaserMonitor extends TileEntityAbstractLaser {
 		this.facing = null;
 		return null;
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private boolean coolReactor(final IReactor reactor) {
 		for (int x = 0; x < 9; x++) {
 			for (int y = 0; y < 6; y++) {
 				final ItemStack itemStack = reactor.getItemAt(x, y);
 				if ( itemStack != null
 				  && itemStack.getItem() instanceof ItemIC2reactorLaserFocus ) {
-					final int heatInLaserFocus = itemStack.getItemDamage();
+					final int heatInLaserFocus = itemStack.getDamage();
 					final int heatEnergyCap = (int) Math.floor(Math.min(laserMedium_getEnergyStored(false) / WarpDriveConfig.IC2_REACTOR_ENERGY_PER_HEAT, heatInLaserFocus));
 					final int heatToTransfer = Math.min(heatEnergyCap, WarpDriveConfig.IC2_REACTOR_COOLING_PER_INTERVAL); 
 					if (heatToTransfer > 0) {
@@ -116,11 +116,11 @@ public class TileEntityIC2reactorLaserMonitor extends TileEntityAbstractLaser {
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -144,28 +144,27 @@ public class TileEntityIC2reactorLaserMonitor extends TileEntityAbstractLaser {
 	}
 	
 	private void updateBlockState() {
-		final IBlockState blockStateNew = getBlockType().getDefaultState()
-		                                                .withProperty(BlockProperties.ACTIVE, isValid)
-		                                                .withProperty(BlockProperties.FACING, facing != null ? facing : EnumFacing.DOWN);
+		final BlockState blockStateNew = getBlockState()
+				                                 .with(BlockProperties.ACTIVE, isValid)
+				                                 .with(BlockProperties.FACING, facing != null ? facing : Direction.DOWN);
 		updateBlockState(blockStateNew, null, null);
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
-		tagCompound.setInteger("ticks", ticks);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
+		tagCompound.putInt("ticks", ticks);
 		return tagCompound;
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
-		ticks = tagCompound.getInteger("ticks");
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
+		ticks = tagCompound.getInt("ticks");
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
 	public WarpDriveText getStatus() {
 		if (world == null) {
 			return super.getStatus();

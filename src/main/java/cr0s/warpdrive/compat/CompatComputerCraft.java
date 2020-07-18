@@ -7,9 +7,9 @@ import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -60,25 +60,26 @@ public class CompatComputerCraft implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockGeneric.isInstance(block)
-		    && (classBlockWiredModemFull == null || !classBlockWiredModemFull.isInstance(block));
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockGeneric.isInstance(blockState.getBlock())
+		    && (classBlockWiredModemFull == null || !classBlockWiredModemFull.isInstance(blockState.getBlock()));
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -98,15 +99,15 @@ public class CompatComputerCraft implements IBlockTransformer {
 	private static final int[] rotDir            = {  0,  1,  5,  4,  2,  3,  6,  7, 11, 10,  8,  9, 12, 13, 17, 16, 14, 15 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0) {
-			return metadata;
+			return blockState;
 		}
 		
 		// computers are rotating with metadata only
-		if ( classBlockComputerBase.isInstance(block)
-		  && !classBlockTurtle.isInstance(block) ) {
+		if ( classBlockComputerBase.isInstance(blockState.getBlock())
+		  && !classBlockTurtle.isInstance(blockState.getBlock()) ) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotComputer[metadata];
@@ -115,12 +116,12 @@ public class CompatComputerCraft implements IBlockTransformer {
 			case 3:
 				return mrotComputer[mrotComputer[mrotComputer[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// cables are rotating with metadata only
-		if (classBlockCable.isInstance(block)) {
+		if (classBlockCable.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotWiredModem[metadata];
@@ -129,12 +130,12 @@ public class CompatComputerCraft implements IBlockTransformer {
 			case 3:
 				return mrotWiredModem[mrotWiredModem[mrotWiredModem[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// advanced modems are rotating with metadata only
-		if (classBlockAdvancedModem.isInstance(block)) {
+		if (classBlockAdvancedModem.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotAdvancedModem[metadata];
@@ -143,12 +144,12 @@ public class CompatComputerCraft implements IBlockTransformer {
 			case 3:
 				return mrotAdvancedModem[mrotAdvancedModem[mrotAdvancedModem[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// disk drive, wireless modem, monitor, printer are over optimized...
-		if (classBlockPeripheral.isInstance(block)) {
+		if (classBlockPeripheral.isInstance(blockState.getBlock())) {
 			// disk drive and wireless modem are rotating with metadata only
 			if ( metadata >= 0
 			  && metadata <= 9 ) {
@@ -160,44 +161,44 @@ public class CompatComputerCraft implements IBlockTransformer {
 				case 3:
 					return mrotPeripheral[mrotPeripheral[mrotPeripheral[metadata]]];
 				default:
-					return metadata;
+					return blockState;
 				}
 			}
 			
 			// monitor, printer and speaker are rotating with NBT only through the dir tag
-			if (!nbtTileEntity.hasKey("dir")) {// unknown
+			if (!nbtTileEntity.contains("dir")) {// unknown
 				WarpDrive.logger.error(String.format("Unknown ComputerCraft Peripheral block %s with metadata %d and tile entity %s",
 				                                     block, metadata, nbtTileEntity));
-				return metadata;
+				return blockState;
 			}
 			
-		} else if (!nbtTileEntity.hasKey("dir")) {// unknown
+		} else if (!nbtTileEntity.contains("dir")) {// unknown
 			WarpDrive.logger.error(String.format("Unknown ComputerCraft directional block %s with metadata %d and tile entity %s",
 			                                     block, metadata, nbtTileEntity));
-			return metadata;
+			return blockState;
 		}
 		
 		// turtles and others
-		final int dir = nbtTileEntity.getInteger("dir");
+		final int dir = nbtTileEntity.getInt("dir");
 		switch (rotationSteps) {
 		case 1:
-			nbtTileEntity.setInteger("dir", rotDir[dir]);
-			return metadata;
+			nbtTileEntity.putInt("dir", rotDir[dir]);
+			return blockState;
 		case 2:
-			nbtTileEntity.setInteger("dir", rotDir[rotDir[dir]]);
-			return metadata;
+			nbtTileEntity.putInt("dir", rotDir[rotDir[dir]]);
+			return blockState;
 		case 3:
-			nbtTileEntity.setInteger("dir", rotDir[rotDir[rotDir[dir]]]);
-			return metadata;
+			nbtTileEntity.putInt("dir", rotDir[rotDir[rotDir[dir]]]);
+			return blockState;
 		default:
-			return metadata;
+			return blockState;
 		}
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

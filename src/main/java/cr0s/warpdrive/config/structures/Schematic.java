@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -73,8 +73,8 @@ public class Schematic extends AbstractStructure {
 	}
 	
 	@Override
-	public boolean generate(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
-		return instantiate(random).generate(world, random, blockPos);
+	public boolean place(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
+		return instantiate(random).place(world, random, blockPos);
 	}
 
 	@Override
@@ -86,7 +86,7 @@ public class Schematic extends AbstractStructure {
 		
 		private final String parentFullName;
 		protected Block block;
-		protected IBlockState blockState;
+		protected BlockState blockState;
 		
 		public Replacement(final String parentFullName, final String name) {
 			super(null, name, Filler.DEFAULT, "filler");
@@ -158,7 +158,7 @@ public class Schematic extends AbstractStructure {
 			return replacement;
 		}
 		
-		public boolean isMatching(final IBlockState blockStateIn) {
+		public boolean isMatching(final BlockState blockStateIn) {
 			return (block != null && block == blockStateIn.getBlock())
 			    || blockState.equals(blockStateIn);
 		}
@@ -170,7 +170,7 @@ public class Schematic extends AbstractStructure {
 		private int minQuantity;
 		private int maxQuantity;
 		protected Block block;
-		protected IBlockState blockState;
+		protected BlockState blockState;
 		
 		public Insertion(final String parentFullName, final String name) {
 			super(null, name, Loot.DEFAULT, "loot");
@@ -258,7 +258,7 @@ public class Schematic extends AbstractStructure {
 			return insertion;
 		}
 		
-		public boolean isMatching(final IBlockState blockStateIn) {
+		public boolean isMatching(final BlockState blockStateIn) {
 			return (block != null && block == blockStateIn.getBlock())
 			    || blockState.equals(blockStateIn);
 		}

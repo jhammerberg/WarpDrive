@@ -17,19 +17,21 @@ import li.cil.oc.api.machine.Context;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.block.Blocks;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.util.math.shapes.ISelectionContext;
 
 public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements ILift {
+	
+	public static TileEntityType<TileEntityLift> TYPE;
 	
 	private static final double LIFT_GRAB_RADIUS = 0.4D;
 	
@@ -44,7 +46,7 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 	private int firstUncoveredY;
 	
 	public TileEntityLift() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveLift";
 		addMethods(new String[] {
@@ -64,10 +66,11 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -89,17 +92,17 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 			       && isPassableBlock(pos.getY() - 2);
 			isActive = isEnabled && isValid;
 			
-			final IBlockState blockState = world.getBlockState(pos);
+			final BlockState blockState = world.getBlockState(pos);
 			if (energy_getEnergyStored() < WarpDriveConfig.LIFT_ENERGY_PER_ENTITY || !isActive) {
 				mode = EnumLiftMode.INACTIVE;
-				if (blockState.getValue(BlockLift.MODE) != EnumLiftMode.INACTIVE) {
-					world.setBlockState(pos, blockState.withProperty(BlockLift.MODE, EnumLiftMode.INACTIVE));
+				if (blockState.get(BlockLift.MODE) != EnumLiftMode.INACTIVE) {
+					world.setBlockState(pos, blockState.with(BlockLift.MODE, EnumLiftMode.INACTIVE));
 				}
 				return;
 			}
 			
-			if (blockState.getValue(BlockLift.MODE) != mode) {
-				world.setBlockState(pos, blockState.withProperty(BlockLift.MODE, mode));
+			if (blockState.get(BlockLift.MODE) != mode) {
+				world.setBlockState(pos, blockState.with(BlockLift.MODE, mode));
 			}
 			
 			// Launch a beam: search non-air blocks under lift
@@ -132,13 +135,15 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 	
 	private boolean isPassableBlock(final int yPosition) {
 		final BlockPos blockPos = new BlockPos(pos.getX(), yPosition, pos.getZ());
-		final IBlockState blockState = world.getBlockState(blockPos);
+		assert world != null;
+		final BlockState blockState = world.getBlockState(blockPos);
 		return blockState.getBlock() == Blocks.AIR
 			|| world.isAirBlock(blockPos)
-			|| blockState.getCollisionBoundingBox(world, blockPos) == null;
+			|| blockState.getCollisionShape(world, blockPos, ISelectionContext.dummy()).isEmpty();
 	}
 	
 	private boolean liftEntity() {
+		assert world != null;
 		final double xMin = pos.getX() + 0.5 - LIFT_GRAB_RADIUS;
 		final double xMax = pos.getX() + 0.5 + LIFT_GRAB_RADIUS;
 		final double zMin = pos.getZ() + 0.5 - LIFT_GRAB_RADIUS;
@@ -152,7 +157,7 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 					xMax, pos.getY(), zMax);
 			final List<Entity> list = world.getEntitiesWithinAABBExcludingEntity(null, aabb);
 			for (final Entity entity : list) {
-				if ( entity instanceof EntityLivingBase
+				if ( entity instanceof LivingEntity
 				  && energy_consume(WarpDriveConfig.LIFT_ENERGY_PER_ENTITY, true)) {
 					entity.setPositionAndUpdate(pos.getX() + 0.5D, pos.getY() + 1.0D, pos.getZ() + 0.5D);
 					PacketHandler.sendBeamPacket(world,
@@ -171,7 +176,7 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 					xMax, pos.getY() + 2.0D, zMax);
 			final List<Entity> list = world.getEntitiesWithinAABBExcludingEntity(null, aabb);
 			for (final Entity entity : list) {
-	  			if ( entity instanceof EntityLivingBase
+	  			if ( entity instanceof LivingEntity
             && energy_consume(WarpDriveConfig.LIFT_ENERGY_PER_ENTITY, true)) {
             entity.setPositionAndUpdate(pos.getX() + 0.5D, firstUncoveredY, pos.getZ() + 0.5D);
             PacketHandler.sendBeamPacket(world,
@@ -188,13 +193,13 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
-		if (tagCompound.hasKey("mode")) {
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
+		if (tagCompound.contains("mode")) {
 			final byte byteValue = tagCompound.getByte("mode");
 			mode = EnumLiftMode.get(Commons.clamp(0, 3, byteValue == -1 ? 3 : byteValue));
 		}
-		if (tagCompound.hasKey("computerMode")) {
+		if (tagCompound.contains("computerMode")) {
 			final byte byteValue = tagCompound.getByte("computerMode");
 			computerMode = EnumLiftMode.get(Commons.clamp(0, 3, byteValue == -1 ? 3 : byteValue));
 		}
@@ -202,22 +207,22 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
-		tagCompound.setByte("mode", (byte) mode.ordinal());
-		tagCompound.setByte("computerMode", (byte) computerMode.ordinal());
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
+		tagCompound.putByte("mode", (byte) mode.ordinal());
+		tagCompound.putByte("computerMode", (byte) computerMode.ordinal());
 		return tagCompound;
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
-		tagCompound.removeTag("mode");
+		tagCompound.remove("mode");
 		return tagCompound;
 	}
 	
 	@Override
-	public boolean energy_canInput(final EnumFacing from) {
+	public boolean energy_canInput(final Direction from) {
 		return true;
 	}
 	
@@ -256,7 +261,6 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] mode(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return mode(
@@ -267,15 +271,13 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] state(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return state();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "mode":

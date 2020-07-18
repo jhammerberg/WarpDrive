@@ -12,13 +12,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
 
 import net.minecraftforge.common.util.Constants.NBT;
@@ -55,35 +55,36 @@ public class CompatBuildCraft implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockBCBase_Neptune.isInstance(block)
-		    || classBlockPipeHolder.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockBCBase_Neptune.isInstance(blockState.getBlock())
+		    || classBlockPipeHolder.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
-		if ( classBlockArchitectTable.isInstance(block)
-		  || classBlockBuilder.isInstance(block)
-		  || classBlockFiller.isInstance(block)
-		  || classBlockQuarry.isInstance(block)
-		  || classBlockReplacer.isInstance(block)
-		  || classBlockZonePlanner.isInstance(block) ) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
+		if ( classBlockArchitectTable.isInstance(blockState.getBlock())
+		  || classBlockBuilder.isInstance(blockState.getBlock())
+		  || classBlockFiller.isInstance(blockState.getBlock())
+		  || classBlockQuarry.isInstance(blockState.getBlock())
+		  || classBlockReplacer.isInstance(blockState.getBlock())
+		  || classBlockZonePlanner.isInstance(blockState.getBlock()) ) {
 			reason.append(Commons.getStyleWarning(), "warpdrive.compat.guide.block_detected_on_board",
-			              new TextComponentTranslation(block.getTranslationKey()));
+			              new TranslationTextComponent(block.getTranslationKey()));
 			return false;
 		}
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -123,11 +124,11 @@ public class CompatBuildCraft implements IBlockTransformer {
 	}
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		
 		if (nbtTileEntity == null) {
-			return metadata;
+			return blockState;
 		}
 		
 		final String idTileEntity = nbtTileEntity.getString("id");
@@ -152,23 +153,23 @@ public class CompatBuildCraft implements IBlockTransformer {
 		case "buildcraftenergy:engine.stone" :
 		case "buildcraftenergy:engine.iron" :
 		case "buildcraftcore:engine.creative" :
-			if (nbtTileEntity.hasKey("currentDirection")) {
+			if (nbtTileEntity.contains("currentDirection")) {
 				final String nameDirection = nbtTileEntity.getString("currentDirection");
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setString("currentDirection", rotNames.get(nameDirection));
-					return metadata;
+					nbtTileEntity.putString("currentDirection", rotNames.get(nameDirection));
+					return blockState;
 				case 2:
-					nbtTileEntity.setString("currentDirection", rotNames.get(rotNames.get(nameDirection)));
-					return metadata;
+					nbtTileEntity.putString("currentDirection", rotNames.get(rotNames.get(nameDirection)));
+					return blockState;
 				case 3:
-					nbtTileEntity.setString("currentDirection", rotNames.get(rotNames.get(rotNames.get(nameDirection))));
-					return metadata;
+					nbtTileEntity.putString("currentDirection", rotNames.get(rotNames.get(rotNames.get(nameDirection))));
+					return blockState;
 				default:
-					return metadata;
+					return blockState;
 				}
 			}
-			return metadata;
+			return blockState;
 			
 		// vanilla facing
 		case "buildcraftcore:marker.volume":
@@ -183,7 +184,7 @@ public class CompatBuildCraft implements IBlockTransformer {
 			case 3:
 				return rotFacing[rotFacing[rotFacing[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 			
 		// horizontal facing
@@ -204,7 +205,7 @@ public class CompatBuildCraft implements IBlockTransformer {
 			case 3:
 				return rotHorizontal[rotHorizontal[rotHorizontal[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 			
 		// horizontal facing with 'active' flag
@@ -217,10 +218,10 @@ public class CompatBuildCraft implements IBlockTransformer {
 			case 3:
 				return rotHorizontalOr4[rotHorizontalOr4[rotHorizontalOr4[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 			
-		// Flood gate uses a bitmask in the same order as EnumFacing
+		// Flood gate uses a bitmask in the same order as Direction enum
 		case "buildcraftfactory:flood_gate":
 			final int openSidesOld = nbtTileEntity.getByte("openSides");
 			int openSidesNew = 0x00;
@@ -244,7 +245,7 @@ public class CompatBuildCraft implements IBlockTransformer {
 					break;
 				}
 			}
-			nbtTileEntity.setByte("openSides", (byte) openSidesNew);
+			nbtTileEntity.putByte("openSides", (byte) openSidesNew);
 			break;
 			
 		// pipes are whole different story
@@ -253,13 +254,13 @@ public class CompatBuildCraft implements IBlockTransformer {
 			// final int[] redstoneOld = nbtTileEntity.getIntArray("redstone");
 			
 			// behaviours are found in pipe.beh
-			if (nbtTileEntity.hasKey("pipe")) {
-				final NBTTagCompound tagCompoundPipe = nbtTileEntity.getCompoundTag("pipe");
-				if (tagCompoundPipe.hasKey("beh")) {
-					final NBTTagCompound tagCompoundBehaviour = tagCompoundPipe.getCompoundTag("beh");
+			if (nbtTileEntity.contains("pipe")) {
+				final CompoundNBT tagCompoundPipe = nbtTileEntity.getCompound("pipe");
+				if (tagCompoundPipe.contains("beh")) {
+					final CompoundNBT tagCompoundBehaviour = tagCompoundPipe.getCompound("beh");
 					
 					// directional behaviour is pipe.beh.currentDir = NORTH SOUTH WEST EAST
-					if (tagCompoundBehaviour.hasKey("currentDir")) {
+					if (tagCompoundBehaviour.contains("currentDir")) {
 						final String currentDirOld = tagCompoundBehaviour.getString("currentDir");
 						final String currentDirNew;
 						switch (rotationSteps) {
@@ -276,15 +277,15 @@ public class CompatBuildCraft implements IBlockTransformer {
 							currentDirNew = currentDirOld;
 							break;
 						}
-						tagCompoundBehaviour.setString("currentDir", currentDirNew);
+						tagCompoundBehaviour.putString("currentDir", currentDirNew);
 					}
 					
 					// filter behaviour is pipe.beh.filters.items (compound list of 54 elements)
 					// indexes for first position are 36 18 45 27 => facing = index / 9, position = index % 9
-					if (tagCompoundBehaviour.hasKey("filters")) {
-						final NBTTagCompound tagCompoundFilters = tagCompoundBehaviour.getCompoundTag("filters");
-						final NBTTagList tagListFilterItemsOld = tagCompoundFilters.getTagList("items", NBT.TAG_COMPOUND);
-						final int count = tagListFilterItemsOld.tagCount();
+					if (tagCompoundBehaviour.contains("filters")) {
+						final CompoundNBT tagCompoundFilters = tagCompoundBehaviour.getCompound("filters");
+						final ListNBT tagListFilterItemsOld = tagCompoundFilters.getList("items", NBT.TAG_COMPOUND);
+						final int count = tagListFilterItemsOld.size();
 						final NBTBase[] filterItemsNew = new NBTBase[count];
 						for (int indexOld = 0; indexOld < count; indexOld++) {
 							// compute new index
@@ -308,23 +309,23 @@ public class CompatBuildCraft implements IBlockTransformer {
 							final int indexNew = facingNew * 9 + position;
 							
 							// save value at new position in temporary array
-							filterItemsNew[indexNew] = tagListFilterItemsOld.getCompoundTagAt(indexOld);
+							filterItemsNew[indexNew] = tagListFilterItemsOld.getCompound(indexOld);
 						}
 						// rebuild list in order
-						final NBTTagList tagListFilterItemsNew = new NBTTagList();
+						final ListNBT tagListFilterItemsNew = new ListNBT();
 						for (int indexNew = 0; indexNew < count; indexNew++) {
-							tagListFilterItemsNew.appendTag(filterItemsNew[indexNew]);
+							tagListFilterItemsNew.add(filterItemsNew[indexNew]);
 						}
-						tagCompoundFilters.setTag("items", tagListFilterItemsNew);
+						tagCompoundFilters.put("items", tagListFilterItemsNew);
 					}
 				}
 			}
 			
 			// wires are array of pairs (position, type)
 			// position is 0 4 5 1 / 2 6 7 3
-			if (nbtTileEntity.hasKey("wireManager")) {
-				final NBTTagCompound tagCompoundWireManager = nbtTileEntity.getCompoundTag("wireManager");
-				if (tagCompoundWireManager.hasKey("parts")) {
+			if (nbtTileEntity.contains("wireManager")) {
+				final CompoundNBT tagCompoundWireManager = nbtTileEntity.getCompound("wireManager");
+				if (tagCompoundWireManager.contains("parts")) {
 					final int[] partsOld = tagCompoundWireManager.getIntArray("parts");
 					if (partsOld.length > 0) {
 						final int[] partsNew = new int[partsOld.length];
@@ -349,21 +350,21 @@ public class CompatBuildCraft implements IBlockTransformer {
 							partsNew[index + 1] = partsOld[index + 1];
 							// nota: unlike the mod itself, we're not reordering the positions
 						}
-						tagCompoundWireManager.setIntArray("parts", partsNew);
+						tagCompoundWireManager.putIntArray("parts", partsNew);
 					}
 				}
 			}
 			
 			// plugs, gates and facades are compound names by face in lower case (north south west east)
-			if (nbtTileEntity.hasKey("plugs")) {
-				final NBTTagCompound tagCompoundPlugs = nbtTileEntity.getCompoundTag("plugs");
+			if (nbtTileEntity.contains("plugs")) {
+				final CompoundNBT tagCompoundPlugs = nbtTileEntity.getCompound("plugs");
 				
-				final Map<String, NBTBase> mapNew = new HashMap<>(rotNames.size());
+				final Map<String, INBT> mapNew = new HashMap<>(rotNames.size());
 				for (final String nameOld : rotNames.keySet()) {
-					if (!tagCompoundPlugs.hasKey(nameOld)) {
+					if (!tagCompoundPlugs.contains(nameOld)) {
 						continue;
 					}
-					final NBTBase tagValue = tagCompoundPlugs.getTag(nameOld);
+					final INBT tagValue = tagCompoundPlugs.get(nameOld);
 					final String nameNew;
 					switch (rotationSteps) {
 					case 1:
@@ -380,33 +381,33 @@ public class CompatBuildCraft implements IBlockTransformer {
 						break;
 					}
 					mapNew.put(nameNew, tagValue);
-					tagCompoundPlugs.removeTag(nameOld);
+					tagCompoundPlugs.remove(nameOld);
 				}
-				for (final Entry<String, NBTBase> entry : mapNew.entrySet()) {
-					tagCompoundPlugs.setTag(entry.getKey(), entry.getValue());
+				for (final Entry<String, INBT> entry : mapNew.entrySet()) {
+					tagCompoundPlugs.put(entry.getKey(), entry.getValue());
 				}
 			}
 			
-			return metadata;
+			return blockState;
 			
 		// pump needs to be reset
 		case "buildcraftfactory:pump" :
-			nbtTileEntity.removeTag("currentPos");
-			nbtTileEntity.setInteger("progress", 0);
-			nbtTileEntity.setInteger("wantedLength", 0);
-			return metadata;
+			nbtTileEntity.remove("currentPos");
+			nbtTileEntity.putInt("progress", 0);
+			nbtTileEntity.putInt("wantedLength", 0);
+			return blockState;
 			
 		default:
 			break;
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

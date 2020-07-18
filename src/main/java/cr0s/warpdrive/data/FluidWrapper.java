@@ -11,19 +11,19 @@ import javax.annotation.Nullable;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.fluid.Fluid;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidTankProperties;
+import net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;
+import net.minecraftforge.fluids.capability.templates.EmptyFluidHandler;
 
 public class FluidWrapper {
 	
@@ -96,22 +96,21 @@ public class FluidWrapper {
 	}
 	
 	// WarpDrive methods
-	public static boolean isFluid(@Nonnull final IBlockState blockState) {
+	public static boolean isFluid(@Nonnull final BlockState blockState) {
 		return getFluid(blockState) != null;
 	}
 	
 	@Nullable
-	public static Fluid getFluid(@Nonnull final IBlockState blockState) {
+	public static Fluid getFluid(@Nonnull final BlockState blockState) {
 		final Block block = blockState.getBlock();
-		if ( block instanceof BlockLiquid
-		  || block instanceof IFluidBlock ) {
-			final Fluid fluid = block instanceof IFluidBlock ? ((IFluidBlock) block).getFluid() : Commons.fluid_getByBlock(block);
+		if (block instanceof IFluidBlock) {
+			final Fluid fluid = ((IFluidBlock) block).getFluid();
 			if (WarpDriveConfig.LOGGING_COLLECTION) {
 				WarpDrive.logger.info(String.format("Block %s %s Fluid %s with viscosity %d: %s %s",
 				                                    block.getTranslationKey(),
 				                                    blockState,
-				                                    fluid == null ? null : fluid.getName(),
-				                                    fluid == null ? 0 : fluid.getViscosity(),
+				                                    fluid == null ? null : fluid.getRegistryName(),
+				                                    fluid == null ? 0 : fluid.getAttributes().getViscosity(),
 				                                    block, fluid));
 			}
 			if (fluid == null) {
@@ -130,47 +129,45 @@ public class FluidWrapper {
 		return null;
 	}
 	
-	public static boolean isSourceBlock(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
+	public static boolean isSourceBlock(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final BlockState blockState) {
 		final Block block = blockState.getBlock();
-		final int metadata = block.getMetaFromState(blockState);
-		return ( block instanceof BlockLiquid && metadata == 0 )
-		    || ( block instanceof IFluidBlock && ((IFluidBlock) block).canDrain(world, blockPos) );
+		return block instanceof IFluidBlock
+		    && ((IFluidBlock) block).canDrain(world, blockPos);
 	}
 	
 	public static boolean isFluidContainer(@Nonnull final ItemStack itemStack) {
-		return itemStack.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null);
+		return itemStack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null).isPresent();
 	}
 	
 	public static boolean isFluidContainer(@Nonnull final TileEntity tileEntity) {
-		return tileEntity.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null);
+		return tileEntity.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null).isPresent();
 	}
 	
-	public static FluidStack drain(@Nonnull final ItemStack itemStack, @Nonnull final FluidStack fluidStack, final boolean doNotSimulate) {
-		final IFluidHandler fluidHandler = itemStack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null);
-		if (fluidHandler == null) {
+	public static FluidStack drain(@Nonnull final ItemStack itemStack, @Nonnull final FluidStack fluidStack, final FluidAction fluidAction) {
+		final IFluidHandler fluidHandler = itemStack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null).orElse(EmptyFluidHandler.INSTANCE);
+		if (fluidHandler == EmptyFluidHandler.INSTANCE) {
 			return new FluidStack(fluidStack, 0);
 		}
-		return fluidHandler.drain(fluidStack, doNotSimulate);
+		return fluidHandler.drain(fluidStack, fluidAction);
 	}
 	
-	public static int fill(@Nonnull final ItemStack itemStack, @Nonnull final FluidStack fluidStack, final boolean doNotSimulate) {
-		final IFluidHandler fluidHandler = itemStack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null);
-		if (fluidHandler == null) {
+	public static int fill(@Nonnull final ItemStack itemStack, @Nonnull final FluidStack fluidStack, final FluidAction fluidAction) {
+		final IFluidHandler fluidHandler = itemStack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null).orElse(EmptyFluidHandler.INSTANCE);
+		if (fluidHandler == EmptyFluidHandler.INSTANCE) {
 			return 0;
 		}
-		return fluidHandler.fill(fluidStack, doNotSimulate);
+		return fluidHandler.fill(fluidStack, fluidAction);
 	}
 	
 	@Nullable
 	public static FluidStack getFluidStored(@Nonnull final ItemStack itemStack) {
-		final IFluidHandler fluidHandler = itemStack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null);
-		if (fluidHandler == null) {
+		final IFluidHandler fluidHandler = itemStack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null).orElse(EmptyFluidHandler.INSTANCE);
+		if (fluidHandler == EmptyFluidHandler.INSTANCE) {
 			return null;
 		}
-		final IFluidTankProperties[] fluidTankPropertiesAll = fluidHandler.getTankProperties();
-		for (final IFluidTankProperties fluidTankPropertiesOne : fluidTankPropertiesAll) {
-			final FluidStack fluidStackContent = fluidTankPropertiesOne.getContents();
-			if (fluidStackContent != null) {
+		for (int indexTank = 0; indexTank < fluidHandler.getTanks(); indexTank++) {
+			final FluidStack fluidStackContent = fluidHandler.getFluidInTank(indexTank);
+			if (!fluidStackContent.isEmpty()) {
 				return fluidStackContent;
 			}
 		}

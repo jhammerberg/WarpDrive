@@ -1,6 +1,6 @@
 package cr0s.warpdrive.world;
 
-import net.minecraft.init.Blocks;
+import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -11,7 +11,7 @@ public class JumpgateGenerator {
 	public static final int GATE_LENGTH_HALF = GATE_LENGTH / 2;
 	public static final int GATE_SIZE_HALF = GATE_SIZE / 2;
 
-	public static void generate(final World world, final BlockPos blockPos) {
+	public static void place(final World world, final BlockPos blockPos) {
 		final int x = blockPos.getX();
 		final int y = blockPos.getY();
 		final int z = blockPos.getZ();

@@ -10,69 +10,89 @@ import cr0s.warpdrive.data.EnumTier;
 import cr0s.warpdrive.data.BlockProperties;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.SoundType;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Items;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.NonNullList;
+import net.minecraft.block.material.MaterialColor;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.BlockItemUseContext;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.Rarity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.block.BlockRenderType;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Rotation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 
-import net.minecraftforge.common.IRarity;
-import net.minecraft.block.BlockContainer;
+import net.minecraft.block.ContainerBlock;
 import net.minecraft.block.material.Material;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.IBlockReader;
+import net.minecraft.world.IWorld;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
+import net.minecraft.world.dimension.DimensionType;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ConcurrentModificationException;
-import java.util.Random;
 
-public abstract class BlockAbstractContainer extends BlockContainer implements IBlockBase {
+public abstract class BlockAbstractContainer extends ContainerBlock implements IBlockBase {
 	
 	private static long timeUpdated = -1L;
-	private static int dimensionIdUpdated = Integer.MAX_VALUE;
+	private static DimensionType dimensionTypeUpdated = null;
 	private static int xUpdated = Integer.MAX_VALUE;
 	private static int yUpdated = Integer.MAX_VALUE;
 	private static int zUpdated = Integer.MAX_VALUE;
 	
 	protected EnumTier enumTier;
-	protected boolean hasSubBlocks = false;
 	protected boolean ignoreFacingOnPlacement = false;
 	
-	protected BlockAbstractContainer(final String registryName, final EnumTier enumTier, final Material material) {
-		super(material);
+	@Nonnull
+	protected static Block.Properties getDefaultProperties(@Nonnull final Material material, @Nonnull final MaterialColor materialColor) {
+		return Block.Properties.create(material, materialColor)
+		                       .hardnessAndResistance(5.0F, 6.0F)
+		                       .sound(SoundType.METAL);
+	}
+	
+	@Nonnull
+	protected static Block.Properties getDefaultProperties(@Nullable final Material material) {
+		final Material materialToUse = material == null ? Material.IRON : material;
+		return getDefaultProperties(materialToUse, materialToUse.getColor());
+	}
+	
+	protected BlockAbstractContainer(@Nonnull final Block.Properties blockProperties, @Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(blockProperties);
 		
 		this.enumTier = enumTier;
-		setHardness(5.0F);
-		setResistance(6.0F * 5 / 3);
-		setSoundType(SoundType.METAL);
-		setCreativeTab(WarpDrive.creativeTabMain);
+		
 		setRegistryName(registryName);
 		WarpDrive.register(this);
 	}
 	
 	@Nullable
 	@Override
-	public ItemBlock createItemBlock() {
-		return new ItemBlockAbstractBase(this, false, true);
+	public BlockItem createItemBlock() {
+		return new ItemBlockAbstractBase(this);
 	}
 	
-	@SideOnly(Side.CLIENT)
+	@Nullable
+	@Override
+	public TileEntity createNewTileEntity(@Nonnull final IBlockReader blockReader) {
+		assert false;
+		return null;
+	}
+	
+	@OnlyIn(Dist.CLIENT)
 	@Override
 	public void modelInitialisation() {
 		// no operation
@@ -81,58 +101,62 @@ public abstract class BlockAbstractContainer extends BlockContainer implements I
 	@SuppressWarnings("deprecation")
 	@Nonnull
 	@Override
-	public EnumBlockRenderType getRenderType(@Nonnull final IBlockState blockState) {
-		return EnumBlockRenderType.MODEL;
+	public BlockRenderType getRenderType(@Nonnull final BlockState blockState) {
+		return BlockRenderType.MODEL;
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Override
-	public void onBlockAdded(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
-		super.onBlockAdded(world, blockPos, blockState);
+	public void onBlockAdded(@Nonnull final BlockState blockStateNew, @Nonnull final World world, @Nonnull final BlockPos blockPos,
+	                         @Nonnull final BlockState blockStateOld, final boolean isMoving) {
+		super.onBlockAdded(blockStateNew, world, blockPos, blockStateOld, isMoving);
 		final TileEntity tileEntity = world.getTileEntity(blockPos);
 		if (tileEntity instanceof IBlockUpdateDetector) {
 			((IBlockUpdateDetector) tileEntity).onBlockUpdateDetected();
 		}
 	}
 	
-	@Nonnull
+	@Nullable
 	@Override
-	public IBlockState getStateForPlacement(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final EnumFacing facing,
-	                                        final float hitX, final float hitY, final float hitZ, final int metadata,
-	                                        @Nonnull final EntityLivingBase entityLivingBase, @Nonnull final EnumHand enumHand) {
-		final IBlockState blockState = super.getStateForPlacement(world, blockPos, facing, hitX, hitY, hitZ, metadata, entityLivingBase, enumHand);
+	public BlockState getStateForPlacement(@Nonnull final BlockItemUseContext blockItemUseContext) {
+		final BlockState blockState = super.getStateForPlacement(blockItemUseContext);
+		if (blockState == null) {
+			return null;
+		}
+		
 		if (!ignoreFacingOnPlacement) {
 			// start with the most complex: spinning down/up & rotating otherwise
-			if (blockState.getProperties().containsKey(BlockProperties.HORIZONTAL_SPINNING)) {
-				final EnumFacing enumFacing;
-				final EnumFacing enumSpinning;
-				if (blockState.isFullBlock()) {
-					enumFacing = Commons.getFacingFromEntity(entityLivingBase);
-					enumSpinning = Commons.getHorizontalDirectionFromEntity(entityLivingBase).getOpposite();
+			if (blockState.getProperties().contains(BlockProperties.HORIZONTAL_SPINNING)) {
+				final Direction enumFacing;
+				final Direction enumSpinning;
+				if (blockState.isOpaqueCube(blockItemUseContext.getWorld(), blockItemUseContext.getPos())) {
+					enumFacing = Commons.getFacingFromEntity(blockItemUseContext.getPlayer());
+					enumSpinning = Commons.getHorizontalDirectionFromEntity(blockItemUseContext.getPlayer()).getOpposite();
 				} else {
-					enumFacing = facing;
-					enumSpinning = Commons.getHorizontalDirectionFromEntity(entityLivingBase);
+					enumFacing = blockItemUseContext.getFace();
+					enumSpinning = Commons.getHorizontalDirectionFromEntity(blockItemUseContext.getPlayer());
 				}
 				final EnumHorizontalSpinning enumHorizontalSpinning = EnumHorizontalSpinning.get(enumFacing, enumSpinning);
-				return blockState.withProperty(BlockProperties.HORIZONTAL_SPINNING, enumHorizontalSpinning);
+				return blockState.with(BlockProperties.HORIZONTAL_SPINNING, enumHorizontalSpinning);
 			}
 			
 			// then 6 sided rotating
-			if (blockState.getProperties().containsKey(BlockProperties.FACING)) {
-				if (blockState.isFullBlock()) {
-					final EnumFacing enumFacing = Commons.getFacingFromEntity(entityLivingBase);
-					return blockState.withProperty(BlockProperties.FACING, enumFacing);
+			if (blockState.getProperties().contains(BlockProperties.FACING)) {
+				if (blockState.isOpaqueCube(blockItemUseContext.getWorld(), blockItemUseContext.getPos())) {
+					final Direction enumFacing = Commons.getFacingFromEntity(blockItemUseContext.getPlayer());
+					return blockState.with(BlockProperties.FACING, enumFacing);
 				} else {
-					return blockState.withProperty(BlockProperties.FACING, facing);
+					return blockState.with(BlockProperties.FACING, blockItemUseContext.getFace());
 				}
 			}
 			
 			// finally, only rotating horizontally
-			if (blockState.getProperties().containsKey(BlockProperties.FACING_HORIZONTAL)) {
-				final EnumFacing enumFacing = Commons.getHorizontalDirectionFromEntity(entityLivingBase);
-				if (blockState.isFullBlock()) {
-					return blockState.withProperty(BlockProperties.FACING_HORIZONTAL, enumFacing.getOpposite());
+			if (blockState.getProperties().contains(BlockProperties.FACING_HORIZONTAL)) {
+				final Direction enumFacing = Commons.getHorizontalDirectionFromEntity(blockItemUseContext.getPlayer());
+				if (blockState.isOpaqueCube(blockItemUseContext.getWorld(), blockItemUseContext.getPos())) {
+					return blockState.with(BlockProperties.FACING_HORIZONTAL, enumFacing.getOpposite());
 				} else {
-					return blockState.withProperty(BlockProperties.FACING_HORIZONTAL, enumFacing);
+					return blockState.with(BlockProperties.FACING_HORIZONTAL, enumFacing);
 				}
 			}
 		}
@@ -140,123 +164,91 @@ public abstract class BlockAbstractContainer extends BlockContainer implements I
 	}
 	
 	@Override
-	public void onBlockPlacedBy(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState,
-	                            @Nonnull final EntityLivingBase entityLivingBase, @Nonnull final ItemStack itemStack) {
+	public void onBlockPlacedBy(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final BlockState blockState,
+	                            @Nullable final LivingEntity entityLivingBase, @Nonnull final ItemStack itemStack) {
 		super.onBlockPlacedBy(world, blockPos, blockState, entityLivingBase, itemStack);
 		
 		// set inherited properties
 		final TileEntity tileEntity = world.getTileEntity(blockPos);
 		assert tileEntity instanceof TileEntityAbstractBase;
-		if (itemStack.getTagCompound() != null) {
-			final NBTTagCompound tagCompound = itemStack.getTagCompound().copy();
-			tagCompound.setInteger("x", blockPos.getX());
-			tagCompound.setInteger("y", blockPos.getY());
-			tagCompound.setInteger("z", blockPos.getZ());
-			tileEntity.readFromNBT(tagCompound);
+		if (itemStack.getTag() != null) {
+			final CompoundNBT tagCompound = itemStack.getTag().copy();
+			tagCompound.putInt("x", blockPos.getX());
+			tagCompound.putInt("y", blockPos.getY());
+			tagCompound.putInt("z", blockPos.getZ());
+			tileEntity.read(tagCompound);
 			tileEntity.markDirty();
 			world.notifyBlockUpdate(blockPos, blockState, blockState, 3);
 		}
 	}
 	
-	@Override
-	public boolean removedByPlayer(@Nonnull final IBlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,
-	                               @Nonnull final EntityPlayer entityPlayer, final boolean willHarvest) {
-		final boolean bResult;
-		if (willHarvest) {// harvestBlock will be called later on, we'll need the TileEntity at that time, so we don't call ancestor here so we don't set block to air
-			this.onBlockHarvested(world, blockPos, blockState, entityPlayer);
-			bResult = true;
-		} else {
-			bResult = super.removedByPlayer(blockState, world, blockPos, entityPlayer, false);
-		}
-		return bResult;
-	}
-	
-	@Override
-	public void dropBlockAsItemWithChance(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState,
-	                                      final float chance, final int fortune) {
-		super.dropBlockAsItemWithChance(world, blockPos, blockState, chance, fortune); // calls getDrops() here below
-		if ( !world.isRemote
-		  && !world.restoringBlockSnapshots) {
-			world.setBlockToAir(blockPos);
-		}
-	}
-	
+	/* TODO MC1.15 save TileEntity NBT when broken
 	// willHarvest was true during the call to removedPlayer so TileEntity is still there when drops will be computed hereafter
 	@Override
 	public void getDrops(@Nonnull final NonNullList<ItemStack> drops,
-	                     @Nonnull final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState,
+	                     @Nonnull final IWorldReader worldReader, @Nonnull final BlockPos blockPos, @Nonnull final BlockState blockState,
 	                     final int fortune) {
-		final TileEntity tileEntity = blockAccess.getTileEntity(blockPos);
+		final TileEntity tileEntity = worldReader.getTileEntity(blockPos);
 		if (!(tileEntity instanceof TileEntityAbstractBase)) {
 			WarpDrive.logger.error(String.format("Missing tile entity for %s %s, reverting to vanilla getDrops logic",
-			                                     this, Commons.format(blockAccess, blockPos)));
-			super.getDrops(drops, blockAccess, blockPos, blockState, fortune);
+			                                     this, Commons.format(worldReader, blockPos)));
+			super.getDrops(drops, worldReader, blockPos, blockState, fortune);
 			return;
 		}
 		
-		final Random rand = blockAccess instanceof World ? ((World) blockAccess).rand : RANDOM;
+		final Random rand = worldReader instanceof World ? ((World) worldReader).rand : RANDOM;
 		final int count = quantityDropped(blockState, fortune, rand);
 		for (int i = 0; i < count; i++) {
 			final Item item = this.getItemDropped(blockState, rand, fortune);
 			if (item != Items.AIR) {
 				final ItemStack itemStack = new ItemStack(item, 1, damageDropped(blockState));
-				final NBTTagCompound tagCompound = new NBTTagCompound();
+				final CompoundNBT tagCompound = new CompoundNBT();
 				((TileEntityAbstractBase) tileEntity).writeItemDropNBT(tagCompound);
 				if (!tagCompound.isEmpty()) {
-					itemStack.setTagCompound(tagCompound);
+					itemStack.setTag(tagCompound);
 				}
 				drops.add(itemStack);
 			}
 		}
 	}
-	
-	@Override
-	public void breakBlock(final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
-		assert world != null;
-		// cascade to tile entity before it's removed
-		final TileEntity tileEntity = world.getTileEntity(blockPos);
-		if (tileEntity instanceof TileEntityAbstractBase) {
-			((TileEntityAbstractBase) tileEntity).onBlockBroken(world, blockPos, blockState);
-		}
-		super.breakBlock(world, blockPos, blockState);
-	}
+	*/
 	
 	@Nonnull
 	@Override
-	public ItemStack getPickBlock(@Nonnull final IBlockState blockState, @Nullable final RayTraceResult target,
-	                              @Nonnull final World world, @Nonnull final BlockPos blockPos, @Nullable final EntityPlayer entityPlayer) {
+	public ItemStack getPickBlock(@Nonnull final BlockState blockState, @Nullable final RayTraceResult target,
+	                              @Nonnull final IBlockReader world, @Nonnull final BlockPos blockPos, @Nullable final PlayerEntity entityPlayer) {
 		// note: target and entityPlayer should be Nonnull but the base game & most mods never use those parameters.
 		// Consequently, this method is frequently called with nulls...
 		final ItemStack itemStack = super.getPickBlock(blockState, target, world, blockPos, entityPlayer);
 		final TileEntity tileEntity = world.getTileEntity(blockPos);
-		final NBTTagCompound tagCompound = new NBTTagCompound();
+		final CompoundNBT tagCompound = new CompoundNBT();
 		if (tileEntity instanceof TileEntityAbstractBase) {
 			((TileEntityAbstractBase) tileEntity).writeItemDropNBT(tagCompound);
 			if (!tagCompound.isEmpty()) {
-				itemStack.setTagCompound(tagCompound);
+				itemStack.setTag(tagCompound);
 			}
 		}
 		return itemStack;
 	}
 	
 	@Override
-	public boolean rotateBlock(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final EnumFacing axis) {
+	public BlockState rotate(final BlockState blockState, @Nonnull final IWorld world, @Nonnull final BlockPos blockPos, @Nonnull final Rotation axis) {
 		// already handled by vanilla
-		final boolean isRotated = super.rotateBlock(world, blockPos, axis);
-		if (isRotated) {
+		final BlockState blockState_new = super.rotate(blockState, world, blockPos, axis);
+		if (blockState_new != blockState) {
 			final TileEntity tileEntity = world.getTileEntity(blockPos);
 			if (tileEntity instanceof TileEntityAbstractMachine) {
 				((TileEntityAbstractMachine) tileEntity).markDirtyAssembly();
 			}
 		}
-		return isRotated;
+		return blockState_new;
 	}
 	
 	@SuppressWarnings("deprecation")
 	@Override
-	public void neighborChanged(@Nonnull final IBlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,
-	                            @Nonnull final Block block, @Nonnull final BlockPos blockPosFrom) {
-		super.neighborChanged(blockState, world, blockPos, block, blockPosFrom);
+	public void neighborChanged(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,
+	                            @Nonnull final Block block, @Nonnull final BlockPos blockPosFrom, boolean isMoving) {
+		super.neighborChanged(blockState, world, blockPos, block, blockPosFrom, isMoving);
 		onBlockUpdateDetected(world, blockPos, blockPosFrom);
 	}
 	
@@ -266,27 +258,28 @@ public abstract class BlockAbstractContainer extends BlockContainer implements I
 	// Triggers on both sides when removing a TileEntity
 	// (by extension, it'll trigger twice for the same placement of a TileEntity with comparator output)
 	@Override
-	public void onNeighborChange(@Nonnull final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos, @Nonnull final BlockPos blockPosNeighbor) {
-		super.onNeighborChange(blockAccess, blockPos, blockPosNeighbor);
-		onBlockUpdateDetected(blockAccess, blockPos, blockPosNeighbor);
+	public void onNeighborChange(@Nonnull final BlockState blockState, @Nonnull final IWorldReader worldReader, @Nonnull final BlockPos blockPos,
+	                             @Nonnull final BlockPos blockPosNeighbor) {
+		super.onNeighborChange(blockState, worldReader, blockPos, blockPosNeighbor);
+		onBlockUpdateDetected(worldReader, blockPos, blockPosNeighbor);
 	}
 	
 	@Override
-	public void observedNeighborChange(@Nonnull final IBlockState observerState, @Nonnull final World world, @Nonnull final BlockPos blockPosObserver,
+	public void observedNeighborChange(@Nonnull final BlockState observerState, @Nonnull final World world, @Nonnull final BlockPos blockPosObserver,
 	                                   @Nonnull final Block blockChanged, @Nonnull final BlockPos blockPosChanged) {
 		super.observedNeighborChange(observerState, world, blockPosObserver, blockChanged, blockPosChanged);
 		onBlockUpdateDetected(world, blockPosObserver, blockPosChanged);
 	}
 	
 	// due to our redirection, this may trigger up to 6 times for the same event (for example, when placing a chest)
-	protected void onBlockUpdateDetected(@Nonnull final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos, @Nonnull final BlockPos blockPosUpdated) {
+	protected void onBlockUpdateDetected(@Nonnull final IWorldReader worldReader, @Nonnull final BlockPos blockPos, @Nonnull final BlockPos blockPosUpdated) {
 		if (!Commons.isSafeThread()) {
 			if (WarpDriveConfig.LOGGING_PROFILING_THREAD_SAFETY) {
-				final Block blockNeighbor = blockAccess.getBlockState(blockPosUpdated).getBlock();
+				final Block blockNeighbor = worldReader.getBlockState(blockPosUpdated).getBlock();
 				final ResourceLocation registryName = blockNeighbor.getRegistryName();
 				WarpDrive.logger.error(String.format("Bad multithreading detected from mod %s %s, please report to mod author",
 				                                     registryName == null ? blockNeighbor : registryName.getNamespace(),
-				                                     Commons.format(blockAccess, blockPosUpdated)));
+				                                     Commons.format(worldReader, blockPosUpdated)));
 				new ConcurrentModificationException().printStackTrace(WarpDrive.printStreamError);
 			}
 			return;
@@ -294,25 +287,26 @@ public abstract class BlockAbstractContainer extends BlockContainer implements I
 		
 		// try reducing duplicated events
 		// note: this is just a fast check, notably, this won't cover placing a block in between 2 of ours
-		if (blockAccess instanceof World) {
-			final World world = (World) blockAccess;
-			if ( timeUpdated == world.getTotalWorldTime()
-			  && dimensionIdUpdated == world.provider.getDimension()
+		if (worldReader instanceof World) {
+			final World world = (World) worldReader;
+			if ( timeUpdated == world.getGameTime()
+			  && dimensionTypeUpdated == world.getDimension().getType()
 			  && xUpdated == blockPos.getX()
 			  && yUpdated == blockPos.getY()
 			  && zUpdated == blockPos.getZ() ) {
 				return;
 			}
-			timeUpdated = world.getTotalWorldTime();
-			dimensionIdUpdated = world.provider.getDimension();
+			timeUpdated = world.getGameTime();
+			dimensionTypeUpdated = world.getDimension().getType();
 			xUpdated = blockPos.getX();
 			yUpdated = blockPos.getY();
 			zUpdated = blockPos.getZ();
 		}
 		
-		final TileEntity tileEntity = blockAccess.getTileEntity(blockPos);
+		final TileEntity tileEntity = worldReader.getTileEntity(blockPos);
 		if ( tileEntity == null
-		  || tileEntity.getWorld().isRemote ) {
+		  || tileEntity.getWorld() == null
+		  || tileEntity.getWorld().isRemote() ) {
 			return;
 		}
 		if (tileEntity instanceof IBlockUpdateDetector) {
@@ -332,24 +326,27 @@ public abstract class BlockAbstractContainer extends BlockContainer implements I
 	
 	@Nonnull
 	@Override
-	public EnumTier getTier(final ItemStack itemStack) {
+	public EnumTier getTier() {
 		return enumTier;
 	}
 	
 	@Nonnull
 	@Override
-	public IRarity getForgeRarity(@Nonnull final ItemStack itemStack) {
-		return getTier(itemStack).getForgeRarity();
+	public Rarity getRarity() {
+		return getTier().getRarity();
 	}
 	
+	@SuppressWarnings("deprecation")
+	@Nonnull
 	@Override
-	public boolean onBlockActivated(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState,
-	                                @Nonnull final EntityPlayer entityPlayer, @Nonnull final EnumHand enumHand,
-	                                @Nonnull final EnumFacing enumFacing, final float hitX, final float hitY, final float hitZ) {
-		if (BlockAbstractBase.onCommonBlockActivated(world, blockPos, blockState, entityPlayer, enumHand, enumFacing, hitX, hitY, hitZ)) {
-			return true;
+	public ActionResultType onBlockActivated(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,
+	                                         @Nonnull final PlayerEntity entityPlayer, @Nonnull final Hand enumHand,
+	                                         @Nonnull final BlockRayTraceResult blockRaytraceResult) {
+		final ActionResultType result = BlockAbstractBase.onCommonBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
+		if (result == ActionResultType.SUCCESS) {
+			return result;
 		}
 		
-		return super.onBlockActivated(world, blockPos, blockState, entityPlayer, enumHand, enumFacing, hitX, hitY, hitZ);
+		return super.onBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
 	}
 }

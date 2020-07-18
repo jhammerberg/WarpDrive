@@ -3,19 +3,20 @@ package cr0s.warpdrive.network;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.CloakedArea;
-import io.netty.buffer.ByteBuf;
+import cr0s.warpdrive.network.PacketHandler.IMessage;
+
+import javax.annotation.Nonnull;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
 
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.network.NetworkEvent.Context;
 
-public class MessageCloak implements IMessage, IMessageHandler<MessageCloak, IMessage> {
+public class MessageCloak implements IMessage {
 	
 	private int coreX;
 	private int coreY;
@@ -49,7 +50,7 @@ public class MessageCloak implements IMessage, IMessageHandler<MessageCloak, IMe
 	}
 	
 	@Override
-	public void fromBytes(final ByteBuf buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		coreX = buffer.readInt();
 		coreY = buffer.readInt();
 		coreZ = buffer.readInt();
@@ -64,7 +65,7 @@ public class MessageCloak implements IMessage, IMessageHandler<MessageCloak, IMe
 	}
 
 	@Override
-	public void toBytes(final ByteBuf buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		buffer.writeInt(coreX);
 		buffer.writeInt(coreY);
 		buffer.writeInt(coreZ);
@@ -78,11 +79,11 @@ public class MessageCloak implements IMessage, IMessageHandler<MessageCloak, IMe
 		buffer.writeBoolean(isUncloaking);
 	}
 	
-	@SideOnly(Side.CLIENT)
-	private void handle(final EntityPlayerSP player) {
+	@OnlyIn(Dist.CLIENT)
+	private void handle(final ClientPlayerEntity player) {
 		if (isUncloaking) {
 			// reveal the area
-			WarpDrive.cloaks.removeCloakedArea(player.world.provider.getDimension(), new BlockPos(coreX, coreY, coreZ));
+			WarpDrive.cloaks.removeCloakedArea(player.world.getDimension().getType().getRegistryName(), new BlockPos(coreX, coreY, coreZ));
 		} else { 
 			// Hide the area
 			WarpDrive.cloaks.updateCloakedArea(player.world, new BlockPos(coreX, coreY, coreZ), isFullyTransparent,
@@ -91,29 +92,29 @@ public class MessageCloak implements IMessage, IMessageHandler<MessageCloak, IMe
 	}
 	
 	@Override
-	@SideOnly(Side.CLIENT)
-	public IMessage onMessage(final MessageCloak cloakMessage, final MessageContext context) {
+	@OnlyIn(Dist.CLIENT)
+	public IMessage process(@Nonnull final Context context) {
 		// skip in case player just logged in
-		if (Minecraft.getMinecraft().world == null) {
+		if (Minecraft.getInstance().world == null) {
 			WarpDrive.logger.error("WorldObj is null, ignoring cloak packet");
 			return null;
 		}
 		
 		if (WarpDriveConfig.LOGGING_CLOAKING) {
 			WarpDrive.logger.info(String.format("Received cloak packet: %s area (%d %d %d) -> (%d %d %d) tier %d",
-			                                    ((cloakMessage.isUncloaking) ? "UNCLOAKING" : "cloaking"),
-			                                    cloakMessage.minX, cloakMessage.minY, cloakMessage.minZ,
-			                                    cloakMessage.maxX, cloakMessage.maxY, cloakMessage.maxZ, cloakMessage.isFullyTransparent ? 2 : 1));
+			                                    ((isUncloaking) ? "UNCLOAKING" : "cloaking"),
+			                                    minX, minY, minZ,
+			                                    maxX, maxY, maxZ, isFullyTransparent ? 2 : 1));
 		}
 		
-		final EntityPlayerSP player = Minecraft.getMinecraft().player;
+		final ClientPlayerEntity player = Minecraft.getInstance().player;
 		assert player != null;
-		if ( cloakMessage.minX <= player.posX && (cloakMessage.maxX + 1) > player.posX
-		  && cloakMessage.minY <= player.posY && (cloakMessage.maxY + 1) > player.posY
-		  && cloakMessage.minZ <= player.posZ && (cloakMessage.maxZ + 1) > player.posZ) {
+		if ( minX <= player.getPosX() && (maxX + 1) > player.getPosX()
+		  && minY <= player.getPosY() && (maxY + 1) > player.getPosY()
+		  && minZ <= player.getPosZ() && (maxZ + 1) > player.getPosZ()) {
 			return null;
 		}
-		cloakMessage.handle(player);
+		handle(player);
 		
 		return null;	// no response
 	}

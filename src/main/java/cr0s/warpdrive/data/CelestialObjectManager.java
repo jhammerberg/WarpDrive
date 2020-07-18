@@ -6,35 +6,45 @@ import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.InvalidXmlException;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.config.XmlFileManager;
+import cr0s.warpdrive.world.HyperSpaceDimension;
+import cr0s.warpdrive.world.SpaceDimension;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 
-import net.minecraftforge.fml.common.FMLLog;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+
+import org.apache.logging.log4j.LogManager;
 import org.w3c.dom.Element;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 import net.minecraft.world.border.WorldBorder;
+import net.minecraft.world.dimension.DimensionType;
 
 import net.minecraftforge.common.DimensionManager;
+import net.minecraftforge.common.ModDimension;
 
 public class CelestialObjectManager extends XmlFileManager {
 	
+	private static final ResourceLocation ID_OVERWORLD = new ResourceLocation("minecraft:overworld");
+	private static final ResourceLocation ID_THE_NETHER = new ResourceLocation("minecraft:the_nether");
 	private static final CelestialObjectManager SERVER = new CelestialObjectManager();
 	private static final CelestialObjectManager CLIENT = new CelestialObjectManager();
 	private HashMap<String, CelestialObject> celestialObjectsById = new HashMap<>();
@@ -53,14 +63,16 @@ public class CelestialObjectManager extends XmlFileManager {
 		return (isRemote ? CLIENT : SERVER).celestialObjectsById.get(id);
 	}
 	
-	public static CelestialObject get(final World world, final int x, final int z) {
+	public static CelestialObject get(final IWorld world, final int x, final int z) {
 		if (world == null) {
 			return null;
 		}
-		return (world.isRemote ? CLIENT : SERVER).get(world.provider.getDimension(), x, z);
+		final ResourceLocation dimensionId = world.getDimension().getType().getRegistryName();
+		assert dimensionId != null;
+		return (world.isRemote() ? CLIENT : SERVER).get(dimensionId, x, z);
 	}
 	
-	public static CelestialObject get(final boolean isRemote, final int dimensionId, final int x, final int z) {
+	public static CelestialObject get(final boolean isRemote, final ResourceLocation dimensionId, final int x, final int z) {
 		return (isRemote ? CLIENT : SERVER).get(dimensionId, x, z);
 	}
 	
@@ -68,11 +80,11 @@ public class CelestialObjectManager extends XmlFileManager {
 		double closestPlanetDistance = Double.POSITIVE_INFINITY;
 		CelestialObject celestialObjectClosest = null;
 		if (world != null) {
-			for (final CelestialObject celestialObject : (world.isRemote ? CLIENT : SERVER).celestialObjects) {
+			for (final CelestialObject celestialObject : (world.isRemote() ? CLIENT : SERVER).celestialObjects) {
 				if (celestialObject.isHyperspace()) {
 					continue;
 				}
-				final double distanceSquared = celestialObject.getSquareDistanceInParent(world.provider.getDimension(), x, z);
+				final double distanceSquared = celestialObject.getSquareDistanceInParent(world.getDimension().getType().getRegistryName(), x, z);
 				if (distanceSquared <= 0.0D) {
 					return celestialObject;
 				} else if (closestPlanetDistance > distanceSquared) {
@@ -106,14 +118,15 @@ public class CelestialObjectManager extends XmlFileManager {
 	}
 	
 	public static double getGravity(@Nonnull final Entity entity) {
-		final CelestialObject celestialObject = get(entity.world, (int) Math.floor(entity.posX), (int) Math.floor(entity.posZ));
+		final CelestialObject celestialObject = get(entity.world, (int) Math.floor(entity.getPosX()), (int) Math.floor(entity.getPosZ()));
 		return celestialObject == null ? 1.0D : celestialObject.getGravity();
 	}
 	
-	public static int getSpaceDimensionId(final World world, final int x, final int z) {
+	@Nullable
+	public static ResourceLocation getSpaceDimensionId(@Nonnull final World world, final int x, final int z) {
 		CelestialObject celestialObject = get(world, x, z);
 		if (celestialObject == null) {
-			return world.provider.getDimension();
+			return world.getDimension().getType().getRegistryName();
 		}
 		// already in space?
 		if (celestialObject.isSpace()) {
@@ -122,19 +135,20 @@ public class CelestialObjectManager extends XmlFileManager {
 		// coming from hyperspace?
 		if (celestialObject.isHyperspace()) {
 			celestialObject = getClosestChild(world, x, z);
-			return celestialObject == null ? 0 : celestialObject.dimensionId;
+			return celestialObject == null ? null : celestialObject.dimensionId;
 		}
 		// coming from a planet?
 		while (celestialObject != null && !celestialObject.isSpace()) {
 			celestialObject = celestialObject.parent;
 		}
-		return celestialObject == null ? 0 : celestialObject.dimensionId;
+		return celestialObject == null ? null : celestialObject.dimensionId;
 	}
 	
-	public static int getHyperspaceDimensionId(final World world, final int x, final int z) {
+	@Nullable
+	public static ResourceLocation getHyperspaceDimensionId(@Nonnull final World world, final int x, final int z) {
 		CelestialObject celestialObject = get(world, x, z);
 		if (celestialObject == null) {
-			return world.provider.getDimension();
+			return world.getDimension().getType().getRegistryName();
 		}
 		// already in hyperspace?
 		if (celestialObject.isHyperspace()) {
@@ -148,40 +162,43 @@ public class CelestialObjectManager extends XmlFileManager {
 		while (celestialObject != null && !celestialObject.isSpace()) {
 			celestialObject = celestialObject.parent;
 		}
-		return celestialObject == null || celestialObject.parent == null ? 0 : celestialObject.parent.dimensionId;
+		return celestialObject == null || celestialObject.parent == null ? null : celestialObject.parent.dimensionId;
 	}
 	
-	public static int getDimensionId(final String stringDimension, final Entity entity) {
+	@Nullable
+	public static DimensionType getDimensionType(@Nonnull final String stringDimension, @Nonnull final Entity entity) {
 		switch (stringDimension.toLowerCase()) {
 		case "world":
 		case "overworld":
 		case "0":
-			return 0;
+			return DimensionType.byName(ID_OVERWORLD);
 		case "nether":
 		case "thenether":
 		case "-1":
-			return -1;
+			return DimensionType.byName(ID_THE_NETHER);
 		case "s":
 		case "space":
-			return getSpaceDimensionId(entity.world, (int) entity.posX, (int) entity.posZ);
+			final ResourceLocation dimensionIdSapce = getSpaceDimensionId(entity.world, (int) entity.getPosX(), (int) entity.getPosZ());
+			return dimensionIdSapce == null ? null : DimensionType.byName(dimensionIdSapce);
 		case "h":
 		case "hyper":
 		case "hyperspace":
-			return getHyperspaceDimensionId(entity.world, (int) entity.posX, (int) entity.posZ);
+			final ResourceLocation dimensionIdHyperspace =  getHyperspaceDimensionId(entity.world, (int) entity.getPosX(), (int) entity.getPosZ());
+			return dimensionIdHyperspace == null ? null : DimensionType.byName(dimensionIdHyperspace);
 		default:
 			try {
-				return Integer.parseInt(stringDimension);
+				return DimensionType.getById(Integer.parseInt(stringDimension));
 			} catch (final Exception exception) {
 				// exception.printStackTrace(WarpDrive.printStreamError);
 				WarpDrive.logger.info(String.format("Invalid dimension %s, expecting integer or overworld/nether/end/theend/space/hyper/hyperspace",
 				                                    stringDimension));
 			}
 		}
-		return 0;
+		return null;
 	}
 	
-	public static double getMaxWorldBorder(final World world) {
-		return (world.isRemote ? CLIENT : SERVER).getMaxWorldBorder();
+	public static double getMaxWorldBorder(final IWorld world) {
+		return (world.isRemote() ? CLIENT : SERVER).getMaxWorldBorder();
 	}
 	
 	// *** server side only ***
@@ -193,19 +210,21 @@ public class CelestialObjectManager extends XmlFileManager {
 				switch (celestialObject.provider) {
 				case CelestialObject.PROVIDER_SPACE:
 					if (celestialObject.isSpace()) {
-						DimensionManager.registerDimension(celestialObject.dimensionId, WarpDrive.dimensionTypeSpace);
+						ModDimension modDimension = ModDimension.withFactory(SpaceDimension::new).setRegistryName(celestialObject.dimensionId);
+						DimensionManager.registerDimension(celestialObject.dimensionId, modDimension, null, false);
 					} else {
-						WarpDrive.logger.error(String.format("Only a space dimension can be provided by WarpDriveSpace. Dimension %d is not one of those.",
-						                                     celestialObject.dimensionId));
+						WarpDrive.logger.error(String.format("Only a space dimension can be provided by WarpDriveSpace. Dimension %s is not one of those.",
+						                                     celestialObject.dimensionId ));
 					}
 					break;
 					
 				case CelestialObject.PROVIDER_HYPERSPACE:
 					if (celestialObject.isHyperspace()) {
-						DimensionManager.registerDimension(celestialObject.dimensionId, WarpDrive.dimensionTypeHyperSpace);
+						ModDimension modDimension = ModDimension.withFactory(HyperSpaceDimension::new).setRegistryName(celestialObject.dimensionId);
+						DimensionManager.registerDimension(celestialObject.dimensionId, modDimension, null, false);
 					} else {
-						WarpDrive.logger.error(String.format("Only an hyperspace dimension can be provided by WarpDriveHyperspace. Dimension %d is not one of those.",
-						                                     celestialObject.dimensionId));
+						WarpDrive.logger.error(String.format("Only an hyperspace dimension can be provided by WarpDriveHyperspace. Dimension %s is not one of those.",
+						                                     celestialObject.dimensionId ));
 					}
 					break;
 					
@@ -214,9 +233,9 @@ public class CelestialObjectManager extends XmlFileManager {
 					break;
 					
 				default:
-					WarpDrive.logger.error(String.format("Unknown dimension provider %s for dimension %d, ignoring...",
+					WarpDrive.logger.error(String.format("Unknown dimension provider %s for dimension %s, ignoring...",
 					                                     celestialObject.provider,
-					                                     celestialObject.dimensionId));
+					                                     celestialObject.dimensionId ));
 					break;
 				}
 			}
@@ -234,13 +253,13 @@ public class CelestialObjectManager extends XmlFileManager {
 		SERVER.rebuildAndValidate(true);
 	}
 	
-	public static NBTBase writeClientSync(final EntityPlayerMP entityPlayerMP, final CelestialObject celestialObject) {
-		final NBTTagList nbtTagList = new NBTTagList();
+	public static INBT writeClientSync(final ServerPlayerEntity entityServerPlayer, final CelestialObject celestialObject) {
+		final ListNBT nbtTagList = new ListNBT();
 		if (celestialObject != null) {
 			// add current with all direct parents
 			CelestialObject celestialObjectParent = celestialObject;
 			while (celestialObjectParent != null) {
-				nbtTagList.appendTag(celestialObjectParent.writeToNBT(new NBTTagCompound()));
+				nbtTagList.add(celestialObjectParent.write(new CompoundNBT()));
 				celestialObjectParent = celestialObjectParent.parent;
 			}
 			
@@ -250,24 +269,24 @@ public class CelestialObjectManager extends XmlFileManager {
 				if (!celestialObjectChild.parentId.equals(celestialObject.id)) {
 					continue;
 				}
-				nbtTagList.appendTag(celestialObjectChild.writeToNBT(new NBTTagCompound()));
+				nbtTagList.add(celestialObjectChild.write(new CompoundNBT()));
 			}
 		}
 		return nbtTagList;
 	}
 	
-	public static boolean onOpeningNetherPortal(@Nonnull final World world, @Nonnull final BlockPos blockPos) {
+	public static boolean onOpeningNetherPortal(@Nonnull final IWorld world, @Nonnull final BlockPos blockPos) {
 		// prevent creating a portal outside the world border
 		final CelestialObject celestialObjectPortal = get(world, blockPos.getX(), blockPos.getZ());
 		if (celestialObjectPortal != null) {
 			if (!celestialObjectPortal.isInsideBorder(blockPos.getX(), blockPos.getZ()) ) {
-				final EntityPlayer entityPlayer = world.getClosestPlayer(blockPos.getX(), blockPos.getY(), blockPos.getZ(), 10.0D, false);
+				final PlayerEntity entityPlayer = world.getClosestPlayer(blockPos.getX(), blockPos.getY(), blockPos.getZ(), 10.0D, false);
 				if (entityPlayer != null) {
 					entityPlayer.sendStatusMessage(
 							new WarpDriveText(Commons.getStyleWarning(), "warpdrive.world_border.portal_denied"), true);
 				}
 				WarpDrive.logger.info(String.format("Nether portal opening cancelled %s for player %s: portal entry is outside the world border",
-				                                    entityPlayer == null ? "-null-" : entityPlayer.getName(),
+				                                    entityPlayer == null ? "-null-" : entityPlayer.getName().getFormattedText(),
 				                                    Commons.format(world, blockPos) ));
 				return false;
 			}
@@ -276,21 +295,21 @@ public class CelestialObjectManager extends XmlFileManager {
 		}
 		
 		// prevent creating a portal leading outside the world border
-		final boolean isInTheNether = world.provider.getDimension() == -1;
-		final CelestialObject celestialObjectExit = get(false, isInTheNether ? 0 : -1, 0, 0);
+		final boolean isInTheNether = world.getDimension().getType() == DimensionType.THE_NETHER;
+		final CelestialObject celestialObjectExit = get(false, isInTheNether ? ID_OVERWORLD : ID_THE_NETHER, 0, 0);
 		if (celestialObjectExit != null) {
 			final double factor = isInTheNether ? 8.0D : 1 / 8.0D;
 			final int xExit = (int) Math.floor(blockPos.getX() * factor);
 			final int zExit = (int) Math.floor(blockPos.getZ() * factor);
 			if ( Math.abs(xExit - celestialObjectExit.dimensionCenterX) > celestialObjectExit.borderRadiusX
 			  || Math.abs(zExit - celestialObjectExit.dimensionCenterZ) > celestialObjectExit.borderRadiusZ ) {
-				final EntityPlayer entityPlayer = world.getClosestPlayer(blockPos.getX(), blockPos.getY(), blockPos.getZ(), 10.0D, false);
+				final PlayerEntity entityPlayer = world.getClosestPlayer(blockPos.getX(), blockPos.getY(), blockPos.getZ(), 10.0D, false);
 				if (entityPlayer != null) {
 					entityPlayer.sendStatusMessage(
 							new WarpDriveText(Commons.getStyleWarning(), "warpdrive.world_border.portal_denied"), true);
 				}
 				WarpDrive.logger.info(String.format("Nether portal opening cancelled for player %s %s: portal exit is outside the world border",
-				                                    entityPlayer == null ? "-null-" : entityPlayer.getName(),
+				                                    entityPlayer == null ? "-null-" : entityPlayer.getName().getFormattedText(),
 				                                    Commons.format(world, blockPos) ));
 				return false;
 			}
@@ -306,33 +325,33 @@ public class CelestialObjectManager extends XmlFileManager {
 	
 	// *** client side only ***
 	
-	@SideOnly(Side.CLIENT)
-	public static void readClientSync(final NBTTagList nbtTagList) {
+	@OnlyIn(Dist.CLIENT)
+	public static void readClientSync(final ListNBT nbtTagList) {
 		clearForReload(true);
-		if (nbtTagList != null && nbtTagList.tagCount() > 0) {
-			for (int index = 0; index < nbtTagList.tagCount(); index++) {
-				final CelestialObject celestialObject = new CelestialObject(nbtTagList.getCompoundTagAt(index));
+		if (nbtTagList != null && nbtTagList.size() > 0) {
+			for (int index = 0; index < nbtTagList.size(); index++) {
+				final CelestialObject celestialObject = new CelestialObject(nbtTagList.getCompound(index));
 				CLIENT.addOrUpdateInRegistry(celestialObject, false);
 			}
 		}
 		CLIENT.rebuildAndValidate(true);
 	}
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public static CelestialObject[] getRenderStack() {
 		return CLIENT.celestialObjects;
 	}
 	
 	@SuppressWarnings("unused") // Core mod
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public static WorldBorder World_getWorldBorder(@Nonnull final World world) {
 		final WorldBorder worldBorder = world.getWorldBorder();
-		final EntityPlayer entityPlayer = Minecraft.getMinecraft().player;
+		final PlayerEntity entityPlayer = Minecraft.getInstance().player;
 		if ( entityPlayer == null
 		  || entityPlayer.world != world ) {
 			return worldBorder;
 		}
-		final CelestialObject celestialObject = get(world, (int) entityPlayer.posX, (int) entityPlayer.posZ);
+		final CelestialObject celestialObject = get(world, (int) entityPlayer.getPosX(), (int) entityPlayer.getPosZ());
 		if (celestialObject == null) {
 			return worldBorder;
 		}
@@ -437,7 +456,7 @@ public class CelestialObjectManager extends XmlFileManager {
 					final AxisAlignedBB areaInParent2 = celestialObject2.getAreaInParent();
 					if (areaInParent1.intersects(areaInParent2)) {
 						countErrors++;
-						WarpDrive.logger.error(String.format("CelestialObjects validation error #%d\nOverlapping parent areas detected in dimension %d between %s and %s\nArea1 %s from %s\nArea2 %s from %s", 
+						WarpDrive.logger.error(String.format("CelestialObjects validation error #%d\nOverlapping parent areas detected in dimension %s between %s and %s\nArea1 %s from %s\nArea2 %s from %s", 
 						                                     countErrors, 
 						                                     celestialObject1.parent.dimensionId, 
 						                                     celestialObject1.id, 
@@ -455,7 +474,7 @@ public class CelestialObjectManager extends XmlFileManager {
 					final AxisAlignedBB worldBorderArea2 = celestialObject2.getWorldBorderArea();
 					if (worldBorderArea1.intersects(worldBorderArea2)) {
 						countErrors++;
-						WarpDrive.logger.error(String.format("CelestialObjects validation error #%d\nOverlapping areas detected in dimension %d between %s and %s\nArea1 %s from %s\nArea2 %s from %s",
+						WarpDrive.logger.error(String.format("CelestialObjects validation error #%d\nOverlapping areas detected in dimension %s between %s and %s\nArea1 %s from %s\nArea2 %s from %s",
 						                                     countErrors,
 						                                     celestialObject1.dimensionId,
 						                                     celestialObject1.id,
@@ -488,7 +507,7 @@ public class CelestialObjectManager extends XmlFileManager {
 						countErrors));
 			}
 		} else {
-			FMLLog.bigWarning("Invalid celestial objects definition: bad things will happen, fix those before reporting any issue!");
+			LogManager.getLogger().fatal("Invalid celestial objects definition: bad things will happen, fix those before reporting any issue!");
 		}
 		
 		
@@ -525,13 +544,13 @@ public class CelestialObjectManager extends XmlFileManager {
 		return celestialObjectsById.get(id);
 	}
 	
-	public CelestialObject get(final int dimensionId, final int x, final int z) {
+	public CelestialObject get(@Nonnull final ResourceLocation dimensionId, final int x, final int z) {
 		double distanceClosest = Double.POSITIVE_INFINITY;
 		CelestialObject celestialObjectClosest = null;
 		for (final CelestialObject celestialObject : celestialObjects) {
 			if ( celestialObject != null
 			  && !celestialObject.isVirtual() 
-			  && dimensionId == celestialObject.dimensionId ) {
+			  && dimensionId.equals(celestialObject.dimensionId) ) {
 				final double distanceSquared = celestialObject.getSquareDistanceOutsideBorder(x, z);
 				if (distanceSquared <= 0) {
 					return celestialObject;

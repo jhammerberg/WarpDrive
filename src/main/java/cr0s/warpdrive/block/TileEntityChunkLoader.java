@@ -13,13 +13,13 @@ import li.cil.oc.api.machine.Context;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.ChunkPos;
-
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 
 public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
+	
+	public static TileEntityType<TileEntityChunkLoader> TYPE;
 	
 	// global properties
 	private static final UpgradeSlot upgradeSlotEfficiency = new UpgradeSlot("chunk_loader.efficiency",
@@ -30,11 +30,6 @@ public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
 	                                                                    WarpDriveConfig.CHUNK_LOADER_MAX_RADIUS);
 	
 	// persistent properties
-	private int radiusXneg = 0;
-	private int radiusXpos = 0;
-	private int radiusZneg = 0;
-	private int radiusZpos = 0;
-	
 	// fuel status is needed before first tick
 	private boolean isPowered = false;
 	
@@ -42,12 +37,11 @@ public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
 	// (none)
 	
 	public TileEntityChunkLoader() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveChunkLoader";
 		addMethods(new String[] {
-				"bounds",
-				"radius",
+				"range",
 		});
 		doRequireUpgradeToInterface();
 		
@@ -56,7 +50,7 @@ public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
 	}
 	
 	@Override
-	public boolean energy_canInput(final EnumFacing from) {
+	public boolean energy_canInput(final Direction from) {
 		return true;
 	}
 	
@@ -64,8 +58,8 @@ public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
 	protected void onUpgradeChanged(@Nonnull final UpgradeSlot upgradeSlot, final int countNew, final boolean isAdded) {
 		super.onUpgradeChanged(upgradeSlot, countNew, isAdded);
 		if (isAdded) {
-			final int maxRange = getMaxRange();
-			setBounds(maxRange, maxRange, maxRange, maxRange);
+			final int range_max = getMaxRange();
+			setRange(range_max);
 		}
 	}
 	
@@ -97,21 +91,23 @@ public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
-		refreshChunkRange();
+		refreshChunkLoading();
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -120,84 +116,40 @@ public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
 		updateBlockState(null, BlockProperties.ACTIVE, isEnabled && isPowered);
 	}
 	
-	private void setBounds(final int negX, final int posX, final int negZ, final int posZ) {
+	private void setRange(final int range) {
 		// compute new values
-		final int maxRange = getMaxRange();
-		final int radiusXneg_new = - Commons.clamp(0, 1000, Math.abs(negX));
-		final int radiusXpos_new =   Commons.clamp(0, 1000, Math.abs(posX));
-		final int radiusZneg_new = - Commons.clamp(0, 1000, Math.abs(negZ));
-		final int radiusZpos_new =   Commons.clamp(0, 1000, Math.abs(posZ));
+		final int range_max = getMaxRange();
+		range_requested = Commons.clamp(0, range_max, Math.abs(range));
 		
-		// validate size constrains
-		final int areaMax = (1 + 2 * maxRange) * (1 + 2 * maxRange);
-		final int areaCurrent = (-radiusXneg + 1 + radiusXpos)
-		                      * (-radiusZneg + 1 + radiusZpos);
-		final int areaNew = (-radiusXneg_new + 1 + radiusXpos_new)
-		                  * (-radiusZneg_new + 1 + radiusZpos_new);
-		if (areaNew <= areaMax) {
-			radiusXneg = radiusXneg_new;
-			radiusXpos = radiusXpos_new;
-			radiusZneg = radiusZneg_new;
-			radiusZpos = radiusZpos_new;
-			refreshChunkRange();
-		} else if (areaCurrent > areaMax) {
-			radiusXneg = - maxRange;
-			radiusXpos =   maxRange;
-			radiusZneg = - maxRange;
-			radiusZpos =   maxRange;
-			refreshChunkRange();
-		}
-	}
-	
-	private void refreshChunkRange() {
-		if (world == null) {
-			return;
-		}
-		final ChunkPos chunkSelf = world.getChunk(pos).getPos();
-		
-		chunkMin = new ChunkPos(chunkSelf.x + radiusXneg, chunkSelf.z + radiusZneg);
-		chunkMax = new ChunkPos(chunkSelf.x + radiusXpos, chunkSelf.z + radiusZpos);
 		refreshChunkLoading();
 	}
 	
 	// Forge overrides
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		setBounds(tagCompound.getInteger("radiusXneg"), tagCompound.getInteger("radiusXpos"),
-		          tagCompound.getInteger("radiusZneg"), tagCompound.getInteger("radiusZpos"));
+		setRange(tagCompound.getInt("range"));
 		isPowered = tagCompound.getBoolean("isPowered");
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setInteger("radiusXneg", radiusXneg);
-		tagCompound.setInteger("radiusZneg", radiusZneg);
-		tagCompound.setInteger("radiusXpos", radiusXpos);
-		tagCompound.setInteger("radiusZpos", radiusZpos);
-		tagCompound.setBoolean("isPowered", isPowered);
+		tagCompound.putInt("range", range_requested);
+		tagCompound.putBoolean("isPowered", isPowered);
 		return tagCompound;
 	}
 	
 	// Common OC/CC methods
-	public Object[] bounds(final Object[] arguments) {
+	public Object[] range(@Nonnull final Object[] arguments) {
 		if (arguments.length == 4) {
-			setBounds(Commons.toInt(arguments[0]), Commons.toInt(arguments[1]), Commons.toInt(arguments[2]), Commons.toInt(arguments[3]));
+			setRange(Commons.toInt(arguments[0]));
 		}
-		return new Object[] { radiusXneg, radiusXpos, radiusZneg, radiusZpos };
-	}
-	
-	public Object[] radius(final Object[] arguments) {
-		if (arguments.length == 1 && arguments[0] != null) {
-			final int radius = Commons.toInt(arguments[0]);
-			setBounds(radius, radius, radius, radius);
-		}
-		return new Object[] { radiusXneg, radiusXpos, radiusZneg, radiusZpos };
+		return new Object[] { range_requested };
 	}
 	
 	@Override
@@ -210,27 +162,16 @@ public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
-	public Object[] bounds(final Context context, final Arguments arguments) {
-		return bounds(OC_convertArgumentsAndLogCall(context, arguments));
+	public Object[] range(final Context context, final Arguments arguments) {
+		return range(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
-	public Object[] radius(final Context context, final Arguments arguments) {
-		return radius(OC_convertArgumentsAndLogCall(context, arguments));
-	}
-	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
-		case "bounds":
-			return bounds(arguments);
-			
-		case "radius":
-			return radius(arguments);
+		case "range":
+			return range(arguments);
 			
 		default:
 			return super.CC_callMethod(methodName, arguments);

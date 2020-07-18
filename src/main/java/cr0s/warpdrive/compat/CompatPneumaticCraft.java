@@ -10,10 +10,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -43,24 +43,25 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockPneumaticCraft.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockPneumaticCraft.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -72,31 +73,31 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 	private static final byte[] mrotTextRotation      = {  1,  2,  3,  0 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if ( rotationSteps == 0
-		  && !nbtTileEntity.hasKey("valveX")
-		  && !nbtTileEntity.hasKey("multiBlockX")) {
-			return metadata;
+		  && !nbtTileEntity.contains("valveX")
+		  && !nbtTileEntity.contains("multiBlockX")) {
+			return blockState;
 		}
 		
 		// Aphorism signs
 		// @todo the sign has no text after ship movement in single player until chunk is reloaded?
-		if (nbtTileEntity.hasKey("textRot")) {
+		if (nbtTileEntity.contains("textRot")) {
 			if (metadata == 0 || metadata == 1) {// sign is horizontal, only the text needs to be rotated
-				final int textRotation = nbtTileEntity.getInteger("textRot");
+				final int textRotation = nbtTileEntity.getInt("textRot");
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setInteger("textRot", mrotTextRotation[textRotation]);
-					return metadata;
+					nbtTileEntity.putInt("textRot", mrotTextRotation[textRotation]);
+					return blockState;
 				case 2:
-					nbtTileEntity.setInteger("textRot", mrotTextRotation[mrotTextRotation[textRotation]]);
-					return metadata;
+					nbtTileEntity.putInt("textRot", mrotTextRotation[mrotTextRotation[textRotation]]);
+					return blockState;
 				case 3:
-					nbtTileEntity.setInteger("textRot", mrotTextRotation[mrotTextRotation[mrotTextRotation[textRotation]]]);
-					return metadata;
+					nbtTileEntity.putInt("textRot", mrotTextRotation[mrotTextRotation[mrotTextRotation[textRotation]]]);
+					return blockState;
 				default:
-					return metadata;
+					return blockState;
 				}
 			} else {// sign is vertical, only the block itself is rotating
 				switch (rotationSteps) {
@@ -107,35 +108,35 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 				case 3:
 					return mrotFacing[mrotFacing[mrotFacing[metadata]]];
 				default:
-					return metadata;
+					return blockState;
 				}
 			}
 		}
 		
 		// Omnidirectional hoppers
-		if (nbtTileEntity.hasKey("inputDir")) {
-			final int inputDir = nbtTileEntity.getInteger("inputDir");
-			final int outputDir = nbtTileEntity.getInteger("outputDir");
+		if (nbtTileEntity.contains("inputDir")) {
+			final int inputDir = nbtTileEntity.getInt("inputDir");
+			final int outputDir = nbtTileEntity.getInt("outputDir");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setInteger("inputDir", mrotFacing[inputDir]);
-				nbtTileEntity.setInteger("outputDir", mrotFacing[outputDir]);
+				nbtTileEntity.putInt("inputDir", mrotFacing[inputDir]);
+				nbtTileEntity.putInt("outputDir", mrotFacing[outputDir]);
 				return mrotFacing[metadata];
 			case 2:
-				nbtTileEntity.setInteger("inputDir", mrotFacing[mrotFacing[inputDir]]);
-				nbtTileEntity.setInteger("outputDir", mrotFacing[mrotFacing[outputDir]]);
+				nbtTileEntity.putInt("inputDir", mrotFacing[mrotFacing[inputDir]]);
+				nbtTileEntity.putInt("outputDir", mrotFacing[mrotFacing[outputDir]]);
 				return mrotFacing[mrotFacing[metadata]];
 			case 3:
-				nbtTileEntity.setInteger("inputDir", mrotFacing[mrotFacing[mrotFacing[inputDir]]]);
-				nbtTileEntity.setInteger("outputDir", mrotFacing[mrotFacing[mrotFacing[outputDir]]]);
+				nbtTileEntity.putInt("inputDir", mrotFacing[mrotFacing[mrotFacing[inputDir]]]);
+				nbtTileEntity.putInt("outputDir", mrotFacing[mrotFacing[mrotFacing[outputDir]]]);
 				return mrotFacing[mrotFacing[mrotFacing[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// Pneumatic door is facing + top/down on modulo (6 or 8 ?)
-		if (classBlockPneumaticDoor.isInstance(block)) {
+		if (classBlockPneumaticDoor.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotPneumaticDoor[metadata];
@@ -144,64 +145,64 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 			case 3:
 				return mrotPneumaticDoor[mrotPneumaticDoor[mrotPneumaticDoor[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// pressure chamber blocks (wall, glass, valve, interface)
-		if (nbtTileEntity.hasKey("valveX")) {
+		if (nbtTileEntity.contains("valveX")) {
 			final BlockPos target = transformation.apply(
-				nbtTileEntity.getInteger("valveX"),
-				nbtTileEntity.getInteger("valveY"),
-				nbtTileEntity.getInteger("valveZ"));
-			nbtTileEntity.setInteger("valveX", target.getX());
-			nbtTileEntity.setInteger("valveY", target.getY());
-			nbtTileEntity.setInteger("valveZ", target.getZ());
+				nbtTileEntity.getInt("valveX"),
+				nbtTileEntity.getInt("valveY"),
+				nbtTileEntity.getInt("valveZ"));
+			nbtTileEntity.putInt("valveX", target.getX());
+			nbtTileEntity.putInt("valveY", target.getY());
+			nbtTileEntity.putInt("valveZ", target.getZ());
 			// use default metadata rotation
 		}
 		
 		// pressure chamber valve
-		if (nbtTileEntity.hasKey("multiBlockX")) {
+		if (nbtTileEntity.contains("multiBlockX")) {
 			// multiBlockXYZ only makes sense when size is non null, even if they are part of the multiblock (yes, it's weird)
-			final int multiBlockSize = nbtTileEntity.getInteger("multiBlockSize");
+			final int multiBlockSize = nbtTileEntity.getInt("multiBlockSize");
 			if (multiBlockSize != 0) {
 				final BlockPos sourceMin = new BlockPos(
-						nbtTileEntity.getInteger("multiBlockX"),
-						nbtTileEntity.getInteger("multiBlockY"),
-						nbtTileEntity.getInteger("multiBlockZ"));
+						nbtTileEntity.getInt("multiBlockX"),
+						nbtTileEntity.getInt("multiBlockY"),
+						nbtTileEntity.getInt("multiBlockZ"));
 				final BlockPos sourceMax = new BlockPos(
 						sourceMin.getX() + multiBlockSize - 1,
 						sourceMin.getY() + multiBlockSize - 1,
 						sourceMin.getZ() + multiBlockSize - 1);
 				final BlockPos target1 = transformation.apply(sourceMin);
 				final BlockPos target2 = transformation.apply(sourceMax);
-				nbtTileEntity.setInteger("multiBlockX", Math.min(target1.getX(), target2.getX()));
-				nbtTileEntity.setInteger("multiBlockY", Math.min(target1.getY(), target2.getY()));
-				nbtTileEntity.setInteger("multiBlockZ", Math.min(target1.getZ(), target2.getZ()));
+				nbtTileEntity.putInt("multiBlockX", Math.min(target1.getX(), target2.getX()));
+				nbtTileEntity.putInt("multiBlockY", Math.min(target1.getY(), target2.getY()));
+				nbtTileEntity.putInt("multiBlockZ", Math.min(target1.getZ(), target2.getZ()));
 			}
 			
 			// Valves coordinates to each valves
-			final NBTTagList tagListOld = nbtTileEntity.getTagList("Valves", 10);
-			final NBTTagList tagListNew = new NBTTagList();
-			for (int index = 0; index < tagListOld.tagCount(); index++) {
-				final NBTTagCompound tagCompound = tagListOld.getCompoundTagAt(index);
+			final ListNBT tagListOld = nbtTileEntity.getList("Valves", 10);
+			final ListNBT tagListNew = new ListNBT();
+			for (int index = 0; index < tagListOld.size(); index++) {
+				final CompoundNBT tagCompound = tagListOld.getCompound(index);
 				if (tagCompound != null) {
 					final BlockPos coordinates = transformation.apply(
-						tagCompound.getInteger("xCoord"),
-						tagCompound.getInteger("yCoord"),
-						tagCompound.getInteger("zCoord"));
-					tagCompound.setInteger("xCoord", coordinates.getX());
-					tagCompound.setInteger("yCoord", coordinates.getY());
-					tagCompound.setInteger("zCoord", coordinates.getZ());
-					tagListNew.appendTag(tagCompound);
+						tagCompound.getInt("xCoord"),
+						tagCompound.getInt("yCoord"),
+						tagCompound.getInt("zCoord"));
+					tagCompound.putInt("xCoord", coordinates.getX());
+					tagCompound.putInt("yCoord", coordinates.getY());
+					tagCompound.putInt("zCoord", coordinates.getZ());
+					tagListNew.add(tagCompound);
 				}
 			}
-			nbtTileEntity.setTag("Valves", tagListNew);
+			nbtTileEntity.put("Valves", tagListNew);
 			// use default metadata rotation
 		}
 		
 		// elevator base, pipe
-		if (nbtTileEntity.hasKey("sideConnected0")) {
+		if (nbtTileEntity.contains("sideConnected0")) {
 			final byte[] connectedOldSides = new byte[6];
 			for (int side = 2; side < 6; side++) {
 				connectedOldSides[side] = nbtTileEntity.getByte("sideConnected" + side);
@@ -210,19 +211,19 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 			final byte connected = connectedOldSides[side];
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setByte("sideConnected" + mrotFacing[side], connected);
+					nbtTileEntity.putByte("sideConnected" + mrotFacing[side], connected);
 					break;
 				case 2:
-					nbtTileEntity.setByte("sideConnected" + mrotFacing[mrotFacing[side]], connected);
+					nbtTileEntity.putByte("sideConnected" + mrotFacing[mrotFacing[side]], connected);
 					break;
 				case 3:
-					nbtTileEntity.setByte("sideConnected" + mrotFacing[mrotFacing[mrotFacing[side]]], connected);
+					nbtTileEntity.putByte("sideConnected" + mrotFacing[mrotFacing[mrotFacing[side]]], connected);
 					break;
 				default:
 					break;
 				}
 			}
-			if (nbtTileEntity.hasKey("sideClosed0")) {
+			if (nbtTileEntity.contains("sideClosed0")) {
 				final byte[] closedOldSides = new byte[6];
 				for (int side = 2; side < 6; side++) {
 					closedOldSides[side] = nbtTileEntity.getByte("sideClosed" + side);
@@ -231,13 +232,13 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 					final byte connected = closedOldSides[side];
 					switch (rotationSteps) {
 					case 1:
-						nbtTileEntity.setByte("sideClosed" + mrotFacing[side], connected);
+						nbtTileEntity.putByte("sideClosed" + mrotFacing[side], connected);
 						break;
 					case 2:
-						nbtTileEntity.setByte("sideClosed" + mrotFacing[mrotFacing[side]], connected);
+						nbtTileEntity.putByte("sideClosed" + mrotFacing[mrotFacing[side]], connected);
 						break;
 					case 3:
-						nbtTileEntity.setByte("sideClosed" + mrotFacing[mrotFacing[mrotFacing[side]]], connected);
+						nbtTileEntity.putByte("sideClosed" + mrotFacing[mrotFacing[mrotFacing[side]]], connected);
 						break;
 					default:
 						break;
@@ -248,7 +249,7 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 		
 		
 		// Pressure chamber wall has its own logic: NONE,  CENTER,  XEDGE,  ZEDGE,  YEDGE,  XMIN_YMIN_ZMIN,  XMIN_YMIN_ZMAX,  XMIN_YMAX_ZMIN,  XMIN_YMAX_ZMAX
-		if (classBlockPressureChamberWall.isInstance(block)) {
+		if (classBlockPressureChamberWall.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotChamberWall[metadata];
@@ -257,11 +258,11 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 			case 3:
 				return mrotChamberWall[mrotChamberWall[mrotChamberWall[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
-		if (classBlockPressureChamberValve.isInstance(block)) {
+		if (classBlockPressureChamberValve.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return mrotChamberValve[metadata];
@@ -270,7 +271,7 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 			case 3:
 				return mrotChamberValve[mrotChamberValve[mrotChamberValve[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -284,11 +285,11 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 			} else {
 				WarpDrive.logger.error(String.format("Block %s has invalid non-Boolean return value to isRotatable: %s",
 				                                     block.getRegistryName(), object));
-				return metadata;
+				return blockState;
 			}
 		} catch (final IllegalAccessException | InvocationTargetException exception) {
 			exception.printStackTrace();
-			return metadata;
+			return blockState;
 		}
 		WarpDrive.logger.info(String.format("Block %s isRotatable %s",
 		                                    block.getRegistryName(), isRotatable));
@@ -301,17 +302,17 @@ public class CompatPneumaticCraft implements IBlockTransformer {
 			case 3:
 				return mrotFacing[mrotFacing[mrotFacing[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		} else {
-			return metadata;
+			return blockState;
 		}
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

@@ -14,11 +14,12 @@ import li.cil.oc.api.machine.Context;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.nbt.NBTTagCompound;
-
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 
 public class TileEntityLaserCamera extends TileEntityLaser implements IVideoChannel {
+	
+	public static TileEntityType<TileEntityLaserCamera> TYPE;
 	
 	private int videoChannel = -1;
 	
@@ -29,7 +30,7 @@ public class TileEntityLaserCamera extends TileEntityLaser implements IVideoChan
 	private int registryUpdateTicks = 20;
 	
 	public TileEntityLaserCamera() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveLaserCamera";
 		addMethods(new String[] {
@@ -39,11 +40,12 @@ public class TileEntityLaserCamera extends TileEntityLaser implements IVideoChan
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
 		// Update video channel on clients (recovery mechanism, no need to go too fast)
-		if (!world.isRemote) {
+		assert world != null;
+		if (!world.isRemote()) {
 			packetSendTicks--;
 			if (packetSendTicks <= 0) {
 				packetSendTicks = PACKET_SEND_INTERVAL_TICKS;
@@ -85,33 +87,33 @@ public class TileEntityLaserCamera extends TileEntityLaser implements IVideoChan
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
-		setVideoChannel(tagCompound.getInteger("cameraFrequency") + tagCompound.getInteger(VIDEO_CHANNEL_TAG));
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
+		setVideoChannel(tagCompound.getInt("cameraFrequency") + tagCompound.getInt(VIDEO_CHANNEL_TAG));
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
-		tagCompound.setInteger(VIDEO_CHANNEL_TAG, videoChannel);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
+		tagCompound.putInt(VIDEO_CHANNEL_TAG, videoChannel);
 		return tagCompound;
 	}
 	
 	@Override
-	public void invalidate() {
+	public void remove() {
 		WarpDrive.cameras.removeFromRegistry(world, pos);
-		super.invalidate();
+		super.remove();
 	}
 	
 	@Override
-	public void onChunkUnload() {
+	public void onChunkUnloaded() {
 		WarpDrive.cameras.removeFromRegistry(world, pos);
-		super.onChunkUnload();
+		super.onChunkUnloaded();
 	}
 	
 	// Common OC/CC methods
-	public Object[] videoChannel(final Object[] arguments) {
+	public Object[] videoChannel(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1) {
 			setVideoChannel(Commons.toInt(arguments[0]));
 		}
@@ -120,14 +122,12 @@ public class TileEntityLaserCamera extends TileEntityLaser implements IVideoChan
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] videoChannel(final Context context, final Arguments arguments) {
 		return videoChannel(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "videoChannel":

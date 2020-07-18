@@ -11,12 +11,12 @@ import cr0s.warpdrive.data.CelestialObjectManager;
 import javax.annotation.Nonnull;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -24,10 +24,10 @@ import net.minecraft.world.World;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import micdoodle8.mods.galacticraft.api.event.oxygen.GCCoreOxygenSuffocationEvent;
 import micdoodle8.mods.galacticraft.core.entities.player.GCPlayerStats;
@@ -66,8 +66,8 @@ public class CompatGalacticraft implements IBlockTransformer {
 		assert event.getEntity() != null;
 		
 		final Entity entity = event.getEntity();
-		final int x = MathHelper.floor(entity.posX);
-		final int z = MathHelper.floor(entity.posZ);
+		final int x = MathHelper.floor(entity.getPosX());
+		final int z = MathHelper.floor(entity.getPosZ());
 		final CelestialObject celestialObject = CelestialObjectManager.get(entity.world, x, z);
 		if (celestialObject == null) {
 			// unregistered dimension => exit
@@ -83,48 +83,48 @@ public class CompatGalacticraft implements IBlockTransformer {
 	}
 	
 	// disable breathing alarm overlay client side
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void onLivingUpdate(@Nonnull final LivingUpdateEvent event) {
-		if (Minecraft.getMinecraft().player == null) {
+		if (Minecraft.getInstance().player == null) {
 			return;
 		}
 		
-		final EntityLivingBase entityLivingBase = event.getEntityLiving();
-		if (entityLivingBase != Minecraft.getMinecraft().player) {
+		final LivingEntity entityLivingBase = event.getEntityLiving();
+		if (entityLivingBase != Minecraft.getInstance().player) {
 			return;
 		}
 		
-		final int x = MathHelper.floor(entityLivingBase.posX);
-		final int z = MathHelper.floor(entityLivingBase.posZ);
+		final int x = MathHelper.floor(entityLivingBase.getPosX());
+		final int z = MathHelper.floor(entityLivingBase.getPosZ());
 		final CelestialObject celestialObject = CelestialObjectManager.get(entityLivingBase.world, x, z);
 		if (celestialObject == null) {
 			// unregistered dimension => exit
 			return;
 		}
 		
-		final GCPlayerStatsClient stats = GCPlayerStatsClient.get(Minecraft.getMinecraft().player);
+		final GCPlayerStatsClient stats = GCPlayerStatsClient.get(Minecraft.getInstance().player);
 		if (stats != null) {
 			stats.setOxygenSetupValid(true);
 		}
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockAdvanced.isInstance(block)
-		    || classBlockConcealedDetector.isInstance(block)
-		    || classBlockParaChest.isInstance(block)
-		    || classBlockTier1TreasureChest.isInstance(block)
-		    || classBlockTorchBase.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockAdvanced.isInstance(blockState.getBlock())
+		    || classBlockConcealedDetector.isInstance(blockState.getBlock())
+		    || classBlockParaChest.isInstance(blockState.getBlock())
+		    || classBlockTier1TreasureChest.isInstance(blockState.getBlock())
+		    || classBlockTorchBase.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z,
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
 	                             final Block block, final int blockMeta, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
@@ -132,7 +132,7 @@ public class CompatGalacticraft implements IBlockTransformer {
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -215,7 +215,7 @@ public class CompatGalacticraft implements IBlockTransformer {
 		metadata    1 3 2 4 / 5
 	
 #	micdoodle8.mods.galacticraft.core.blocks.BlockConcealedDetector                 gc player detector (player detector, creative only) extends Block
-		metadata    0 1 2 3 / 4 5 6 7 / 8 9 10 11 / 12 13 14 15 (not EnumFacing)
+		metadata    0 1 2 3 / 4 5 6 7 / 8 9 10 11 / 12 13 14 15 (not Direction enum)
 -	micdoodle8.mods.galacticraft.planets.mars.blocks.BlockMachineMars               gc cryogenic chamber / gc planet terraformer / gc launch controller
 		mainBlockPosition.x/y/z int absolute coordinates (optional, see cryogenic chamber)
 		metadata    0 1 2 3 / 4 5 6 7 / 8 9 10 11 / 12 13 14 15
@@ -262,42 +262,42 @@ D-	micdoodle8.mods.galacticraft.planets.mars.BlockTelemetry                     
 	                                                  24,  9,  5,  4, 18, 19, 22, 23,  0, 17, 13, 12, 26, 27, 30, 31 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		
 		// multiblock
 		if ( nbtTileEntity != null
-		  && nbtTileEntity.hasKey("mainBlockPosition") ) {
-			final NBTTagCompound tagCompoundMainBlockPosition = nbtTileEntity.getCompoundTag("mainBlockPosition");
-			if ( tagCompoundMainBlockPosition.hasKey("x")
-			  && tagCompoundMainBlockPosition.hasKey("y")
-			  && tagCompoundMainBlockPosition.hasKey("z") ) {
-				final int x = nbtTileEntity.getInteger("x");
-				final int y = nbtTileEntity.getInteger("y");
-				final int z = nbtTileEntity.getInteger("z");
+		  && nbtTileEntity.contains("mainBlockPosition") ) {
+			final CompoundNBT tagCompoundMainBlockPosition = nbtTileEntity.getCompound("mainBlockPosition");
+			if ( tagCompoundMainBlockPosition.contains("x")
+			  && tagCompoundMainBlockPosition.contains("y")
+			  && tagCompoundMainBlockPosition.contains("z") ) {
+				final int x = nbtTileEntity.getInt("x");
+				final int y = nbtTileEntity.getInt("y");
+				final int z = nbtTileEntity.getInt("z");
 				final BlockPos blockPosMain = transformation.apply(x, y, z);
-				tagCompoundMainBlockPosition.setInteger("x", blockPosMain.getX());
-				tagCompoundMainBlockPosition.setInteger("y", blockPosMain.getY());
-				tagCompoundMainBlockPosition.setInteger("z", blockPosMain.getZ());
+				tagCompoundMainBlockPosition.putInt("x", blockPosMain.getX());
+				tagCompoundMainBlockPosition.putInt("y", blockPosMain.getY());
+				tagCompoundMainBlockPosition.putInt("z", blockPosMain.getZ());
 			}
 		}
 		
 		// target for Beam reflector
 		if ( nbtTileEntity != null
 		  && nbtTileEntity.getBoolean("HasTarget") ) {
-			if ( nbtTileEntity.hasKey("TargetX")
-			  && nbtTileEntity.hasKey("TargetY")
-			  && nbtTileEntity.hasKey("TargetZ") ) {
-				final int x = nbtTileEntity.getInteger("TargetX");
-				final int y = nbtTileEntity.getInteger("TargetY");
-				final int z = nbtTileEntity.getInteger("TargetZ");
+			if ( nbtTileEntity.contains("TargetX")
+			  && nbtTileEntity.contains("TargetY")
+			  && nbtTileEntity.contains("TargetZ") ) {
+				final int x = nbtTileEntity.getInt("TargetX");
+				final int y = nbtTileEntity.getInt("TargetY");
+				final int z = nbtTileEntity.getInt("TargetZ");
 				if (transformation.isInside(x, y, z)) {
 					final BlockPos blockPosTarget = transformation.apply(x, y, z);
-					nbtTileEntity.setInteger("TargetX", blockPosTarget.getX());
-					nbtTileEntity.setInteger("TargetY", blockPosTarget.getY());
-					nbtTileEntity.setInteger("TargetZ", blockPosTarget.getZ());
+					nbtTileEntity.putInt("TargetX", blockPosTarget.getX());
+					nbtTileEntity.putInt("TargetY", blockPosTarget.getY());
+					nbtTileEntity.putInt("TargetZ", blockPosTarget.getZ());
 				} else {
-					nbtTileEntity.setBoolean("HasTarget", false);
+					nbtTileEntity.putBoolean("HasTarget", false);
 				}
 			}
 		}
@@ -305,17 +305,17 @@ D-	micdoodle8.mods.galacticraft.planets.mars.BlockTelemetry                     
 		// beam receiver
 		if ( nbtTileEntity != null
 		  && nbtTileEntity.getString("id").contains("beam receiver")
-		  && nbtTileEntity.hasKey("FacingSide") ) {
-			final int facingSide = nbtTileEntity.getInteger("FacingSide");
+		  && nbtTileEntity.contains("FacingSide") ) {
+			final int facingSide = nbtTileEntity.getInt("FacingSide");
 			switch (rotationSteps) {
 			case 1:
-				nbtTileEntity.setInteger("FacingSide", rotFacing[facingSide]);
+				nbtTileEntity.putInt("FacingSide", rotFacing[facingSide]);
 				break;
 			case 2:
-				nbtTileEntity.setInteger("FacingSide", rotFacing[rotFacing[facingSide]]);
+				nbtTileEntity.putInt("FacingSide", rotFacing[rotFacing[facingSide]]);
 				break;
 			case 3:
-				nbtTileEntity.setInteger("FacingSide", rotFacing[rotFacing[rotFacing[facingSide]]]);
+				nbtTileEntity.putInt("FacingSide", rotFacing[rotFacing[rotFacing[facingSide]]]);
 				break;
 			default:
 				break;
@@ -325,20 +325,20 @@ D-	micdoodle8.mods.galacticraft.planets.mars.BlockTelemetry                     
 		// panel lighting
 		if ( nbtTileEntity != null
 		     && nbtTileEntity.getString("id").contains("panel lighting")
-		     && nbtTileEntity.hasKey("meta") ) {
-			final int meta = nbtTileEntity.getInteger("meta");
+		     && nbtTileEntity.contains("meta") ) {
+			final int meta = nbtTileEntity.getInt("meta");
 			
 			if ( metadata == 0
 			  || metadata == 1 ) {
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setInteger("meta", rotFacing[meta]);
+					nbtTileEntity.putInt("meta", rotFacing[meta]);
 					break;
 				case 2:
-					nbtTileEntity.setInteger("meta", rotFacing[rotFacing[meta]]);
+					nbtTileEntity.putInt("meta", rotFacing[rotFacing[meta]]);
 					break;
 				case 3:
-					nbtTileEntity.setInteger("meta", rotFacing[rotFacing[rotFacing[meta]]]);
+					nbtTileEntity.putInt("meta", rotFacing[rotFacing[rotFacing[meta]]]);
 					break;
 				default:
 					break;
@@ -348,13 +348,13 @@ D-	micdoodle8.mods.galacticraft.planets.mars.BlockTelemetry                     
 			         || metadata == 3 ) {
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setInteger("meta", rotLighting23[meta]);
+					nbtTileEntity.putInt("meta", rotLighting23[meta]);
 					break;
 				case 2:
-					nbtTileEntity.setInteger("meta", rotLighting23[rotLighting23[meta]]);
+					nbtTileEntity.putInt("meta", rotLighting23[rotLighting23[meta]]);
 					break;
 				case 3:
-					nbtTileEntity.setInteger("meta", rotLighting23[rotLighting23[rotLighting23[meta]]]);
+					nbtTileEntity.putInt("meta", rotLighting23[rotLighting23[rotLighting23[meta]]]);
 					break;
 				default:
 					break;
@@ -363,13 +363,13 @@ D-	micdoodle8.mods.galacticraft.planets.mars.BlockTelemetry                     
 			} else if (metadata == 4) {
 				switch (rotationSteps) {
 				case 1:
-					nbtTileEntity.setInteger("meta", rotLighting4[meta]);
+					nbtTileEntity.putInt("meta", rotLighting4[meta]);
 					break;
 				case 2:
-					nbtTileEntity.setInteger("meta", rotLighting4[rotLighting4[meta]]);
+					nbtTileEntity.putInt("meta", rotLighting4[rotLighting4[meta]]);
 					break;
 				case 3:
-					nbtTileEntity.setInteger("meta", rotLighting4[rotLighting4[rotLighting4[meta]]]);
+					nbtTileEntity.putInt("meta", rotLighting4[rotLighting4[rotLighting4[meta]]]);
 					break;
 				default:
 					break;
@@ -382,7 +382,7 @@ D-	micdoodle8.mods.galacticraft.planets.mars.BlockTelemetry                     
 		}
 		
 		// specific rotation for Concealed detector blocks
-		if (classBlockConcealedDetector.isInstance(block)) {
+		if (classBlockConcealedDetector.isInstance(blockState.getBlock())) {
 			switch (rotationSteps) {
 			case 1:
 				return rotDetector[metadata];
@@ -391,18 +391,18 @@ D-	micdoodle8.mods.galacticraft.planets.mars.BlockTelemetry                     
 			case 3:
 				return rotDetector[rotDetector[rotDetector[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		// apply default transformer
-		return IBlockTransformer.rotateFirstEnumFacingProperty(block, metadata, rotationSteps);
+		return IBlockTransformer.rotateFirstDirectionProperty(block, metadata, rotationSteps);
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

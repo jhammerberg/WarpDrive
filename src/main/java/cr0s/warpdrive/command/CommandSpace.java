@@ -10,15 +10,16 @@ import cr0s.warpdrive.data.VectorI;
 import javax.annotation.Nonnull;
 
 import net.minecraft.command.ICommandSender;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.world.WorldServer;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.server.ServerWorld;
 
 public class CommandSpace extends AbstractCommand {
 	
@@ -35,19 +36,19 @@ public class CommandSpace extends AbstractCommand {
 	
 	@Nonnull
 	@Override
-	public String getUsage(@Nonnull final ICommandSender commandSender) {
+	public String getUsage(@Nonnull final ICommandSource commandSource) {
 		return "/space (<playerName>) ([overworld|nether|end|theend|space|hyper|hyperspace|<dimensionId>])";
 	}
 	
 	@Override
-	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSender commandSender, @Nonnull final String[] args) {
+	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSource commandSource, @Nonnull final String[] args) {
 		// set defaults
-		int dimensionIdTarget = Integer.MAX_VALUE;
+		DimensionType dimensionTypeTarget = null;
 		
-		EntityPlayerMP[] entityPlayerMPs = null;
-		if (commandSender instanceof EntityPlayerMP) {
-			entityPlayerMPs = new EntityPlayerMP[1];
-			entityPlayerMPs[0] = (EntityPlayerMP) commandSender;
+		ServerPlayerEntity[] entityPlayerMPs = null;
+		if (commandSource instanceof ServerPlayerEntity) {
+			entityPlayerMPs = new ServerPlayerEntity[1];
+			entityPlayerMPs[0] = (ServerPlayerEntity) commandSource;
 		}
 		
 		// parse arguments
@@ -56,67 +57,73 @@ public class CommandSpace extends AbstractCommand {
 			// nop
 		} else if (args.length == 1) {
 			if (args[0].equalsIgnoreCase("help") || args[0].equalsIgnoreCase("?")) {
-				Commons.addChatMessage(commandSender,  new TextComponentString(getUsage(commandSender)));
+				Commons.addChatMessage(commandSource,  new StringTextComponent(getUsage(commandSource)));
 				return;
 			}
 			
-			final EntityPlayerMP[] entityPlayerMPs_found = Commons.getOnlinePlayerByNameOrSelector(commandSender, args[0]);
+			final ServerPlayerEntity[] entityPlayerMPs_found = Commons.getOnlinePlayerByNameOrSelector(commandSource, args[0]);
 			if (entityPlayerMPs_found != null) {
 				entityPlayerMPs = entityPlayerMPs_found;
-			} else if (commandSender instanceof EntityPlayer) {
-				dimensionIdTarget = CelestialObjectManager.getDimensionId(args[0], (EntityPlayer) commandSender);
+			} else if (commandSource instanceof PlayerEntity) {
+				dimensionTypeTarget = CelestialObjectManager.getDimensionType(args[0], (PlayerEntity) commandSource);
 			} else {
-				Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("warpdrive.command.player_not_found", args[0]).setStyle(Commons.getStyleWarning())));
+				Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.player_not_found", args[0]).setStyle(Commons.getStyleWarning())));
 				return;
 			}
 			
 		} else if (args.length == 2) {
-			final EntityPlayerMP[] entityPlayerMPs_found = Commons.getOnlinePlayerByNameOrSelector(commandSender, args[0]);
+			final ServerPlayerEntity[] entityPlayerMPs_found = Commons.getOnlinePlayerByNameOrSelector(commandSource, args[0]);
 			if (entityPlayerMPs_found != null) {
 				entityPlayerMPs = entityPlayerMPs_found;
 			} else {
-				Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("warpdrive.command.player_not_found", args[0]).setStyle(Commons.getStyleWarning())));
+				Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.player_not_found", args[0]).setStyle(Commons.getStyleWarning())));
 				return;
 			}
-			dimensionIdTarget = CelestialObjectManager.getDimensionId(args[1], entityPlayerMPs[0]);
+			dimensionTypeTarget = CelestialObjectManager.getDimensionType(args[1], entityPlayerMPs[0]);
 			
 		} else {
-			Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("warpdrive.command.too_many_arguments", args.length).setStyle(Commons.getStyleWarning())));
+			Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.too_many_arguments", args.length).setStyle(Commons.getStyleWarning())));
 			return;
 		}
 		
 		// check player
 		if (entityPlayerMPs == null || entityPlayerMPs.length <= 0) {
-			Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("warpdrive.command.player_not_found", args[0]).setStyle(Commons.getStyleWarning())));
+			Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.player_not_found", args[0]).setStyle(Commons.getStyleWarning())));
 			return;
 		}
 		
-		for (final EntityPlayerMP entityPlayerMP : entityPlayerMPs) {
+		for (final ServerPlayerEntity entityServerPlayer : entityPlayerMPs) {
 			// toggle between overworld and space if no dimension was provided
-			int xTarget = MathHelper.floor(entityPlayerMP.posX);
-			int yTarget = Math.min(255, Math.max(0, MathHelper.floor(entityPlayerMP.posY)));
-			int zTarget = MathHelper.floor(entityPlayerMP.posZ);
-			final CelestialObject celestialObjectCurrent = CelestialObjectManager.get(entityPlayerMP.world, (int) entityPlayerMP.posX, (int) entityPlayerMP.posZ);
-			if (dimensionIdTarget == Integer.MAX_VALUE) {
+			int xTarget = MathHelper.floor(entityServerPlayer.getPosX());
+			int yTarget = Math.min(255, Math.max(0, MathHelper.floor(entityServerPlayer.getPosY())));
+			int zTarget = MathHelper.floor(entityServerPlayer.getPosZ());
+			final CelestialObject celestialObjectCurrent = CelestialObjectManager.get(entityServerPlayer.world, (int) entityServerPlayer.getPosX(), (int) entityServerPlayer.getPosZ());
+			if (dimensionTypeTarget == null) {
 				if (celestialObjectCurrent == null) {
-					Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("warpdrive.command.player_in_unknown_dimension",
-					                                                                                             entityPlayerMP.getName(), entityPlayerMP.world.provider.getDimension()).setStyle(Commons.getStyleWarning())));
-					Commons.addChatMessage(commandSender, new TextComponentTranslation("warpdrive.command.specify_explicit_dimension").setStyle(Commons.getStyleCorrect()));
+					Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.player_in_unknown_dimension",
+					                                                                                             entityServerPlayer.getName().getFormattedText(),
+					                                                                                             entityServerPlayer.world.getDimension().getType().getRegistryName() )
+							                                                                .setStyle(Commons.getStyleWarning())));
+					Commons.addChatMessage(commandSource, new TranslationTextComponent("warpdrive.command.specify_explicit_dimension")
+							                                      .setStyle(Commons.getStyleCorrect()));
 					continue;
 				}
 				if ( celestialObjectCurrent.isSpace()
 				  || celestialObjectCurrent.isHyperspace() ) {
 					// in space or hyperspace => move to closest child
-					final CelestialObject celestialObjectChild = CelestialObjectManager.getClosestChild(entityPlayerMP.world, (int) entityPlayerMP.posX, (int) entityPlayerMP.posZ);
+					final CelestialObject celestialObjectChild = CelestialObjectManager.getClosestChild(entityServerPlayer.world, (int) entityServerPlayer.getPosX(), (int) entityServerPlayer.getPosZ());
 					if (celestialObjectChild == null) {
-						dimensionIdTarget = 0;
+						dimensionTypeTarget = null;
 					} else if (celestialObjectChild.isVirtual()) {
-						Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("warpdrive.command.player_can_t_go_virtual",
-						                                                                                             entityPlayerMP.getName(), celestialObjectChild.getDisplayName()).setStyle(Commons.getStyleWarning()) ));
-						Commons.addChatMessage(commandSender, new TextComponentTranslation("warpdrive.command.specify_explicit_dimension").setStyle(Commons.getStyleCorrect()));
+						Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.player_can_t_go_virtual",
+						                                                                                             entityServerPlayer.getName().getFormattedText(),
+						                                                                                             celestialObjectChild.getDisplayName() )
+								                                                                .setStyle(Commons.getStyleWarning()) ));
+						Commons.addChatMessage(commandSource, new TranslationTextComponent("warpdrive.command.specify_explicit_dimension")
+								                                      .setStyle(Commons.getStyleCorrect()));
 						continue;
 					} else {
-						dimensionIdTarget = celestialObjectChild.dimensionId;
+						dimensionTypeTarget = DimensionType.byName(celestialObjectChild.dimensionId);
 						final VectorI vEntry = celestialObjectChild.getEntryOffset();
 						xTarget += vEntry.x;
 						yTarget += vEntry.y;
@@ -126,30 +133,31 @@ public class CommandSpace extends AbstractCommand {
 					// on a planet => move to space
 					if ( celestialObjectCurrent.parent == null
 					  || celestialObjectCurrent.parent.isVirtual() ) {
-						dimensionIdTarget = 0;
+						dimensionTypeTarget = DimensionType.getById(0);
 						
 					} else {
-						dimensionIdTarget = celestialObjectCurrent.parent.dimensionId;
+						dimensionTypeTarget = DimensionType.byName(celestialObjectCurrent.parent.dimensionId);
 						final VectorI vEntry = celestialObjectCurrent.getEntryOffset();
 						xTarget -= vEntry.x;
 						yTarget -= vEntry.y;
 						zTarget -= vEntry.z;
 					}
 				}
+				assert dimensionTypeTarget != null;
 				
 			} else {
 				// adjust offset when it's directly above or below us
 				if ( celestialObjectCurrent != null
 				  && celestialObjectCurrent.parent != null
-				  && celestialObjectCurrent.parent.dimensionId == dimensionIdTarget ) {// moving to parent explicitly
+				  && celestialObjectCurrent.parent.dimensionId.equals(dimensionTypeTarget.getRegistryName()) ) {// moving to parent explicitly
 					final VectorI vEntry = celestialObjectCurrent.getEntryOffset();
 					xTarget -= vEntry.x;
 					yTarget -= vEntry.y;
 					zTarget -= vEntry.z;
 				} else {
-					final CelestialObject celestialObjectChild = CelestialObjectManager.getClosestChild(entityPlayerMP.world, (int) entityPlayerMP.posX, (int) entityPlayerMP.posZ);
+					final CelestialObject celestialObjectChild = CelestialObjectManager.getClosestChild(entityServerPlayer.world, (int) entityServerPlayer.getPosX(), (int) entityServerPlayer.getPosZ());
 					if ( celestialObjectChild != null
-					  && celestialObjectChild.dimensionId == dimensionIdTarget ) {// moving to child explicitly
+					  && celestialObjectChild.dimensionId.equals(dimensionTypeTarget.getRegistryName()) ) {// moving to child explicitly
 						final VectorI vEntry = celestialObjectChild.getEntryOffset();
 						xTarget += vEntry.x;
 						yTarget += vEntry.y;
@@ -159,7 +167,7 @@ public class CommandSpace extends AbstractCommand {
 			}
 			
 			// get target celestial object
-			final CelestialObject celestialObjectTarget = CelestialObjectManager.get(false, dimensionIdTarget, xTarget, zTarget);
+			final CelestialObject celestialObjectTarget = CelestialObjectManager.get(false, dimensionTypeTarget.getRegistryName(), xTarget, zTarget);
 			
 			// force to center if we're outside the border
 			if ( celestialObjectTarget != null
@@ -170,27 +178,27 @@ public class CommandSpace extends AbstractCommand {
 			}
 			
 			// get target world
-			final WorldServer worldTarget = Commons.getOrCreateWorldServer(dimensionIdTarget);
+			final ServerWorld worldTarget = Commons.getOrCreateWorldServer(dimensionTypeTarget);
 			if (worldTarget == null) {
-				Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("warpdrive.command.undefined_dimension",
-				                                                                                             dimensionIdTarget).setStyle(Commons.getStyleWarning())));
+				Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.undefined_dimension",
+				                                                                                             dimensionTypeTarget.getRegistryName()).setStyle(Commons.getStyleWarning())));
 				continue;
 			}
 			
 			// inform player
-			final ITextComponent textComponent = new TextComponentTranslation("warpdrive.command.teleporting_player_x_to_y",
-			                                             entityPlayerMP.getName(),
-			                                             Commons.format(worldTarget)).setStyle(Commons.getStyleCorrect());
-			Commons.addChatMessage(commandSender, textComponent);
-			WarpDrive.logger.info(textComponent.getUnformattedText());
-			if (commandSender != entityPlayerMP) {
-				Commons.addChatMessage(entityPlayerMP, new TextComponentTranslation("warpdrive.command.teleporting_by_x_to_y",
-				                                                                    commandSender.getName(), Commons.format(worldTarget), dimensionIdTarget).setStyle(Commons.getStyleCorrect()));
+			final ITextComponent textComponent = new TranslationTextComponent("warpdrive.command.teleporting_player_x_to_y",
+			                                                                  entityServerPlayer.getName().getFormattedText(),
+			                                                                  Commons.format(worldTarget)).setStyle(Commons.getStyleCorrect());
+			Commons.addChatMessage(commandSource, textComponent);
+			WarpDrive.logger.info(textComponent.getUnformattedComponentText());
+			if (commandSource != entityServerPlayer) {
+				Commons.addChatMessage(entityServerPlayer, new TranslationTextComponent("warpdrive.command.teleporting_by_x_to_y",
+						commandSource.getName(), Commons.format(worldTarget), dimensionTypeTarget.getRegistryName()).setStyle(Commons.getStyleCorrect()));
 			}
 			
 			// find a good spot
 			
-			if ( (worldTarget.isAirBlock(new BlockPos(xTarget, yTarget - 1, zTarget)) && !entityPlayerMP.capabilities.allowFlying)
+			if ( (worldTarget.isAirBlock(new BlockPos(xTarget, yTarget - 1, zTarget)) && !entityServerPlayer.abilities.allowFlying)
 			  || !worldTarget.isAirBlock(new BlockPos(xTarget, yTarget    , zTarget))
 			  || !worldTarget.isAirBlock(new BlockPos(xTarget, yTarget + 1, zTarget)) ) {// non solid ground and can't fly, or inside blocks
 				yTarget = worldTarget.getTopSolidOrLiquidBlock(new BlockPos(xTarget, yTarget, zTarget)).getY() + 1;
@@ -209,7 +217,7 @@ public class CommandSpace extends AbstractCommand {
 			}
 			
 			// actual teleportation
-			Commons.moveEntity(entityPlayerMP, worldTarget, new Vector3(xTarget + 0.5D, yTarget + 0.2D, zTarget + 0.5D));
+			Commons.moveEntity(entityServerPlayer, worldTarget, new Vector3(xTarget + 0.5D, yTarget + 0.2D, zTarget + 0.5D));
 		}
 	}
 }

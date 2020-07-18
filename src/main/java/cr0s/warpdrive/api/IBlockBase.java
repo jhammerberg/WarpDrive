@@ -2,24 +2,22 @@ package cr0s.warpdrive.api;
 
 import cr0s.warpdrive.data.EnumTier;
 
-import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemStack;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.Rarity;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import net.minecraftforge.common.IRarity;
-
 public interface IBlockBase {
 	
 	@Nonnull
-	EnumTier getTier(final ItemStack itemStack);
+	EnumTier getTier();
 	
 	@Nonnull
-	IRarity getForgeRarity(final ItemStack itemStack);
+	Rarity getRarity();
 	
     @Nullable
-    ItemBlock createItemBlock();
+    BlockItem createItemBlock();
     
     void modelInitialisation();
 }

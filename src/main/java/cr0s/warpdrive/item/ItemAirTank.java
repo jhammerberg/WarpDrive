@@ -1,44 +1,39 @@
 package cr0s.warpdrive.item;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IAirContainerItem;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.EnumAirTankTier;
 
 import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class ItemAirTank extends ItemAbstractBase implements IAirContainerItem {
 	
 	protected EnumAirTankTier enumAirTankTier;
 	
-	public ItemAirTank(final String registryName, final EnumAirTankTier enumAirTankTier) {
-		super(registryName, enumAirTankTier.getTier());
+	public ItemAirTank(@Nonnull final String registryName, @Nonnull final EnumAirTankTier enumAirTankTier) {
+		super(new Item.Properties()
+				      .group(WarpDrive.itemGroupMain)
+				      .maxDamage(WarpDriveConfig.BREATHING_AIR_TANK_CAPACITY_BY_TIER[enumAirTankTier.getIndex()])
+				      .maxStackSize(1),
+		      registryName,
+		      enumAirTankTier.getTier() );
 		
 		this.enumAirTankTier = enumAirTankTier;
-		setMaxDamage(WarpDriveConfig.BREATHING_AIR_TANK_CAPACITY_BY_TIER[enumAirTankTier.getIndex()]);
-		setMaxStackSize(1);
 		setTranslationKey("warpdrive.breathing.air_tank." + enumAirTankTier.getName());
-	}
-	
-	@Override
-	public void getSubItems(@Nonnull final CreativeTabs creativeTab, @Nonnull final NonNullList<ItemStack> list) {
-		if (!isInCreativeTab(creativeTab)) {
-			return;
-		}
-		list.add(new ItemStack(this, 1, 0));
-		list.add(new ItemStack(this, 1, getMaxDamage(null)));
 	}
 	
 	@Override
@@ -47,7 +42,7 @@ public class ItemAirTank extends ItemAbstractBase implements IAirContainerItem {
 		  || itemStack.getItem() != this ) {
 			return false;
 		}
-		return itemStack.getItemDamage() > 0;
+		return itemStack.getDamage() > 0;
 	}
 	
 	@Override
@@ -65,7 +60,7 @@ public class ItemAirTank extends ItemAbstractBase implements IAirContainerItem {
 		  || itemStack.getItem() != this ) {
 			return 0;
 		}
-		return getMaxDamage(itemStack) - itemStack.getItemDamage();
+		return getMaxDamage(itemStack) - itemStack.getDamage();
 	}
 	
 	@Override
@@ -74,7 +69,7 @@ public class ItemAirTank extends ItemAbstractBase implements IAirContainerItem {
 		  || itemStack.getItem() != this ) {
 			return itemStack;
 		}
-		itemStack.setItemDamage(Math.min(getMaxDamage(itemStack), itemStack.getItemDamage() + 1)); // bypass unbreaking enchantment
+		itemStack.setDamage(Math.min(getMaxDamage(itemStack), itemStack.getDamage() + 1)); // bypass unbreaking enchantment
 		return itemStack;
 	}
 	
@@ -87,14 +82,15 @@ public class ItemAirTank extends ItemAbstractBase implements IAirContainerItem {
 		return WarpDriveConfig.BREATHING_AIR_TANK_BREATH_DURATION_TICKS;
 	}
 	
-	@SuppressWarnings("deprecation")
 	@Override
 	public ItemStack getEmptyAirContainer(final ItemStack itemStack) {
 		if ( itemStack != null
 		  && itemStack.getItem() != this ) {
 			return itemStack;
 		}
-		return new ItemStack(this, 1, getMaxDamage());
+		final ItemStack itemStackEmpty = new ItemStack(this, 1);
+		itemStackEmpty.setDamage(getMaxDamage(itemStackEmpty));
+		return itemStackEmpty;
 	}
 	
 	@Override
@@ -107,11 +103,11 @@ public class ItemAirTank extends ItemAbstractBase implements IAirContainerItem {
 	}
 	
 	@Override
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public void addInformation(@Nonnull final ItemStack itemStack, @Nullable final World world,
-	                           @Nonnull final List<String> list, @Nonnull final ITooltipFlag advancedItemTooltips) {
+	                           @Nonnull final List<ITextComponent> list, @Nonnull final ITooltipFlag advancedItemTooltips) {
 		super.addInformation(itemStack, world, list, advancedItemTooltips);
 		
-		Commons.addTooltip(list, new TextComponentTranslation("item.warpdrive.breathing.air_tank.tooltip.usage").getFormattedText());
+		Commons.addTooltip(list, new TranslationTextComponent("item.warpdrive.breathing.air_tank.tooltip.usage").getFormattedText());
 	}
 }

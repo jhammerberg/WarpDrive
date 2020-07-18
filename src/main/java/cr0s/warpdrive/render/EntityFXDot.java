@@ -2,24 +2,29 @@ package cr0s.warpdrive.render;
 
 import cr0s.warpdrive.data.Vector3;
 
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.entity.Entity;
+import javax.annotation.Nonnull;
+
+import net.minecraft.client.particle.IParticleRenderType;
+import net.minecraft.client.renderer.ActiveRenderInfo;
+import net.minecraft.client.renderer.Quaternion;
+import net.minecraft.client.renderer.Vector3f;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-@SideOnly(Side.CLIENT)
+import com.mojang.blaze3d.vertex.IVertexBuilder;
+
+@OnlyIn(Dist.CLIENT)
 public class EntityFXDot extends AbstractEntityFX {
 	
-	private Vector3 v3Acceleration;
-	private double friction;
-	private int layer = 0;  // 0 = particles, 1 = blocks, 2 = items
+	private final Vector3 v3Acceleration;
+	private final double friction;
 	
-	public EntityFXDot(final World world, final Vector3 v3Position,
-	                   final Vector3 v3Motion, final Vector3 v3Acceleration, final double friction,
+	public EntityFXDot(@Nonnull final World world, @Nonnull final Vector3 v3Position,
+	                   @Nonnull final Vector3 v3Motion, @Nonnull final Vector3 v3Acceleration, final double friction,
 	                   final int age) {
 		super(world, v3Position.x, v3Position.y, v3Position.z, 0.0D, 0.0D, 0.0D);
 		
@@ -30,32 +35,22 @@ public class EntityFXDot extends AbstractEntityFX {
 		this.motionZ = v3Motion.z;
 		this.v3Acceleration = v3Acceleration;
 		this.friction = friction;
-		this.particleMaxAge = age;
+		this.maxAge = age;
 		
 		// defaults to vanilla water drip
-		setParticleTextureIndex(113);
+		// setSprite(113);
 		
 		// refresh bounding box
 		setPosition(v3Position.x, v3Position.y, v3Position.z);
 	}
 	
-	public void setParticleFromBlockIcon(final TextureAtlasSprite texture) {
-		layer = 1;
-		setParticleTexture(texture);
-	}
-	
-	public void setParticleFromItemIcon(final TextureAtlasSprite texture) {
-		layer = 2;
-		setParticleTexture(texture);
-	}
-	
 	@Override
-	public void onUpdate() {
+	public void tick() {
 		prevPosX = posX;
 		prevPosY = posY;
 		prevPosZ = posZ;
 		
-		if (particleAge++ >= particleMaxAge) {
+		if (age++ >= maxAge) {
 			setExpired();
 		}
 		
@@ -66,87 +61,75 @@ public class EntityFXDot extends AbstractEntityFX {
 	}
 	
 	@Override
-	public int getFXLayer() {
-		return layer;
+	@Nonnull
+	public IParticleRenderType getRenderType() {
+		return IParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
 	}
 	
 	@Override
-	public int getBrightnessForRender(final float p_70070_1_) {
+	public int getBrightnessForRender(final float partialTick) {
 		return 0xF00000;
 	}
 	
 	@Override
-	public void renderParticle(final BufferBuilder vertexBuffer, final Entity entityIn, final float partialTick,
-	                           final float rotationX, final float rotationZ, final float rotationYZ, final float rotationXY, final float rotationXZ) {
-		double minU = particleTextureIndexX / 16.0F;
-		double maxU = minU + 0.0624375F;
-		double minV = particleTextureIndexY / 16.0F;
-		double maxV = minV + 0.0624375F;
-		final float scale = 0.1F * particleScale;
+	public void renderParticle(@Nonnull final IVertexBuilder vertexBuffer, @Nonnull final ActiveRenderInfo renderInfo, final float partialTicks) {
+		final float minU = this.getMinU();
+		final float maxU = this.getMaxU();
+		final float minV = this.getMinV();
+		final float maxV = this.getMaxV();
+		final float scale = 0.1F * particleScale; // getScale(partialTicks);
 		
-		if (particleTexture != null) {
-			minU = particleTexture.getMinU();
-			maxU = particleTexture.getMaxU();
-			minV = particleTexture.getMinV();
-			maxV = particleTexture.getMaxV();
-		}
-		
-		final double x = prevPosX + (posX - prevPosX) * partialTick - interpPosX;
-		final double y = prevPosY + (posY - prevPosY) * partialTick - interpPosY;
-		final double z = prevPosZ + (posZ - prevPosZ) * partialTick - interpPosZ;
+		final Vec3d vec3d = renderInfo.getProjectedView();
+		final float x = (float) (MathHelper.lerp(partialTicks, prevPosX, posX) - vec3d.getX());
+		final float y = (float) (MathHelper.lerp(partialTicks, prevPosY, posY) - vec3d.getY());
+		final float z = (float) (MathHelper.lerp(partialTicks, prevPosZ, posZ) - vec3d.getZ());
 		
 		// alpha increase during first tick and decays during last 2 ticks
 		float alpha = particleAlpha;
-		final int ageLeft = particleMaxAge - particleAge;
-		if (particleAge < 1) {
-			alpha = particleAlpha * partialTick;
+		final int ageLeft = maxAge - age;
+		if (age < 1) {
+			alpha = particleAlpha * partialTicks;
 		} else if (ageLeft < 2) {
 			if (ageLeft < 1) {
-				alpha = particleAlpha * (0.5F - partialTick / 2.0F);
+				alpha = particleAlpha * (0.5F - partialTicks / 2.0F);
 			} else {
-				alpha = particleAlpha * (1.0F - partialTick / 2.0F);
+				alpha = particleAlpha * (1.0F - partialTicks / 2.0F);
 			}
 		}
 		
 		// start drawing (done by caller in layers 0 to 3)
-		// vertexBuffer.begin(GL11.GL_QUADS, DefaultVertexFormats.PARTICLE_POSITION_TEX_COLOR_LMAP);
+		// vertexBuffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX_LIGHTMAP);
 		
 		// get brightness factors
-		final int brightnessForRender = getBrightnessForRender(partialTick);
-		final int brightnessHigh = brightnessForRender >> 16 & 65535;
-		final int brightnessLow  = brightnessForRender & 65535;
+		final int brightnessForRender = getBrightnessForRender(partialTicks);
 		
 		// compute relative texture coordinates
-		final Vec3d[] vec3ds = new Vec3d[] { new Vec3d(-rotationX * scale - rotationXY * scale, -rotationZ * scale, -rotationYZ * scale - rotationXZ * scale),
-		                                     new Vec3d(-rotationX * scale + rotationXY * scale,  rotationZ * scale, -rotationYZ * scale + rotationXZ * scale),
-		                                     new Vec3d( rotationX * scale + rotationXY * scale,  rotationZ * scale,  rotationYZ * scale + rotationXZ * scale),
-		                                     new Vec3d( rotationX * scale - rotationXY * scale, -rotationZ * scale,  rotationYZ * scale - rotationXZ * scale)};
-		
-		/*
-		// apply rotation motion, only used by ParticleFallingDust
-		// field_190014_F = rotation actual tick
-		// field_190015_G = rotation previous tick
-		// field_190019_b = number of full rotations per tick
-		// field_190016_K = look
-		if (field_190014_F != 0.0F) {
-			final float angleSpin = field_190014_F + (field_190014_F - field_190015_G) * partialTick;
-			final float f9 = MathHelper.cos(angleSpin * 0.5F);
-			final float f10 = MathHelper.sin(angleSpin * 0.5F) * (float) field_190016_K.x;
-			final float f11 = MathHelper.sin(angleSpin * 0.5F) * (float) field_190016_K.y;
-			final float f12 = MathHelper.sin(angleSpin * 0.5F) * (float) field_190016_K.z;
-			final Vec3d vec3d = new Vec3d(f10, f11, f12);
-			
-			for (int l = 0; l < 4; ++l) {
-				vec3ds[l] = vec3d.scale(2.0D * vec3ds[l].dotProduct(vec3d))
-				                 .add(vec3ds[l].scale(f9 * f9 - vec3d.dotProduct(vec3d)))
-				                 .add(vec3d.crossProduct(vec3ds[l]).scale(2.0D * f9));
-			}
+		final Quaternion quaternion;
+		if (particleAngle == 0.0F) {
+			quaternion = renderInfo.getRotation();
+		} else {
+			quaternion = new Quaternion(renderInfo.getRotation());
+			final float particleAngleActual = MathHelper.lerp(partialTicks, prevParticleAngle, particleAngle);
+			quaternion.multiply(Vector3f.ZP.rotation(particleAngleActual));
 		}
-		/**/
 		
-		vertexBuffer.pos(x + vec3ds[0].x, y + vec3ds[0].y, z + vec3ds[0].z).tex(maxU, maxV).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(x + vec3ds[1].x, y + vec3ds[1].y, z + vec3ds[1].z).tex(maxU, minV).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(x + vec3ds[2].x, y + vec3ds[2].y, z + vec3ds[2].z).tex(minU, minV).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(x + vec3ds[3].x, y + vec3ds[3].y, z + vec3ds[3].z).tex(minU, maxV).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+		final Vector3f vector3f1 = new Vector3f(-1.0F, -1.0F, 0.0F);
+		vector3f1.transform(quaternion);
+		final Vector3f[] matrix = new Vector3f[] { new Vector3f(-1.0F, -1.0F, 0.0F),
+		                                              new Vector3f(-1.0F,  1.0F, 0.0F),
+		                                              new Vector3f( 1.0F,  1.0F, 0.0F),
+		                                              new Vector3f( 1.0F, -1.0F, 0.0F) };
+		
+		for(int i = 0; i < 4; ++i) {
+			Vector3f vector3f = matrix[i];
+			vector3f.transform(quaternion);
+			vector3f.mul(scale);
+			vector3f.add(x, y, z);
+		}
+		
+		vertexBuffer.pos(matrix[0].getX(), matrix[0].getY(), matrix[0].getZ()).tex(maxU, maxV).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessForRender).endVertex();
+		vertexBuffer.pos(matrix[1].getX(), matrix[1].getY(), matrix[1].getZ()).tex(maxU, minV).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessForRender).endVertex();
+		vertexBuffer.pos(matrix[2].getX(), matrix[2].getY(), matrix[2].getZ()).tex(minU, minV).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessForRender).endVertex();
+		vertexBuffer.pos(matrix[3].getX(), matrix[3].getY(), matrix[3].getZ()).tex(minU, maxV).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessForRender).endVertex();
 	}
 }

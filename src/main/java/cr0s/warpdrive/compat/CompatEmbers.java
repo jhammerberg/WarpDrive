@@ -13,9 +13,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -36,7 +36,7 @@ public class CompatEmbers implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
 		final ResourceLocation registryName = block.getRegistryName();
 		assert registryName != null;
 		if (!registryName.getNamespace().equals("embers")) {
@@ -46,12 +46,12 @@ public class CompatEmbers implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z,
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
 	                             final Block block, final int blockMeta, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
@@ -59,7 +59,7 @@ public class CompatEmbers implements IBlockTransformer {
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -254,7 +254,7 @@ public class CompatEmbers implements IBlockTransformer {
 	private static final int[] rotSplitter        = {  2,  1,  0,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 };
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		final ResourceLocation registryName = block.getRegistryName();
 		assert registryName != null;
@@ -272,7 +272,7 @@ public class CompatEmbers implements IBlockTransformer {
 			case 3:
 				return rotStoneEdge[rotStoneEdge[rotStoneEdge[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -285,7 +285,7 @@ public class CompatEmbers implements IBlockTransformer {
 			case 3:
 				return rotMechEdge[rotMechEdge[rotMechEdge[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -298,7 +298,7 @@ public class CompatEmbers implements IBlockTransformer {
 			case 3:
 				return rotForgeEdge[rotForgeEdge[rotForgeEdge[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -314,7 +314,7 @@ public class CompatEmbers implements IBlockTransformer {
 			case 3:
 				return rotFacing[rotFacing[rotFacing[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -328,7 +328,7 @@ public class CompatEmbers implements IBlockTransformer {
 			case 3:
 				return rotDawnstoneAnvil[rotDawnstoneAnvil[rotDawnstoneAnvil[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -342,7 +342,7 @@ public class CompatEmbers implements IBlockTransformer {
 			case 3:
 				return rotHorizontal[rotHorizontal[rotHorizontal[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -356,20 +356,20 @@ public class CompatEmbers implements IBlockTransformer {
 			case 3:
 				return rotFacingOr6[rotFacingOr6[rotFacingOr6[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
 		
 		// *** tile entity rotation
 		// rotate by name optionally
-		if ( nbtTileEntity.hasKey("east")
-		  || nbtTileEntity.hasKey("eastTank")
-		  || nbtTileEntity.hasKey("from2") ) {
-			final Map<String, NBTBase> map = new HashMap<>();
+		if ( nbtTileEntity.contains("east")
+		  || nbtTileEntity.contains("eastTank")
+		  || nbtTileEntity.contains("from2") ) {
+			final Map<String, INBT> map = new HashMap<>();
 			for (final String key : rotSideNames.keySet()) {
-				if (nbtTileEntity.hasKey(key)) {
-					final NBTBase tag = nbtTileEntity.getTag(key);
+				if (nbtTileEntity.contains(key)) {
+					final INBT tag = nbtTileEntity.get(key);
 					switch (rotationSteps) {
 					case 1:
 						map.put(rotSideNames.get(key), tag);
@@ -384,26 +384,26 @@ public class CompatEmbers implements IBlockTransformer {
 						map.put(key, tag);
 						break;
 					}
-					nbtTileEntity.removeTag(key);
+					nbtTileEntity.remove(key);
 				}
 			}
 			if (!map.isEmpty()) {
-				for (final Entry<String, NBTBase> entry : map.entrySet()) {
-					nbtTileEntity.setTag(entry.getKey(), entry.getValue());
+				for (final Entry<String, INBT> entry : map.entrySet()) {
+					nbtTileEntity.put(entry.getKey(), entry.getValue());
 				}
 			}
 		}
 		
 		// reposition coordinates
-		if (nbtTileEntity.hasKey("targetX")) {
-			final int targetX = nbtTileEntity.getInteger("targetX");
-			final int targetY = nbtTileEntity.getInteger("targetY");
-			final int targetZ = nbtTileEntity.getInteger("targetZ");
+		if (nbtTileEntity.contains("targetX")) {
+			final int targetX = nbtTileEntity.getInt("targetX");
+			final int targetY = nbtTileEntity.getInt("targetY");
+			final int targetZ = nbtTileEntity.getInt("targetZ");
 			if (transformation.isInside(targetX, targetY, targetZ)) {
 				final BlockPos chunkCoordinates = transformation.apply(targetX, targetY, targetZ);
-				nbtTileEntity.setInteger("targetX", chunkCoordinates.getX());
-				nbtTileEntity.setInteger("targetY", chunkCoordinates.getY());
-				nbtTileEntity.setInteger("targetZ", chunkCoordinates.getZ());
+				nbtTileEntity.putInt("targetX", chunkCoordinates.getX());
+				nbtTileEntity.putInt("targetY", chunkCoordinates.getY());
+				nbtTileEntity.putInt("targetZ", chunkCoordinates.getZ());
 			}
 		}
 		
@@ -419,7 +419,7 @@ public class CompatEmbers implements IBlockTransformer {
 			case 3:
 				return rotFacing[rotFacing[rotFacing[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -434,7 +434,7 @@ public class CompatEmbers implements IBlockTransformer {
 			case 3:
 				return rot1or2xFacing[rot1or2xFacing[rot1or2xFacing[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
@@ -448,33 +448,33 @@ public class CompatEmbers implements IBlockTransformer {
 			int targetRightX = -1;
 			int targetRightY = -1;
 			int targetRightZ = -1;
-			if (nbtTileEntity.hasKey("targetLeftX")) {
-				targetLeftX = nbtTileEntity.getInteger("targetLeftX");
-				targetLeftY = nbtTileEntity.getInteger("targetLeftY");
-				targetLeftZ = nbtTileEntity.getInteger("targetLeftZ");
+			if (nbtTileEntity.contains("targetLeftX")) {
+				targetLeftX = nbtTileEntity.getInt("targetLeftX");
+				targetLeftY = nbtTileEntity.getInt("targetLeftY");
+				targetLeftZ = nbtTileEntity.getInt("targetLeftZ");
 				if (transformation.isInside(targetLeftX, targetLeftY, targetLeftZ)) {
 					final BlockPos chunkCoordinates = transformation.apply(targetLeftX, targetLeftY, targetLeftZ);
 					targetLeftX = chunkCoordinates.getX();
 					targetLeftY = chunkCoordinates.getY();
 					targetLeftZ = chunkCoordinates.getZ();
 				}
-				nbtTileEntity.removeTag("targetLeftX");
-				nbtTileEntity.removeTag("targetLeftY");
-				nbtTileEntity.removeTag("targetLeftZ");
+				nbtTileEntity.remove("targetLeftX");
+				nbtTileEntity.remove("targetLeftY");
+				nbtTileEntity.remove("targetLeftZ");
 			}
-			if (nbtTileEntity.hasKey("targetRightX")) {
-				targetRightX = nbtTileEntity.getInteger("targetRightX");
-				targetRightY = nbtTileEntity.getInteger("targetRightY");
-				targetRightZ = nbtTileEntity.getInteger("targetRightZ");
+			if (nbtTileEntity.contains("targetRightX")) {
+				targetRightX = nbtTileEntity.getInt("targetRightX");
+				targetRightY = nbtTileEntity.getInt("targetRightY");
+				targetRightZ = nbtTileEntity.getInt("targetRightZ");
 				if (transformation.isInside(targetRightX, targetRightY, targetRightZ)) {
 					final BlockPos chunkCoordinates = transformation.apply(targetRightX, targetRightY, targetRightZ);
 					targetRightX = chunkCoordinates.getX();
 					targetRightY = chunkCoordinates.getY();
 					targetRightZ = chunkCoordinates.getZ();
 				}
-				nbtTileEntity.removeTag("targetRightX");
-				nbtTileEntity.removeTag("targetRightY");
-				nbtTileEntity.removeTag("targetRightZ");
+				nbtTileEntity.remove("targetRightX");
+				nbtTileEntity.remove("targetRightY");
+				nbtTileEntity.remove("targetRightZ");
 			}
 			
 			// compute if we need to switch sides or not
@@ -492,25 +492,25 @@ public class CompatEmbers implements IBlockTransformer {
 			  || (metadata == 0 && rotationSteps == 1)
 			  || (metadata == 2 && rotationSteps == 3) ) {
 				if (targetLeftY != -1) {
-					nbtTileEntity.setInteger("targetLeftX", targetLeftX);
-					nbtTileEntity.setInteger("targetLeftY", targetLeftY);
-					nbtTileEntity.setInteger("targetLeftZ", targetLeftZ);
+					nbtTileEntity.putInt("targetLeftX", targetLeftX);
+					nbtTileEntity.putInt("targetLeftY", targetLeftY);
+					nbtTileEntity.putInt("targetLeftZ", targetLeftZ);
 				}
 				if (targetRightY != -1) {
-					nbtTileEntity.setInteger("targetRightX", targetRightX);
-					nbtTileEntity.setInteger("targetRightY", targetRightY);
-					nbtTileEntity.setInteger("targetRightZ", targetRightZ);
+					nbtTileEntity.putInt("targetRightX", targetRightX);
+					nbtTileEntity.putInt("targetRightY", targetRightY);
+					nbtTileEntity.putInt("targetRightZ", targetRightZ);
 				}
 			} else {
 				if (targetRightY != -1) {
-					nbtTileEntity.setInteger("targetLeftX", targetRightX);
-					nbtTileEntity.setInteger("targetLeftY", targetRightY);
-					nbtTileEntity.setInteger("targetLeftZ", targetRightZ);
+					nbtTileEntity.putInt("targetLeftX", targetRightX);
+					nbtTileEntity.putInt("targetLeftY", targetRightY);
+					nbtTileEntity.putInt("targetLeftZ", targetRightZ);
 				}
 				if (targetLeftY != -1) {
-					nbtTileEntity.setInteger("targetRightX", targetLeftX);
-					nbtTileEntity.setInteger("targetRightY", targetLeftY);
-					nbtTileEntity.setInteger("targetRightZ", targetLeftZ);
+					nbtTileEntity.putInt("targetRightX", targetLeftX);
+					nbtTileEntity.putInt("targetRightY", targetLeftY);
+					nbtTileEntity.putInt("targetRightZ", targetLeftZ);
 				}
 			}
 			
@@ -523,17 +523,17 @@ public class CompatEmbers implements IBlockTransformer {
 			case 3:
 				return rotSplitter[rotSplitter[rotSplitter[metadata]]];
 			default:
-				return metadata;
+				return blockState;
 			}
 		}
 		
-		return metadata;
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		// nothing to do
 	}
 }

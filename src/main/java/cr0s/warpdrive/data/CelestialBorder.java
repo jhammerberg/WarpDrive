@@ -2,7 +2,7 @@ package cr0s.warpdrive.data;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.world.border.EnumBorderStatus;
+import net.minecraft.world.border.BorderStatus;
 import net.minecraft.world.border.WorldBorder;
 
 
@@ -26,8 +26,8 @@ public class CelestialBorder extends WorldBorder {
 	
 	@Nonnull
 	@Override
-	public EnumBorderStatus getStatus() {
-		return EnumBorderStatus.STATIONARY;
+	public BorderStatus getStatus() {
+		return BorderStatus.STATIONARY;
 	}
 	
 	@Override

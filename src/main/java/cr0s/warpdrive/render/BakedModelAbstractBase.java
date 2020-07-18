@@ -5,31 +5,32 @@ import cr0s.warpdrive.api.IMyBakedModel;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.vecmath.Matrix4f;
 import java.util.List;
+import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.IBakedModel;
-import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
-import net.minecraft.client.renderer.block.model.ItemOverrideList;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.client.renderer.Vector3f;
+import net.minecraft.client.renderer.model.BakedQuad;
+import net.minecraft.client.renderer.model.IBakedModel;
+import net.minecraft.client.renderer.model.ItemCameraTransforms;
+import net.minecraft.client.renderer.model.ItemOverrideList;
+import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.renderer.vertex.VertexFormat;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.item.ItemBlock;
+import net.minecraft.client.renderer.vertex.VertexFormatElement;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.world.World;
-import org.lwjgl.util.vector.Vector3f;
 
-import net.minecraftforge.client.model.pipeline.UnpackedBakedQuad;
+import net.minecraftforge.client.model.pipeline.BakedQuadBuilder;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.commons.lang3.tuple.Pair;
+import com.mojang.blaze3d.matrix.MatrixStack;
 
 public abstract class BakedModelAbstractBase implements IMyBakedModel {
 	
@@ -39,9 +40,9 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 	protected TextureAtlasSprite spriteParticle;
 	protected TextureAtlasSprite spriteBlock;
 	protected int tintIndex = -1;
-	protected VertexFormat format = DefaultVertexFormats.ITEM;
+	protected VertexFormat format = DefaultVertexFormats.POSITION_COLOR_TEX;
 	
-	protected IBlockState blockStateDefault;
+	protected BlockState blockStateDefault;
 	
 	public BakedModelAbstractBase() {
 		super();
@@ -53,16 +54,15 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 	}
 	
 	@Override
-	public void setOriginalBakedModel(final IBakedModel bakedModel) {
+	public void setOriginalBakedModel(@Nonnull final IBakedModel bakedModel) {
 		this.bakedModelOriginal = bakedModel;
-		spriteParticle = bakedModel.getParticleTexture();
+		spriteParticle = bakedModel.getParticleTexture(null);
 		try {
-			for (final EnumFacing enumFacing : EnumFacing.VALUES) {
-				final List<BakedQuad> bakedQuads = bakedModel.getQuads(null, enumFacing, 0);
+			for (final Direction enumFacing : Direction.values()) {
+				final List<BakedQuad> bakedQuads = bakedModel.getQuads(null, enumFacing, null);
 				if (!bakedQuads.isEmpty()) {
 					final BakedQuad bakedQuad = bakedQuads.get(0);
-					format = bakedQuad.getFormat();
-					spriteBlock = bakedQuad.getSprite();
+					spriteBlock = bakedQuad.func_187508_a();
 					if (bakedQuad.hasTintIndex()) {
 						tintIndex = bakedQuad.getTintIndex();
 					}
@@ -73,24 +73,26 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 			exception.printStackTrace(WarpDrive.printStreamError);
 			WarpDrive.logger.error(String.format("Exception trying to retrieve format for %s original baked model %s, defaulting to forge",
 			                                     modelResourceLocation, bakedModelOriginal));
-			format = DefaultVertexFormats.ITEM;
+			format = DefaultVertexFormats.POSITION_COLOR_TEX;
 		}
 	}
 	
-	protected void putVertex(final UnpackedBakedQuad.Builder builder,
-	                         final float x, final float y, final float z,
-	                         final float red, final float green, final float blue, final float alpha,
-	                         final float u, final float v,
-	                         @Nullable final Vector3f normal) {
-		for (int index = 0; index < format.getElementCount(); index++) {
-			switch (format.getElement(index).getUsage()) {
+	protected void putVertex(final BakedQuadBuilder builder,
+                     final float x, final float y, final float z,
+                     final float red, final float green, final float blue, final float alpha,
+                     final float u, final float v,
+                     @Nullable final Vector3f normal) {
+		ImmutableList<VertexFormatElement> elements = format.getElements();
+		for (int index = 0; index < elements.size(); index++) {
+			final VertexFormatElement element = elements.get(index);
+			switch (element.getUsage()) {
 			case POSITION:
 				builder.put(index, x, y, z, 1.0F);
 				break;
 				
 			case NORMAL:
 				if (normal != null) {
-					builder.put(index, normal.x, normal.y, normal.z);
+					builder.put(index, normal.getX(), normal.getY(), normal.getZ());
 				} else {
 					WarpDrive.logger.warn(String.format("Missing normal vector, it's required in format %s",
 					                                    format));
@@ -117,7 +119,7 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 			
 			default:
 				WarpDrive.logger.warn(String.format("Unsupported format element #%d %s in %s",
-				                                    index, format.getElement(index), format));
+				                                    index, element, format));
 				builder.put(index);
 				break;
 			}
@@ -132,16 +134,15 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 	                            final float x4, final float y4, final float z4, final float u4, final float v4) {
 		final Vector3f vectorNormal;
 		if (format.hasNormal()) {
-			final Vector3f vectorTemp1 = new Vector3f(x3 - x2, y3 - y2, z3 - z2);
-			final Vector3f vectorTemp2 = new Vector3f(x1 - x2, y1 - y2, z1 - z2);
-			vectorNormal = Vector3f.cross(vectorTemp1, vectorTemp2, vectorTemp1);
-			vectorNormal.normalise(vectorNormal);
+			vectorNormal = new Vector3f(x3 - x2, y3 - y2, z3 - z2);
+			final Vector3f vectorTemp = new Vector3f(x1 - x2, y1 - y2, z1 - z2);
+			vectorNormal.cross(vectorTemp);
+			vectorNormal.normalize();
 		} else {
 			vectorNormal = null;
 		}
 		
-		final UnpackedBakedQuad.Builder builder = new UnpackedBakedQuad.Builder(format);
-		builder.setTexture(sprite);
+		final BakedQuadBuilder builder = new BakedQuadBuilder(sprite);
 		putVertex(builder, x1, y1, z1, red, green, blue, alpha, u1, v1, vectorNormal);
 		putVertex(builder, x2, y2, z2, red, green, blue, alpha, u2, v2, vectorNormal);
 		putVertex(builder, x3, y3, z3, red, green, blue, alpha, u3, v3, vectorNormal);
@@ -169,6 +170,12 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 		             x4, y4, z4, u4, v4);
 	}
 	
+	@Nonnull
+	@Override
+	public List<BakedQuad> getQuads(@Nullable final BlockState blockState, @Nullable final Direction side, @Nonnull final Random rand) {
+		return bakedModelOriginal.getQuads(blockState, side, rand);
+	}
+	
 	@Override
 	public boolean isAmbientOcclusion() {
 		return bakedModelOriginal.isAmbientOcclusion();
@@ -180,6 +187,11 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 	}
 	
 	@Override
+	public boolean func_230044_c_() {
+		return bakedModelOriginal.func_230044_c_();
+	}
+	
+	@Override
 	public boolean isBuiltInRenderer() {
 		return bakedModelOriginal.isBuiltInRenderer();
 	}
@@ -187,18 +199,9 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 	@Nonnull
 	@Override
 	public TextureAtlasSprite getParticleTexture() {
-		// Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite("warpdrive:someTexture")
+		// Minecraft.getInstance().getTextureMapBlocks().getAtlasSprite("warpdrive:someTexture")
 		return spriteParticle;
 	}
-	
-	/*
-	@Nonnull
-	@Override
-	public ItemCameraTransforms getItemCameraTransforms() {
-		// ItemCameraTransforms.DEFAULT
-		return bakedModelOriginal.getItemCameraTransforms();
-	}
-	/**/
 	
 	@Nonnull
 	@Override
@@ -207,14 +210,14 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 		return itemOverrideList;
 	}
 	
-	protected ItemOverrideList itemOverrideList = new ItemOverrideList(ImmutableList.of()) {
+	protected ItemOverrideList itemOverrideList = new ItemOverrideList() {
 		@Nonnull
 		@Override
-		public IBakedModel handleItemState(@Nonnull final IBakedModel model, @Nonnull final ItemStack itemStack,
-		                                   final World world, final EntityLivingBase entity) {
-			final Block block = ((ItemBlock) itemStack.getItem()).getBlock();
-			final IBlockState blockState = block.getStateFromMeta(itemStack.getMetadata());
-			final IBakedModel bakedModelNew = Minecraft.getMinecraft().getBlockRendererDispatcher().getModelForState(blockState);
+		public IBakedModel getModelWithOverrides(@Nonnull final IBakedModel model, @Nonnull final ItemStack itemStack,
+		                                         final World world, final LivingEntity entity) {
+			final Block block = ((BlockItem) itemStack.getItem()).getBlock();
+			final BlockState blockState = block.getDefaultState();
+			final IBakedModel bakedModelNew = Minecraft.getInstance().getBlockRendererDispatcher().getModelForState(blockState);
 			blockStateDefault = blockState;
 			return bakedModelNew;
 		}
@@ -222,11 +225,10 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 	
 	@Nonnull
 	@Override
-	public Pair<? extends IBakedModel, Matrix4f> handlePerspective(@Nonnull final ItemCameraTransforms.TransformType cameraTransformType) {
+	public IBakedModel handlePerspective(@Nonnull final ItemCameraTransforms.TransformType cameraTransformType, final MatrixStack matrixStack) {
 		if (bakedModelOriginal == null) {
-			return net.minecraftforge.client.ForgeHooksClient.handlePerspective(this, cameraTransformType);
+			return net.minecraftforge.client.ForgeHooksClient.handlePerspective(this, cameraTransformType, matrixStack);
 		}
-		final Matrix4f matrix4f = ((IBakedModel) bakedModelOriginal).handlePerspective(cameraTransformType).getRight();
-		return Pair.of(this, matrix4f);
+		return bakedModelOriginal.handlePerspective(cameraTransformType, matrixStack);
 	}
 }

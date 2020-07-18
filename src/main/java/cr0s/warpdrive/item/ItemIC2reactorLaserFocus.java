@@ -4,31 +4,31 @@ import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.EnumTier;
 
+import javax.annotation.Nonnull;
+
 import ic2.api.reactor.IReactor;
 import ic2.api.reactor.IReactorComponent;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
-import net.minecraftforge.fml.common.Optional;
-
-@Optional.InterfaceList({
-	@Optional.Interface(iface = "ic2.api.reactor.IReactorComponent", modid = "ic2")
-	})
 public class ItemIC2reactorLaserFocus extends ItemAbstractBase implements IReactorComponent {
 	
 	private static final int[] xOffset = { -1,  0, 0, 1 };
 	private static final int[] yOffset = {  0, -1, 1, 0 };
 	
-	public ItemIC2reactorLaserFocus(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier);
+	public ItemIC2reactorLaserFocus(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(new Item.Properties()
+				      .group(WarpDrive.itemGroupMain)
+				      .maxDamage(WarpDriveConfig.IC2_REACTOR_MAX_HEAT_STORED),
+		      registryName,
+		      enumTier );
 		
-		setMaxDamage(WarpDriveConfig.IC2_REACTOR_MAX_HEAT_STORED);
 		setTranslationKey("warpdrive.energy.IC2reactorLaserFocus");
 	}
 	
 	public static int getCurrentHeat(final ItemStack itemStackFocus) {
-		return itemStackFocus.getItemDamage();
+		return itemStackFocus.getDamage();
 	}
 	
 	public static int addHeat(final ItemStack itemStackFocus, final int heat) {
@@ -43,7 +43,7 @@ public class ItemIC2reactorLaserFocus extends ItemAbstractBase implements IReact
 	}
 	
 	private static void setHeat(final ItemStack itemStackFocus, final int heat) {
-		itemStackFocus.setItemDamage(heat);
+		itemStackFocus.setDamage(heat);
 	}
 	
 	private static void balanceComponent(final ItemStack itemStackFocus1, final ItemStack itemStackFocus2) {
@@ -58,22 +58,18 @@ public class ItemIC2reactorLaserFocus extends ItemAbstractBase implements IReact
 			setHeat(itemStackFocus2, heatNew2);
 		}
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private static void coolComponent(final ItemStack itemStackFocus, final IReactorComponent reactorComponent,
 	                                  final IReactor reactor, final ItemStack itemStackComponent, final int x, final int y) {
 		final int heatMaxRate = Math.min(WarpDriveConfig.IC2_REACTOR_COMPONENT_HEAT_TRANSFER_PER_TICK,
-		                                 WarpDriveConfig.IC2_REACTOR_MAX_HEAT_STORED - itemStackFocus.getItemDamage());
+		                                 WarpDriveConfig.IC2_REACTOR_MAX_HEAT_STORED - itemStackFocus.getDamage());
 		final int heatComponent = reactorComponent.getCurrentHeat(itemStackComponent, reactor, x, y);
 		final int heatToTransfer = -Math.min(heatComponent, heatMaxRate);
 		final int heatRetained = reactorComponent.alterHeat(itemStackComponent, reactor, x, y, heatToTransfer);
 		addHeat(itemStackFocus, heatRetained - heatToTransfer);
 	}
-	
-	@Optional.Method(modid = "ic2")
 	private static void coolReactor(final IReactor reactor, final ItemStack self) {
 		final int heatMaxRate = Math.min(WarpDriveConfig.IC2_REACTOR_REACTOR_HEAT_TRANSFER_PER_TICK,
-		                                 WarpDriveConfig.IC2_REACTOR_MAX_HEAT_STORED - self.getItemDamage());
+		                                 WarpDriveConfig.IC2_REACTOR_MAX_HEAT_STORED - self.getDamage());
 		final int heatReactor = reactor.getHeat();
 		final int heatToTransfer = Math.min(heatMaxRate, heatReactor);
 		reactor.addHeat(-heatToTransfer);
@@ -82,7 +78,6 @@ public class ItemIC2reactorLaserFocus extends ItemAbstractBase implements IReact
 	
 	// IReactorComponent overrides
 	@Override
-	@Optional.Method(modid = "ic2")
 	public void processChamber(final ItemStack itemStackFocus, final IReactor reactor, final int x, final int y, final boolean isRunning) {
 		if (!isRunning) {
 			return;
@@ -106,32 +101,27 @@ public class ItemIC2reactorLaserFocus extends ItemAbstractBase implements IReact
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
 	public boolean acceptUraniumPulse(final ItemStack itemStackFocus, final IReactor reactor, final ItemStack pulsingStack,
 	                                  final int xFocus, final int yFocus, final int xPulsing, final int yPulsing, final boolean isRunning) {
 		return false;
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
 	public boolean canStoreHeat(final ItemStack itemStackFocus, final IReactor reactor, final int x, final int y) {
 		return true;
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
 	public int getMaxHeat(final ItemStack itemStackFocus, final IReactor reactor, final int x, final int y) {
 		return WarpDriveConfig.IC2_REACTOR_MAX_HEAT_STORED;
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
 	public int getCurrentHeat(final ItemStack itemStackFocus, final IReactor reactor, final int x, final int y) {
 		return getCurrentHeat(itemStackFocus);
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
 	public int alterHeat(final ItemStack itemStackFocus, final IReactor reactor, final int x, final int y, final int heat) {
 		if (WarpDriveConfig.LOGGING_ENERGY) {
 			WarpDrive.logger.info(String.format("%s alterHeat(reactor %s, x %d, y %d, heat %d)",
@@ -141,7 +131,6 @@ public class ItemIC2reactorLaserFocus extends ItemAbstractBase implements IReact
 	}
 	
 	@Override
-	@Optional.Method(modid = "ic2")
 	public float influenceExplosion(final ItemStack itemStack, final IReactor reactor) {
 		return 0;
 	}

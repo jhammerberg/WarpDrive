@@ -1,32 +1,30 @@
 package cr0s.warpdrive.data;
 
+import cr0s.warpdrive.Commons;
+
 import javax.annotation.Nonnull;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.gen.ChunkProviderServer;
-
-import net.minecraftforge.common.DimensionManager;
+import net.minecraft.world.server.ServerWorld;
 
 public class GlobalPosition {
 	
-	public final int dimensionId;
+	public final ResourceLocation dimensionId;
 	public final int x, y, z;
 	private BlockPos cache_blockPos;
 	
-	public GlobalPosition(final int dimensionId, final int x, final int y, final int z) {
+	public GlobalPosition(final ResourceLocation dimensionId, final int x, final int y, final int z) {
 		this.dimensionId = dimensionId;
 		this.x = x;
 		this.y = y;
 		this.z = z;
 	}
 	
-	public GlobalPosition(final int dimensionId, @Nonnull final BlockPos blockPos) {
+	public GlobalPosition(final ResourceLocation dimensionId, @Nonnull final BlockPos blockPos) {
 		this.dimensionId = dimensionId;
 		this.x = blockPos.getX();
 		this.y = blockPos.getY();
@@ -34,36 +32,24 @@ public class GlobalPosition {
 	}
 	
 	public GlobalPosition(@Nonnull final TileEntity tileEntity) {
-		this(tileEntity.getWorld().provider.getDimension(), tileEntity.getPos().getX(), tileEntity.getPos().getY(), tileEntity.getPos().getZ());
+		this(tileEntity.getWorld().getDimension().getType().getRegistryName(), tileEntity.getPos().getX(), tileEntity.getPos().getY(), tileEntity.getPos().getZ());
 	}
 	
 	public GlobalPosition(@Nonnull final Entity entity) {
-		this(entity.world.provider.getDimension(),
-			(int) Math.floor(entity.posX),
-			(int) Math.floor(entity.posY),
-			(int) Math.floor(entity.posZ));
+		this(entity.world.getDimension().getType().getRegistryName(),
+			(int) Math.floor(entity.getPosX()),
+			(int) Math.floor(entity.getPosY()),
+			(int) Math.floor(entity.getPosZ()));
 	}
 	
-	public WorldServer getWorldServerIfLoaded() {
-		final WorldServer world = DimensionManager.getWorld(dimensionId);
+	public ServerWorld getWorldServerIfLoaded() {
+		final ServerWorld world = Commons.getLoadedWorldServer(dimensionId);
 		// skip unloaded worlds
 		if (world == null) {
 			return null;
 		}
 		
-		boolean isLoaded = false;
-		final ChunkProviderServer chunkProviderServer = world.getChunkProvider();
-		try {
-			final long i = ChunkPos.asLong(x >> 4, z >> 4);
-			final Chunk chunk = chunkProviderServer.loadedChunks.get(i);
-			if (chunk != null) {
-				isLoaded = !chunk.unloadQueued;
-			}
-		} catch (final NoSuchFieldError exception) {
-			isLoaded = chunkProviderServer.chunkExists(x >> 4, z >> 4);
-		}
-		// skip unloaded chunks
-		if (!isLoaded) {
+		if (!world.chunkExists(x >> 4, z >> 4)) {
 			return null;
 		}
 		return world;
@@ -93,7 +79,9 @@ public class GlobalPosition {
 	}
 	
 	public int distance2To(@Nonnull final TileEntity tileEntity) {
-		if (tileEntity.getWorld().provider.getDimension() != dimensionId) {
+		assert tileEntity.getWorld() != null;
+		assert tileEntity.getWorld().getDimension().getType().getRegistryName() != null;
+		if (!tileEntity.getWorld().getDimension().getType().getRegistryName().equals(dimensionId)) {
 			return Integer.MAX_VALUE;
 		}
 		final int newX = tileEntity.getPos().getX() - x;
@@ -103,32 +91,36 @@ public class GlobalPosition {
 	}
 	
 	public double distance2To(@Nonnull final Entity entity) {
-		if (entity.world.provider.getDimension() != dimensionId) {
+		assert entity.world.getDimension().getType().getRegistryName() != null;
+		if (!entity.world.getDimension().getType().getRegistryName().equals(dimensionId)) {
 			return Double.MAX_VALUE;
 		}
-		final double newX = entity.posX - x;
-		final double newY = entity.posY - y;
-		final double newZ = entity.posZ - z;
+		final double newX = entity.getPosX() - x;
+		final double newY = entity.getPosY() - y;
+		final double newZ = entity.getPosZ() - z;
 		return newX * newX + newY * newY + newZ * newZ;
 	}
 	
-	public GlobalPosition(@Nonnull final NBTTagCompound tagCompound) {
-		dimensionId = tagCompound.getInteger("dimensionId");
-		x = tagCompound.getInteger("x");
-		y = tagCompound.getInteger("y");
-		z = tagCompound.getInteger("z");
+	public GlobalPosition(@Nonnull final CompoundNBT tagCompound) {
+		dimensionId = new ResourceLocation(tagCompound.getString("dimensionId"));
+		x = tagCompound.getInt("x");
+		y = tagCompound.getInt("y");
+		z = tagCompound.getInt("z");
 	}
 	
-	public void writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		tagCompound.setInteger("dimensionId", dimensionId);
-		tagCompound.setInteger("x", x);
-		tagCompound.setInteger("y", y);
-		tagCompound.setInteger("z", z);
+	public void write(@Nonnull final CompoundNBT tagCompound) {
+		tagCompound.putString("dimensionId", dimensionId.toString());
+		tagCompound.putInt("x", x);
+		tagCompound.putInt("y", y);
+		tagCompound.putInt("z", z);
 	}
 	
 	public boolean equals(@Nonnull final TileEntity tileEntity) {
-		return dimensionId == tileEntity.getWorld().provider.getDimension()
-			&& x == tileEntity.getPos().getX() && y == tileEntity.getPos().getY() && z == tileEntity.getPos().getZ();
+		return tileEntity.getWorld() != null
+			&& x == tileEntity.getPos().getX()
+		    && y == tileEntity.getPos().getY()
+		    && z == tileEntity.getPos().getZ()
+		    && dimensionId.equals(tileEntity.getWorld().getDimension().getType().getRegistryName());
 	}
 	
 	@Override
@@ -141,10 +133,11 @@ public class GlobalPosition {
 			return (x == vector.x) && (y == vector.y) && (z == vector.z);
 		} else if (object instanceof TileEntity) {
 			final TileEntity tileEntity = (TileEntity) object;
-			return (dimensionId == tileEntity.getWorld().provider.getDimension())
-			    && (x == tileEntity.getPos().getX())
-			    && (y == tileEntity.getPos().getY())
-			    && (z == tileEntity.getPos().getZ());
+			return tileEntity.getWorld() != null
+			    && x == tileEntity.getPos().getX()
+			    && y == tileEntity.getPos().getY()
+			    && z == tileEntity.getPos().getZ()
+			    && dimensionId.equals(tileEntity.getWorld().getDimension().getType().getRegistryName());
 		}
 		
 		return false;
@@ -152,12 +145,12 @@ public class GlobalPosition {
 	
 	@Override
 	public int hashCode() {
-		return dimensionId << 24 + (x >> 10) << 12 + y << 10 + (z >> 10);
+		return dimensionId.hashCode() << 24 + (x >> 10) << 12 + y << 10 + (z >> 10);
 	}
 	
 	@Override
 	public String toString() {
-		return String.format("GlobalPosition{DIM%d (%d %d %d)}",
+		return String.format("GlobalPosition{%s (%d %d %d)}",
 		                     dimensionId, x, y, z );
 	}
 }

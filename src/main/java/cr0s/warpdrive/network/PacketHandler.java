@@ -10,56 +10,113 @@ import cr0s.warpdrive.data.MovingEntity;
 import cr0s.warpdrive.data.Vector3;
 
 import javax.annotation.Nonnull;
-import java.lang.reflect.Method;
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.EntityTrackerEntry;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.attributes.AttributeMap;
 import net.minecraft.entity.ai.attributes.IAttributeInstance;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.inventory.EntityEquipmentSlot;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.Packet;
+import net.minecraft.network.IPacket;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.server.*;
-import net.minecraft.potion.PotionEffect;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.dimension.DimensionType;
 
-import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.common.network.NetworkRegistry.TargetPoint;
-import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
-import net.minecraftforge.fml.relauncher.ReflectionHelper;
-import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.network.NetworkDirection;
+import net.minecraftforge.fml.network.NetworkEvent.Context;
+import net.minecraftforge.fml.network.NetworkRegistry;
+import net.minecraftforge.fml.network.simple.SimpleChannel;
 
 public class PacketHandler {
 	
-	private static final SimpleNetworkWrapper simpleNetworkManager = NetworkRegistry.INSTANCE.newSimpleChannel(WarpDrive.MODID);
-	private static Method EntityTrackerEntry_getPacketForThisEntity;
+	private static final SimpleChannel SIMPLE_CHANNEL = NetworkRegistry.ChannelBuilder
+			                                                    .named(new ResourceLocation(WarpDrive.MODID, "network"))
+			                                                    .networkProtocolVersion(() -> WarpDrive.PROTOCOL_VERSION)
+			                                                    .clientAcceptedVersions(WarpDrive.PROTOCOL_VERSION::equals)
+			                                                    .serverAcceptedVersions(WarpDrive.PROTOCOL_VERSION::equals)
+			                                                    .simpleChannel();
+	
+	public interface IMessage {
+		
+		void encode(@Nonnull final PacketBuffer buffer);
+		
+		void decode(@Nonnull final PacketBuffer buffer);
+		
+		IMessage process(@Nonnull final Context context);
+	}
+	
+	private static <T extends IMessage> void registerMessage(@Nonnull final Class<T> packetType, final int messageId, @Nonnull final NetworkDirection networkDirection) {
+		SIMPLE_CHANNEL.registerMessage(messageId,
+		                               packetType,
+		                               IMessage::encode,
+		                               (buf) -> {
+		                                     	T t;
+		                                     	try {
+		                                     		t = packetType.newInstance();
+		                                     	} catch (InstantiationException | IllegalAccessException e) {
+		                                     		e.printStackTrace(WarpDrive.printStreamError);
+		                                     		return null;
+		                                     	}
+		                                     	t.decode(buf);
+		                                     	return t;
+		                                     },
+		                               (t, contextSupplier) -> {
+		                                        final Context context = contextSupplier.get();
+		                                        final IMessage response = t.process(context);
+		                                        if (response != null) {
+		                                        	SIMPLE_CHANNEL.sendTo(response, context.getNetworkManager(), context.getDirection().reply());
+		                                        }
+		                                        context.setPacketHandled(true);
+		                                     },
+		                               Optional.of(networkDirection));
+	}
 	
 	public static void init() {
 		// Forge packets
-		simpleNetworkManager.registerMessage(MessageBeamEffect.class          , MessageBeamEffect.class          , 0, Side.CLIENT);
-		simpleNetworkManager.registerMessage(MessageClientSync.class          , MessageClientSync.class          , 2, Side.CLIENT);
-		simpleNetworkManager.registerMessage(MessageCloak.class               , MessageCloak.class               , 3, Side.CLIENT);
-		simpleNetworkManager.registerMessage(MessageSpawnParticle.class       , MessageSpawnParticle.class       , 4, Side.CLIENT);
-		simpleNetworkManager.registerMessage(MessageVideoChannel.class        , MessageVideoChannel.class        , 5, Side.CLIENT);
-		simpleNetworkManager.registerMessage(MessageTransporterEffect.class   , MessageTransporterEffect.class   , 6, Side.CLIENT);
+		registerMessage(MessageBeamEffect.class          , 0, NetworkDirection.PLAY_TO_CLIENT);
+		registerMessage(MessageClientSync.class          , 2, NetworkDirection.PLAY_TO_CLIENT);
+		registerMessage(MessageCloak.class               , 3, NetworkDirection.PLAY_TO_CLIENT);
+		registerMessage(MessageSpawnParticle.class       , 4, NetworkDirection.PLAY_TO_CLIENT);
+		registerMessage(MessageVideoChannel.class        , 5, NetworkDirection.PLAY_TO_CLIENT);
+		registerMessage(MessageTransporterEffect.class   , 6, NetworkDirection.PLAY_TO_CLIENT);
 		
-		simpleNetworkManager.registerMessage(MessageTargeting.class           , MessageTargeting.class           , 100, Side.SERVER);
-		simpleNetworkManager.registerMessage(MessageClientValidation.class    , MessageClientValidation.class    , 101, Side.SERVER);
-		simpleNetworkManager.registerMessage(MessageClientUnseating.class     , MessageClientUnseating.class     , 102, Side.SERVER);
-		
-		// Entity packets for 'uncloaking' entities
-		try {
-			EntityTrackerEntry_getPacketForThisEntity = ReflectionHelper.findMethod(
-				EntityTrackerEntry.class, "createSpawnPacket", "func_151260_c");
-		} catch (final Exception exception) {
-			throw new RuntimeException(exception);
+		registerMessage(MessageTargeting.class           , 100, NetworkDirection.PLAY_TO_SERVER);
+		registerMessage(MessageClientValidation.class    , 101, NetworkDirection.PLAY_TO_SERVER);
+		registerMessage(MessageClientUnseating.class     , 102, NetworkDirection.PLAY_TO_SERVER);
+	}
+	
+	private static void sendToPlayer(@Nonnull final IMessage message, @Nonnull ServerPlayerEntity entityServerPlayer) {
+		SIMPLE_CHANNEL.sendTo(message,
+		                      entityServerPlayer.connection.getNetworkManager(),
+		                      NetworkDirection.PLAY_TO_CLIENT );
+	}
+	
+	private static void sendToPlayers(@Nonnull final IMessage message, @Nonnull final World world,
+	                                  @Nonnull final Vector3 v3Source, @Nullable final Vector3 v3Target, final int radius) {
+		final MinecraftServer server = world.getServer();
+		assert server != null;
+		final List<ServerPlayerEntity> serverPlayerEntities = server.getPlayerList().getPlayers();
+		final DimensionType dimensionType = world.getDimension().getType();
+		final int radius_square = radius * radius;
+		for (final ServerPlayerEntity entityServerPlayer : serverPlayerEntities) {
+			if (entityServerPlayer.dimension == dimensionType) {
+				if ( v3Source.distanceTo_square(entityServerPlayer) < radius_square
+				  || ( v3Target != null
+				    && v3Target.distanceTo_square(entityServerPlayer) < radius_square ) ) {
+					sendToPlayer(message, entityServerPlayer);
+				}
+			}
 		}
 	}
 	
@@ -67,42 +124,24 @@ public class PacketHandler {
 	public static void sendBeamPacket(@Nonnull final World world, final Vector3 v3Source, final Vector3 v3Target,
 	                                  final float red, final float green, final float blue,
 	                                  final int age, final int energy, final int radius) {
-		assert !world.isRemote;
+		assert !world.isRemote();
 		
 		final MessageBeamEffect messageBeamEffect = new MessageBeamEffect(v3Source, v3Target, red, green, blue, age);
 		
-		// small beam are sent relative to beam center
-		if (v3Source.distanceTo_square(v3Target) < 3600 /* 60 * 60 */) {
-			simpleNetworkManager.sendToAllAround(messageBeamEffect, new TargetPoint(
-					world.provider.getDimension(), (v3Source.x + v3Target.x) / 2, (v3Source.y + v3Target.y) / 2, (v3Source.z + v3Target.z) / 2, radius));
-		} else {// large beam are sent from both ends
-			assert world.getMinecraftServer() != null;
-			final List<EntityPlayerMP> playerEntityList = world.getMinecraftServer().getPlayerList().getPlayers();
-			final int dimensionId = world.provider.getDimension();
-			final int radius_square = radius * radius;
-			for (final EntityPlayerMP entityPlayerMP : playerEntityList) {
-				if (entityPlayerMP.dimension == dimensionId) {
-					if ( v3Source.distanceTo_square(entityPlayerMP) < radius_square
-					  || v3Target.distanceTo_square(entityPlayerMP) < radius_square ) {
-						simpleNetworkManager.sendTo(messageBeamEffect, entityPlayerMP);
-					}
-				}
-			}
-		}
+		// beam are sent from both ends
+		sendToPlayers(messageBeamEffect, world, v3Source, v3Target, radius);
 	}
 	
 	public static void sendBeamPacketToPlayersInArea(@Nonnull final World world, final Vector3 source, final Vector3 target,
 	                                                 final float red, final float green, final float blue,
 	                                                 final int age, final AxisAlignedBB aabb) {
-		assert !world.isRemote;
+		assert !world.isRemote();
 		
 		final MessageBeamEffect messageBeamEffect = new MessageBeamEffect(source, target, red, green, blue, age);
 		// Send packet to all players within cloaked area
-		final List<Entity> list = world.getEntitiesWithinAABB(EntityPlayerMP.class, aabb);
-		for (final Entity entity : list) {
-			if (entity instanceof EntityPlayerMP) {
-				PacketHandler.simpleNetworkManager.sendTo(messageBeamEffect, (EntityPlayerMP) entity);
-			}
+		final List<ServerPlayerEntity> entityServerPlayers = world.getEntitiesWithinAABB(ServerPlayerEntity.class, aabb);
+		for (final ServerPlayerEntity entityServerPlayer : entityServerPlayers) {
+			sendToPlayer(messageBeamEffect, entityServerPlayer);
 		}
 	}
 	
@@ -112,7 +151,7 @@ public class PacketHandler {
 	                                      final int xMax, final int yMax, final int zMax,
 	                                      final float red, final float green, final float blue,
 	                                      final int age) {
-		assert !world.isRemote;
+		assert !world.isRemote();
 		
 		final Vector3 vMinMin = new Vector3(xMin, yMin, zMin);
 		final Vector3 vMaxMin = new Vector3(xMax, yMin, zMin);
@@ -126,19 +165,18 @@ public class PacketHandler {
 	}
 	
 	// Forced particle effect sent to client side
-	public static void sendSpawnParticlePacket(final World world, final String type, final byte quantity,
+	public static void sendSpawnParticlePacket(@Nonnull final World world, final String type, final byte quantity,
 	                                           final Vector3 origin, final Vector3 direction,
 	                                           final float baseRed, final float baseGreen, final float baseBlue,
 	                                           final float fadeRed, final float fadeGreen, final float fadeBlue,
 	                                           final int radius) {
-		assert !world.isRemote;
+		assert !world.isRemote();
 		
 		final MessageSpawnParticle messageSpawnParticle = new MessageSpawnParticle(
 			type, quantity, origin, direction, baseRed, baseGreen, baseBlue, fadeRed, fadeGreen, fadeBlue);
 		
-		// small beam are sent relative to beam center
-		simpleNetworkManager.sendToAllAround(messageSpawnParticle, new TargetPoint(
-				world.provider.getDimension(), origin.x, origin.y, origin.z, radius));
+		// send near the particle
+		sendToPlayers(messageSpawnParticle, world, origin, null, radius);
 		
 		if (WarpDriveConfig.LOGGING_EFFECTS) {
 			WarpDrive.logger.info(String.format("Sent particle effect '%s' x %d from %s toward %s as RGB %.2f %.2f %.2f fading to %.2f %.2f %.2f",
@@ -147,30 +185,31 @@ public class PacketHandler {
 	}
 	
 	// Transporter effect sent to client side
-	public static void sendTransporterEffectPacket(final World world, final GlobalPosition globalPositionLocal, final GlobalPosition globalPositionRemote, final double lockStrength,
+	public static void sendTransporterEffectPacket(@Nonnull final World world, final GlobalPosition globalPositionLocal, final GlobalPosition globalPositionRemote, final double lockStrength,
 	                                               final Collection<MovingEntity> movingEntitiesLocal, final Collection<MovingEntity> movingEntitiesRemote,
 	                                               final int tickEnergizing, final int tickCooldown, final int radius) {
-		assert !world.isRemote;
+		assert !world.isRemote();
 		
 		final MessageTransporterEffect messageTransporterEffectLocal = new MessageTransporterEffect(
 				true, globalPositionLocal, movingEntitiesLocal,
-				lockStrength, tickEnergizing, tickCooldown);
+				lockStrength, tickEnergizing, tickCooldown );
 		final MessageTransporterEffect messageTransporterEffectRemote = new MessageTransporterEffect(
 				false, globalPositionRemote, movingEntitiesRemote,
-				lockStrength, tickEnergizing, tickCooldown);
+				lockStrength, tickEnergizing, tickCooldown );
 		
 		// check both ends to send packet
-		assert world.getMinecraftServer() != null;
-		final List<EntityPlayerMP> playerEntityList = world.getMinecraftServer().getPlayerList().getPlayers();
+		final MinecraftServer server = world.getServer();
+		assert server != null;
+		final List<ServerPlayerEntity> serverPlayerEntities = server.getPlayerList().getPlayers();
 		final int radius_square = radius * radius;
-		for (final EntityPlayerMP entityPlayerMP : playerEntityList) {
+		for (final ServerPlayerEntity entityServerPlayer : serverPlayerEntities) {
 			if ( globalPositionLocal != null
-			  && globalPositionLocal.distance2To(entityPlayerMP) < radius_square ) {
-				simpleNetworkManager.sendTo(messageTransporterEffectLocal, entityPlayerMP);
+			  && globalPositionLocal.distance2To(entityServerPlayer) < radius_square ) {
+				sendToPlayer(messageTransporterEffectLocal, entityServerPlayer);
 			}
 			if ( globalPositionRemote != null
-			  && globalPositionRemote.distance2To(entityPlayerMP) < radius_square ) {
-				simpleNetworkManager.sendTo(messageTransporterEffectRemote, entityPlayerMP);
+			  && globalPositionRemote.distance2To(entityServerPlayer) < radius_square ) {
+				sendToPlayer(messageTransporterEffectRemote, entityServerPlayer);
 			}
 		}
 	}
@@ -178,7 +217,9 @@ public class PacketHandler {
 	// Monitor/Laser/Camera updating its video channel to client side
 	public static void sendVideoChannelPacket(final World world, final BlockPos blockPos, final int videoChannel) {
 		final MessageVideoChannel messageVideoChannel = new MessageVideoChannel(blockPos, videoChannel);
-		simpleNetworkManager.sendToAllAround(messageVideoChannel, new TargetPoint(world.provider.getDimension(), blockPos.getX(),blockPos.getY(), blockPos.getZ(), 100));
+		sendToPlayers(messageVideoChannel, world, new Vector3(blockPos.getX() + 0.5D,
+		                                                      blockPos.getY() + 0.5D,
+		                                                      blockPos.getZ() + 0.5D), null, 100 );
 		if (WarpDriveConfig.LOGGING_VIDEO_CHANNEL) {
 			WarpDrive.logger.info(String.format("Sent video channel packet at %s videoChannel %d",
 			                                    Commons.format(world, blockPos), videoChannel));
@@ -188,7 +229,7 @@ public class PacketHandler {
 	// LaserCamera shooting at target (client -> server)
 	public static void sendLaserTargetingPacket(final int x, final int y, final int z, final float yaw, final float pitch) {
 		final MessageTargeting messageTargeting = new MessageTargeting(x, y, z, yaw, pitch);
-		simpleNetworkManager.sendToServer(messageTargeting);
+		SIMPLE_CHANNEL.sendToServer(messageTargeting);
 		if (WarpDriveConfig.LOGGING_TARGETING) {
 			WarpDrive.logger.info(String.format("Sent targeting packet (%d %d %d) yaw %.3f pitch %.3f",
 			                                    x, y, z, yaw, pitch));
@@ -196,97 +237,72 @@ public class PacketHandler {
 	}
 	
 	// Sending cloaking area definition (server -> client)
-	public static void sendCloakPacket(final EntityPlayerMP entityPlayerMP, final CloakedArea area, final boolean isUncloaking) {
+	public static void sendCloakPacket(final ServerPlayerEntity entityServerPlayer, final CloakedArea area, final boolean isUncloaking) {
 		final MessageCloak messageCloak = new MessageCloak(area, isUncloaking);
-		simpleNetworkManager.sendTo(messageCloak, entityPlayerMP);
+		sendToPlayer(messageCloak, entityServerPlayer);
 		if (WarpDriveConfig.LOGGING_CLOAKING) {
 			WarpDrive.logger.info(String.format("Sent cloak packet (area %s isUncloaking %s)",
 			                                    area, isUncloaking));
 		}
 	}
 	
-	public static void sendClientSync(final EntityPlayerMP entityPlayerMP, final CelestialObject celestialObject) {
+	public static void sendClientSync(final ServerPlayerEntity entityServerPlayer, final CelestialObject celestialObject) {
 		if (WarpDriveConfig.LOGGING_CLIENT_SYNCHRONIZATION) {
 			WarpDrive.logger.info(String.format("PacketHandler.sendClientSync %s",
-			                                    entityPlayerMP));
+			                                    entityServerPlayer));
 		}
-		final MessageClientSync messageClientSync = new MessageClientSync(entityPlayerMP, celestialObject);
-		simpleNetworkManager.sendTo(messageClientSync, entityPlayerMP);
+		final MessageClientSync messageClientSync = new MessageClientSync(entityServerPlayer, celestialObject);
+		sendToPlayer(messageClientSync, entityServerPlayer);
 	}
 	
-	public static Packet<?> getPacketForThisEntity(final Entity entity) {
-		final EntityTrackerEntry entry = new EntityTrackerEntry(entity, 0, 0, 0, false);
+	public static void revealEntityToPlayer(final Entity entity, final ServerPlayerEntity entityServerPlayer) {
 		try {
-			return (Packet<?>) EntityTrackerEntry_getPacketForThisEntity.invoke(entry);
-		} catch (final Exception exception) {
-			exception.printStackTrace(WarpDrive.printStreamError);
-		}
-		WarpDrive.logger.error(String.format("Unable to get packet for entity %s",
-		                                     entity));
-		return null;
-	}
-	
-	public static void revealEntityToPlayer(final Entity entity, final EntityPlayerMP entityPlayerMP) {
-		try {
-			if (entityPlayerMP.connection == null) {
+			if (entityServerPlayer.connection == null) {
 				WarpDrive.logger.warn(String.format("Unable to reveal entity %s to player %s: no connection",
-				                                    entity, entityPlayerMP));
+				                                    entity, entityServerPlayer));
 				return;
 			}
-			final Packet<?> packet = getPacketForThisEntity(entity);
-			if (packet == null) {
-				WarpDrive.logger.error(String.format("Unable to reveal entity %s to player %s: null packet",
-				                                     entity, entityPlayerMP));
-				return;
-			}
+			final IPacket<?> packet = entity.createSpawnPacket();
 			if (WarpDriveConfig.LOGGING_CLOAKING) {
 				WarpDrive.logger.info(String.format("Revealing entity %s with patcket %s",
 				                                    entity, packet));
 			}
-			entityPlayerMP.connection.sendPacket(packet);
+			entityServerPlayer.connection.sendPacket(packet);
 			
 			if (!entity.getDataManager().isEmpty()) {
-				entityPlayerMP.connection.sendPacket(new SPacketEntityMetadata(entity.getEntityId(), entity.getDataManager(), true));
+				entityServerPlayer.connection.sendPacket(new SEntityMetadataPacket(entity.getEntityId(), entity.getDataManager(), true));
 			}
 			
-			if (entity instanceof EntityLivingBase) {
-				final AttributeMap attributemap = (AttributeMap) ((EntityLivingBase) entity).getAttributeMap();
+			if (entity instanceof LivingEntity) {
+				final AttributeMap attributemap = (AttributeMap) ((LivingEntity) entity).getAttributes();
 				final Collection<IAttributeInstance> collection = attributemap.getWatchedAttributes();
 				
 				if (!collection.isEmpty()) {
-					entityPlayerMP.connection.sendPacket(new SPacketEntityProperties(entity.getEntityId(), collection));
+					entityServerPlayer.connection.sendPacket(new SEntityPropertiesPacket(entity.getEntityId(), collection));
 				}
 				
 				// if (((EntityLivingBase)this.trackedEntity).isElytraFlying()) ... (we always send velocity information)
 			}
 			
-			if (!(packet instanceof SPacketSpawnMob)) {
-				entityPlayerMP.connection.sendPacket(new SPacketEntityVelocity(entity.getEntityId(), entity.motionX, entity.motionY, entity.motionZ));
+			if (!(packet instanceof SSpawnMobPacket)) {
+				entityServerPlayer.connection.sendPacket(new SEntityVelocityPacket(entity.getEntityId(), entity.getMotion()));
 			}
 			
-			if (entity instanceof EntityLivingBase) {
-				for (final EntityEquipmentSlot entityequipmentslot : EntityEquipmentSlot.values()) {
-					final ItemStack itemstack = ((EntityLivingBase) entity).getItemStackFromSlot(entityequipmentslot);
+			if (entity instanceof LivingEntity) {
+				for (final EquipmentSlotType entityequipmentslot : EquipmentSlotType.values()) {
+					final ItemStack itemstack = ((LivingEntity) entity).getItemStackFromSlot(entityequipmentslot);
 					
 					if (!itemstack.isEmpty()) {
-						entityPlayerMP.connection.sendPacket(new SPacketEntityEquipment(entity.getEntityId(), entityequipmentslot, itemstack));
+						entityServerPlayer.connection.sendPacket(new SEntityEquipmentPacket(entity.getEntityId(), entityequipmentslot, itemstack));
 					}
 				}
 			}
 			
-			if (entity instanceof EntityPlayer) {
-				final EntityPlayer entityplayer = (EntityPlayer) entity;
+			if (entity instanceof LivingEntity) {
+				final LivingEntity entityliving = (LivingEntity) entity;
 				
-				if (entityplayer.isPlayerSleeping()) {
-					entityPlayerMP.connection.sendPacket(new SPacketUseBed(entityplayer, new BlockPos(entity)));
-				}
-			}
-			
-			if (entity instanceof EntityLivingBase) {
-				final EntityLivingBase entitylivingbase = (EntityLivingBase) entity;
-				
-				for (final PotionEffect potioneffect : entitylivingbase.getActivePotionEffects()) {
-					entityPlayerMP.connection.sendPacket(new SPacketEntityEffect(entity.getEntityId(), potioneffect));
+				for (final EffectInstance potioneffect : entityliving.getActivePotionEffects()) {
+					entityServerPlayer.connection.sendPacket(new SPlayEntityEffectPacket(entity.getEntityId(), potioneffect));
 				}
 			}
 		} catch (final Exception exception) {
@@ -297,7 +313,7 @@ public class PacketHandler {
 	// Player dismounting from its seat (client -> server)
 	public static void sendUnseating() {
 		final MessageClientUnseating messageClientUnseating = new MessageClientUnseating();
-		simpleNetworkManager.sendToServer(messageClientUnseating);
+		SIMPLE_CHANNEL.sendToServer(messageClientUnseating);
 		if (WarpDriveConfig.LOGGING_CAMERA) {
 			WarpDrive.logger.info("Sent unseating packet");
 		}

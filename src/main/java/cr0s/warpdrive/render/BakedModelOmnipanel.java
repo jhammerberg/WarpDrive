@@ -1,6 +1,5 @@
 package cr0s.warpdrive.render;
 
-import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.block.BlockAbstractOmnipanel;
 
@@ -8,19 +7,18 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.client.renderer.model.BakedQuad;
+import net.minecraft.util.Direction;
 
-import net.minecraftforge.common.property.IExtendedBlockState;
+import net.minecraftforge.client.model.data.IModelData;
 
 public class BakedModelOmnipanel extends BakedModelAbstractBase {
 	
 	private static final List<BakedQuad> EMPTY = new ArrayList<>(0);
-	
-	private IExtendedBlockState extendedBlockStateDefault;
 	
 	public BakedModelOmnipanel() {
 		super();
@@ -28,67 +26,39 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 	
 	@Nonnull
 	@Override
-	public List<BakedQuad> getQuads(@Nullable final IBlockState blockState, @Nullable final EnumFacing enumFacing, final long rand) {
+	public List<BakedQuad> getQuads(@Nullable final BlockState blockState, @Nullable final Direction enumFacing, @Nonnull final Random rand, @Nonnull IModelData modelData) {
 		assert modelResourceLocation != null;
 		assert bakedModelOriginal != null;
 		
-		final IExtendedBlockState extendedBlockState;
-		if ( blockState instanceof IExtendedBlockState
-		  && ((IExtendedBlockState) blockState).getValue(BlockAbstractOmnipanel.CAN_CONNECT_Y_NEG) != null ) {
-			extendedBlockState = (IExtendedBlockState) blockState;
+		final BlockState blockStateActual;
+		if (blockState != null) {
+			blockStateActual = blockState;
 			
 		} else {
 			// first, ensure we've a fallback
-			if (extendedBlockStateDefault == null) {
-				if (!(blockStateDefault instanceof IExtendedBlockState)) {
-					if (Commons.throttleMe("BakedModelOmnipanel Invalid default")) {
-						new RuntimeException(String.format("Invalid default blockstate %s for model %s",
-						                                   blockStateDefault, modelResourceLocation ))
-								.printStackTrace(WarpDrive.printStreamError);
-					}
-					return bakedModelOriginal.getQuads(null, enumFacing, rand);
-				}
-				extendedBlockStateDefault = ((IExtendedBlockState) blockStateDefault)
-						                            .withProperty(BlockAbstractOmnipanel.CAN_CONNECT_Y_NEG, false)
-						                            .withProperty(BlockAbstractOmnipanel.CAN_CONNECT_Y_POS, false)
-						                            .withProperty(BlockAbstractOmnipanel.CAN_CONNECT_Z_NEG, false)
-						                            .withProperty(BlockAbstractOmnipanel.CAN_CONNECT_Z_POS, false)
-						                            .withProperty(BlockAbstractOmnipanel.CAN_CONNECT_X_NEG, false)
-						                            .withProperty(BlockAbstractOmnipanel.CAN_CONNECT_X_POS, false)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_XN_YN, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_XP_YN, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_XN_YP, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_XP_YP, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_XN_ZN, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_XP_ZN, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_XN_ZP, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_XP_ZP, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_ZN_YN, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_ZP_YN, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_ZN_YP, true)
-						                            .withProperty(BlockAbstractOmnipanel.HAS_ZP_YP, true);
+			if (blockStateDefault == null) {
+				blockStateDefault = WarpDrive.blockHulls_omnipanel[0][0].getDefaultState()
+						.with(BlockAbstractOmnipanel.CAN_CONNECT_Y_NEG, false)
+						.with(BlockAbstractOmnipanel.CAN_CONNECT_Y_POS, false)
+						.with(BlockAbstractOmnipanel.CAN_CONNECT_Z_NEG, false)
+						.with(BlockAbstractOmnipanel.CAN_CONNECT_Z_POS, false)
+						.with(BlockAbstractOmnipanel.CAN_CONNECT_X_NEG, false)
+						.with(BlockAbstractOmnipanel.CAN_CONNECT_X_POS, false)
+						.with(BlockAbstractOmnipanel.HAS_XN_YN, true)
+						.with(BlockAbstractOmnipanel.HAS_XP_YN, true)
+						.with(BlockAbstractOmnipanel.HAS_XN_YP, true)
+						.with(BlockAbstractOmnipanel.HAS_XP_YP, true)
+						.with(BlockAbstractOmnipanel.HAS_XN_ZN, true)
+						.with(BlockAbstractOmnipanel.HAS_XP_ZN, true)
+						.with(BlockAbstractOmnipanel.HAS_XN_ZP, true)
+						.with(BlockAbstractOmnipanel.HAS_XP_ZP, true)
+						.with(BlockAbstractOmnipanel.HAS_ZN_YN, true)
+						.with(BlockAbstractOmnipanel.HAS_ZP_YN, true)
+						.with(BlockAbstractOmnipanel.HAS_ZN_YP, true)
+						.with(BlockAbstractOmnipanel.HAS_ZP_YP, true);
 			}
 			
-			if (blockState == null) {// (probably an item form)
-				extendedBlockState = extendedBlockStateDefault;
-				
-			} else if (!(blockState instanceof IExtendedBlockState)) {
-				if (Commons.throttleMe("BakedModelOmnipanel Invalid non-extended")) {
-					new RuntimeException(String.format("Invalid non-extended blockstate %s for model %s",
-					                                   blockStateDefault, modelResourceLocation ))
-							.printStackTrace(WarpDrive.printStreamError);
-				}
-				return bakedModelOriginal.getQuads(null, enumFacing, rand);
-				
-			} else {// it's an extended state without values
-				if (Commons.throttleMe("BakedModelOmnipanel Invalid extended")) {
-					new RuntimeException(String.format("Invalid extended blockstate %s for model %s",
-					                                   blockStateDefault, modelResourceLocation ))
-							.printStackTrace(WarpDrive.printStreamError);
-				}
-				extendedBlockState = extendedBlockStateDefault;
-				
-			}
+			blockStateActual = blockStateDefault;
 		}
 		
 		// normal model has no facing
@@ -97,7 +67,7 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 		}
 		
 		// get color
-		final int color = Minecraft.getMinecraft().getBlockColors().colorMultiplier(blockState == null ? blockStateDefault : blockState, null, null, tintIndex);
+		final int color = Minecraft.getInstance().getBlockColors().getColor(blockStateActual, null, null, tintIndex);
 		
 		// pre-compute coordinates
 		final float dX_min = 0.0F;
@@ -124,29 +94,29 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 		final float dV_max = spriteBlock.getMaxV();
 		
 		// get direct connections
-		final boolean canConnectY_neg = extendedBlockState.getValue(BlockAbstractOmnipanel.CAN_CONNECT_Y_NEG);
-		final boolean canConnectY_pos = extendedBlockState.getValue(BlockAbstractOmnipanel.CAN_CONNECT_Y_POS);
-		final boolean canConnectZ_neg = extendedBlockState.getValue(BlockAbstractOmnipanel.CAN_CONNECT_Z_NEG);
-		final boolean canConnectZ_pos = extendedBlockState.getValue(BlockAbstractOmnipanel.CAN_CONNECT_Z_POS);
-		final boolean canConnectX_neg = extendedBlockState.getValue(BlockAbstractOmnipanel.CAN_CONNECT_X_NEG);
-		final boolean canConnectX_pos = extendedBlockState.getValue(BlockAbstractOmnipanel.CAN_CONNECT_X_POS);
+		final boolean canConnectY_neg = blockStateActual.get(BlockAbstractOmnipanel.CAN_CONNECT_Y_NEG);
+		final boolean canConnectY_pos = blockStateActual.get(BlockAbstractOmnipanel.CAN_CONNECT_Y_POS);
+		final boolean canConnectZ_neg = blockStateActual.get(BlockAbstractOmnipanel.CAN_CONNECT_Z_NEG);
+		final boolean canConnectZ_pos = blockStateActual.get(BlockAbstractOmnipanel.CAN_CONNECT_Z_POS);
+		final boolean canConnectX_neg = blockStateActual.get(BlockAbstractOmnipanel.CAN_CONNECT_X_NEG);
+		final boolean canConnectX_pos = blockStateActual.get(BlockAbstractOmnipanel.CAN_CONNECT_X_POS);
 		final boolean canConnectNone = !canConnectY_neg && !canConnectY_pos && !canConnectZ_neg && !canConnectZ_pos && !canConnectX_neg && !canConnectX_pos;
 		
 		// get panels
-		final boolean hasXnYn = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_XN_YN);
-		final boolean hasXpYn = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_XP_YN);
-		final boolean hasXnYp = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_XN_YP);
-		final boolean hasXpYp = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_XP_YP);
+		final boolean hasXnYn = blockStateActual.get(BlockAbstractOmnipanel.HAS_XN_YN);
+		final boolean hasXpYn = blockStateActual.get(BlockAbstractOmnipanel.HAS_XP_YN);
+		final boolean hasXnYp = blockStateActual.get(BlockAbstractOmnipanel.HAS_XN_YP);
+		final boolean hasXpYp = blockStateActual.get(BlockAbstractOmnipanel.HAS_XP_YP);
 		
-		final boolean hasXnZn = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_XN_ZN);
-		final boolean hasXpZn = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_XP_ZN);
-		final boolean hasXnZp = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_XN_ZP);
-		final boolean hasXpZp = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_XP_ZP);
+		final boolean hasXnZn = blockStateActual.get(BlockAbstractOmnipanel.HAS_XN_ZN);
+		final boolean hasXpZn = blockStateActual.get(BlockAbstractOmnipanel.HAS_XP_ZN);
+		final boolean hasXnZp = blockStateActual.get(BlockAbstractOmnipanel.HAS_XN_ZP);
+		final boolean hasXpZp = blockStateActual.get(BlockAbstractOmnipanel.HAS_XP_ZP);
 		
-		final boolean hasZnYn = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_ZN_YN);
-		final boolean hasZpYn = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_ZP_YN);
-		final boolean hasZnYp = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_ZN_YP);
-		final boolean hasZpYp = extendedBlockState.getValue(BlockAbstractOmnipanel.HAS_ZP_YP);
+		final boolean hasZnYn = blockStateActual.get(BlockAbstractOmnipanel.HAS_ZN_YN);
+		final boolean hasZpYn = blockStateActual.get(BlockAbstractOmnipanel.HAS_ZP_YN);
+		final boolean hasZnYp = blockStateActual.get(BlockAbstractOmnipanel.HAS_ZN_YP);
+		final boolean hasZpYp = blockStateActual.get(BlockAbstractOmnipanel.HAS_ZP_YP);
 		
 		final List<BakedQuad> quads = new ArrayList<>();
 		

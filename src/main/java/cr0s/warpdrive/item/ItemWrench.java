@@ -1,5 +1,6 @@
 package cr0s.warpdrive.item;
 
+import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IWarpTool;
 import cr0s.warpdrive.data.EnumTier;
 import cr0s.warpdrive.data.Vector3;
@@ -8,42 +9,51 @@ import cr0s.warpdrive.network.PacketHandler;
 import javax.annotation.Nonnull;
 
 import net.minecraft.block.SoundType;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.item.ItemUseContext;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Rotation;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 public class ItemWrench extends ItemAbstractBase implements IWarpTool {
 	
-	public ItemWrench(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier);
+	public ItemWrench(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(new Item.Properties()
+				      .group(WarpDrive.itemGroupMain)
+				      .maxDamage(0)
+				      .maxStackSize(1),
+		      registryName,
+		      enumTier );
 		
-		setMaxDamage(0);
-		setMaxStackSize(1);
 		setTranslationKey("warpdrive.tool.wrench");
-		setFull3D();
 	}
 	
 	@Nonnull
 	@Override
-	public EnumActionResult onItemUse(@Nonnull final EntityPlayer entityPlayer,
-	                                  @Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final EnumHand hand,
-	                                  @Nonnull final EnumFacing facing, final float hitX, final float hitY, final float hitZ) {
-		if (world.isRemote) {
-			return EnumActionResult.FAIL;
+	public ActionResultType onItemUse(@Nonnull final ItemUseContext context) {
+		final World world = context.getWorld();
+		if (world.isRemote()) {
+			return ActionResultType.FAIL;
 		}
 		
 		// get context
-		final ItemStack itemStackHeld = entityPlayer.getHeldItem(hand);
-		final IBlockState blockState = world.getBlockState(blockPos);
-		if (blockState.getBlock().isAir(blockState, world, blockPos)) {
-			return EnumActionResult.FAIL;
+		final PlayerEntity entityPlayer = context.getPlayer();
+		if (entityPlayer == null) {
+			return ActionResultType.FAIL;
 		}
+		final ItemStack itemStackHeld = entityPlayer.getHeldItem(context.getHand());
+		final BlockPos blockPos = context.getPos();
+		final BlockState blockState = world.getBlockState(blockPos);
+		if (blockState.getBlock().isAir(blockState, world, blockPos)) {
+			return ActionResultType.FAIL;
+		}
+		final Direction facing = context.getFace();
 		
 		// note: we allow sneaking usage so we can rotate blocks with GUIs
 		
@@ -58,18 +68,21 @@ public class ItemWrench extends ItemAbstractBase implements IWarpTool {
 			                                      new Vector3(0.0D, 0.0D, 0.0D),
 			                                      1.0F, 1.0F, 1.0F,
 			                                      1.0F, 1.0F, 1.0F,
-			                                      6);
-			return EnumActionResult.FAIL;
+			                                      6 );
+			return ActionResultType.FAIL;
 		}
 		
-		if (!blockState.getBlock().rotateBlock(world, blockPos, facing)) {
-			PacketHandler.sendSpawnParticlePacket(world, "jammed", (byte) 5,
-			                                      vFace,
-			                                      new Vector3(0.0D, 0.0D, 0.0D),
-			                                      1.0F, 1.0F, 1.0F,
-			                                      1.0F, 1.0F, 1.0F,
-			                                      6);
-			return EnumActionResult.FAIL;
+		BlockState blockStateRotated = blockState.rotate(world, blockPos, Rotation.CLOCKWISE_90);
+		if (blockState != blockStateRotated) {
+			if (!world.setBlockState(blockPos, blockStateRotated)) {
+				PacketHandler.sendSpawnParticlePacket(world, "jammed", (byte) 5,
+				                                      vFace,
+				                                      new Vector3(0.0D, 0.0D, 0.0D),
+				                                      1.0F, 1.0F, 1.0F,
+				                                      1.0F, 1.0F, 1.0F,
+				                                      6 );
+				return ActionResultType.FAIL;
+			}
 		}
 		
 		// no chat message
@@ -79,10 +92,10 @@ public class ItemWrench extends ItemAbstractBase implements IWarpTool {
 		world.playSound(null, blockPos, soundType.getPlaceSound(), SoundCategory.BLOCKS,
 		                (soundType.getVolume() + 1.0F) / 2.0F, soundType.getPitch() * 0.8F);
 		
-		world.notifyNeighborsOfStateChange(blockPos, blockState.getBlock(), false);
+		world.notifyNeighborsOfStateChange(blockPos, blockState.getBlock());
 		
-		entityPlayer.swingArm(hand);
+		entityPlayer.swingArm(context.getHand());
 		
-		return EnumActionResult.SUCCESS;
+		return ActionResultType.SUCCESS;
 	}
 }

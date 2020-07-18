@@ -6,11 +6,14 @@ import cr0s.warpdrive.api.EventWarpDrive.Ship.MovementCosts;
 import cr0s.warpdrive.api.computer.IShipController;
 import cr0s.warpdrive.data.EnumShipMovementType;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.config.Configuration;
 
 public class ShipMovementCosts {
 	
@@ -62,6 +65,12 @@ public class ShipMovementCosts {
 	
 	public static class Factors {
 		
+		private ConfigValue<double[]> config_maximumDistance;
+		private ConfigValue<double[]> config_energyRequired;
+		private ConfigValue<double[]> config_warmup;
+		private ConfigValue<double[]> config_sickness;
+		private ConfigValue<double[]> config_cooldown;
+		
 		public double[] maximumDistance;
 		public double[] energyRequired;
 		public double[] warmup;
@@ -80,30 +89,35 @@ public class ShipMovementCosts {
 			cooldown = cooldownDefault;
 		}
 		
-		public void load(final Configuration config, final String category, final String prefixKey, final String comment) {
-			final String COMMENT_FACTORS = "\n"
-					+ "You need to provide exactly 5 values < A B C D E >. The equation used is A + B * mass + C * distance + D * ln( mass ) * exp( distance / E )\n"
-					+ "Result is rounded up to an integer. Use 0 to ignore that part of the equation.";
-			
-			maximumDistance = WarpDriveConfig.getDoubleList(config, category, prefixKey + "_max_jump_distance",
-			                                                "Maximum jump length value in blocks " + comment + "." + COMMENT_FACTORS,
-			                                                maximumDistance);
-			
-			energyRequired = WarpDriveConfig.getDoubleList(config, category, prefixKey + "_energyRequired_factors",
-			                                               "energy required measured in internal units " + comment + "." + COMMENT_FACTORS,
-			                                               energyRequired);
-			
-			warmup = WarpDriveConfig.getDoubleList(config, category, prefixKey + "_warmup_seconds",
-			                                       "Warmup seconds to wait before starting jump " + comment + "." + COMMENT_FACTORS,
-			                                       warmup);
-			
-			sickness = WarpDriveConfig.getDoubleList(config, category, prefixKey + "_sickness_seconds",
-			                                       "Motion sickness duration measured in seconds " + comment + "." + COMMENT_FACTORS,
-			                                         sickness);
-			
-			cooldown = WarpDriveConfig.getDoubleList(config, category, prefixKey + "_cooldown_interval_seconds",
-			                                         "Cooldown seconds to wait after jumping " + comment + "." + COMMENT_FACTORS,
-			                                         cooldown);
+		public void build(@Nonnull final ForgeConfigSpec.Builder builder, final String prefixKey, final String comment) {
+			config_maximumDistance = builder
+					.comment("Maximum jump length value in blocks " + comment + ".")
+					.translation("warpdrive.config.ship_movement_costs." + prefixKey + "_max_jump_distance")
+					.define(prefixKey + "_max_jump_distance", maximumDistance);
+			config_energyRequired = builder
+					.comment("Energy required measured in internal units " + comment + ".")
+					.translation("warpdrive.config.ship_movement_costs." + prefixKey + "_energyRequired_factors")
+					.define(prefixKey + "_energyRequired_factors", energyRequired);
+			config_warmup = builder
+					.comment("Warmup seconds to wait before starting jump " + comment + ".")
+					.translation("warpdrive.config.ship_movement_costs." + prefixKey + "_warmup_seconds")
+					.define(prefixKey + "_warmup_seconds", warmup);
+			config_sickness = builder
+					.comment("Motion sickness duration measured in seconds " + comment + ".")
+					.translation("warpdrive.config.ship_movement_costs." + prefixKey + "_sickness_seconds")
+					.define(prefixKey + "_sickness_seconds", sickness);
+			config_cooldown = builder
+					.comment("Cooldown seconds to wait after jumping " + comment + ".")
+					.translation("warpdrive.config.ship_movement_costs." + prefixKey + "_cooldown_interval_seconds")
+					.define(prefixKey + "_cooldown_interval_seconds", cooldown);
+		}
+		
+		public void load() {
+			maximumDistance = config_maximumDistance.get();			
+			energyRequired = config_energyRequired.get();
+			warmup = config_warmup.get();
+			sickness = config_sickness.get();
+			cooldown = config_cooldown.get();
 		}
 	}
 }

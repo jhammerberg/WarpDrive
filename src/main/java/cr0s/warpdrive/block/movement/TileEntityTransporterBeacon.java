@@ -20,15 +20,16 @@ import li.cil.oc.api.machine.Context;
 import javax.annotation.Nonnull;
 import java.util.UUID;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.world.WorldServer;
-
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
+import net.minecraft.world.server.ServerWorld;
 
 public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsumer implements ITransporterBeacon {
+	
+	public static TileEntityType<TileEntityTransporterBeacon> TYPE;
 	
 	// persistent properties
 	private String nameTransporterCore;
@@ -40,7 +41,7 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 	protected String stateTransporter = "";
 	
 	public TileEntityTransporterBeacon() {
-		super();
+		super(TYPE);
 		
 		isEnergyLostWhenBroken = false;
 		
@@ -61,10 +62,11 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -101,10 +103,10 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 		}
 		
 		// report updated status
-		final IBlockState blockState_actual = world.getBlockState(pos);
+		final BlockState blockState_actual = world.getBlockState(pos);
 		updateBlockState(blockState_actual,
-		                 blockState_actual.withProperty(BlockProperties.ACTIVE, isActive)
-		                                  .withProperty(BlockTransporterBeacon.DEPLOYED, isDeployed));
+		                 blockState_actual.with(BlockProperties.ACTIVE, isActive)
+		                                  .with(BlockTransporterBeacon.DEPLOYED, isDeployed));
 	}
 	
 	private boolean pingTransporter() {
@@ -113,9 +115,9 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 			return false;
 		}
 		
-		final WorldServer worldTransporter = Commons.getOrCreateWorldServer(globalRegion.dimensionId);
+		final ServerWorld worldTransporter = Commons.getOrCreateWorldServer(globalRegion.dimensionId);
 		if (worldTransporter == null) {
-			WarpDrive.logger.error(String.format("%s Unable to load dimension %d for transporter with UUID %s",
+			WarpDrive.logger.error(String.format("%s Unable to load dimension %s for transporter with UUID %s",
 			                                     this, globalRegion.dimensionId, uuidTransporterCore));
 			return false;
 		}
@@ -172,14 +174,12 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] isActive(final Context context, final Arguments arguments) {
 		return isActive(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "isActive":
@@ -202,7 +202,7 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 	@Override
 	public WarpDriveText getStatus() {
 		final WarpDriveText textSignatureStatus = getSignatureStatus();
-		if (textSignatureStatus.getUnformattedText().isEmpty()) {
+		if (textSignatureStatus.getUnformattedComponentText().isEmpty()) {
 			return super.getStatus();
 		} else {
 			return super.getStatus()
@@ -212,35 +212,35 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 	
 	// TileEntityAbstractEnergy overrides
 	@Override
-	public boolean energy_canInput(final EnumFacing from) {
+	public boolean energy_canInput(final Direction from) {
 		// only from bottom
-		return (from == EnumFacing.DOWN);
+		return (from == Direction.DOWN);
 	}
 	
 	@Override
-	public boolean energy_canOutput(final EnumFacing to) {
+	public boolean energy_canOutput(final Direction to) {
 		return false;
 	}
 	
 	// Forge overrides
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
 		if (uuidTransporterCore != null) {
-			tagCompound.setString(ICoreSignature.NAME_TAG, nameTransporterCore);
-			tagCompound.setLong(ICoreSignature.UUID_MOST_TAG, uuidTransporterCore.getMostSignificantBits());
-			tagCompound.setLong(ICoreSignature.UUID_LEAST_TAG, uuidTransporterCore.getLeastSignificantBits());
+			tagCompound.putString(ICoreSignature.NAME_TAG, nameTransporterCore);
+			tagCompound.putLong(ICoreSignature.UUID_MOST_TAG, uuidTransporterCore.getMostSignificantBits());
+			tagCompound.putLong(ICoreSignature.UUID_LEAST_TAG, uuidTransporterCore.getLeastSignificantBits());
 		}
 		
-		tagCompound.setInteger("tickDeploying", tickDeploying);
+		tagCompound.putInt("tickDeploying", tickDeploying);
 		return tagCompound;
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
 		nameTransporterCore = tagCompound.getString(ICoreSignature.NAME_TAG);
 		uuidTransporterCore = new UUID(tagCompound.getLong(ICoreSignature.UUID_MOST_TAG), tagCompound.getLong(ICoreSignature.UUID_LEAST_TAG));
@@ -249,13 +249,13 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 			nameTransporterCore = "";
 		}
 		
-		tickDeploying = tagCompound.getInteger("tickDeploying");
+		tickDeploying = tagCompound.getInt("tickDeploying");
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
-		tagCompound.removeTag("tickDeploying");
+		tagCompound.remove("tickDeploying");
 		return tagCompound;
 	}
 	

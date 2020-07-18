@@ -1,11 +1,9 @@
 package cr0s.warpdrive.config;
 
-import cr0s.warpdrive.compat.CompatMatterOverdrive;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.block.BlockAbstractBase;
 import cr0s.warpdrive.block.BlockAbstractContainer;
 import cr0s.warpdrive.block.forcefield.BlockForceField;
-import cr0s.warpdrive.block.hull.BlockHullGlass;
 import cr0s.warpdrive.block.hull.BlockHullStairs;
 import cr0s.warpdrive.world.FakeWorld;
 
@@ -15,26 +13,23 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityList;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.StringNBT;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.Explosion;
+import net.minecraft.world.Explosion.Mode;
 
-import net.minecraftforge.common.config.ConfigCategory;
-import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.fluids.IFluidBlock;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
 public class Dictionary {
@@ -108,7 +103,7 @@ public class Dictionary {
 			// farming
 			config.get("block_tags", "minecraft:dirt"                                       , "Soil").getString();
 			config.get("block_tags", "minecraft:farmland"                                   , "Soil").getString();
-			config.get("block_tags", "minecraft:grass"                                      , "Soil").getString();
+			config.get("block_tags", "minecraft:grass_block"                                , "Soil").getString();
 			config.get("block_tags", "minecraft:mycelium"                                   , "Soil").getString();
 			config.get("block_tags", "minecraft:sand"                                       , "Soil").getString();
 			config.get("block_tags", "minecraft:soul_sand"                                  , "Soil").getString();
@@ -274,7 +269,10 @@ public class Dictionary {
 			config.get("block_tags", "tconstruct:stone_torch"                          , "PlaceLatest").getString();
 			
 			// expendables, a.k.a. "don't blow my ship with this..."
+			config.get("block_tags", "minecraft:dead_bush"                             , "NoMass Expandable").getString();
+			config.get("block_tags", "minecraft:grass"                                 , "NoMass Expandable").getString();
 			config.get("block_tags", "minecraft:snow_layer"                            , "NoMass Expandable").getString();
+			config.get("block_tags", "minecraft:tall_grass"                            , "NoMass Expandable").getString();
 			config.get("block_tags", "warpdrive:gas"                                   , "LeftBehind Expandable").getString();
 			config.get("block_tags", "warpdrive:air_flow"                              , "NoMass Expandable PlaceLatest").getString();
 			config.get("block_tags", "warpdrive:air_source"                            , "NoMass Expandable PlaceLatest").getString();
@@ -535,7 +533,7 @@ public class Dictionary {
 		BLOCKS_NOBLINK = new HashSet<>(taggedBlocks.size());
 		BLOCKS_LOGS_AND_LEAVES = null;
 		for (final Entry<String, String> taggedBlock : taggedBlocks.entrySet()) {
-			final Block block = Block.getBlockFromName(taggedBlock.getKey());
+			final Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(taggedBlock.getKey()));
 			if (block == null) {
 				WarpDrive.logger.info(String.format("Ignoring missing block %s", taggedBlock.getKey()));
 				continue;
@@ -574,7 +572,7 @@ public class Dictionary {
 		ENTITIES_LIVING_WITHOUT_AIR = new HashSet<>(taggedEntities.size());
 		for (final Entry<String, String> taggedEntity : taggedEntities.entrySet()) {
 			final ResourceLocation resourceLocation = new ResourceLocation(taggedEntity.getKey());
-			if (EntityList.getClass(resourceLocation) == null) {
+			if (ForgeRegistries.ENTITIES.getValue(resourceLocation) == null) {
 				WarpDrive.logger.info(String.format("Ignoring missing entity %s",
 				                                    resourceLocation ));
 				continue;
@@ -600,7 +598,7 @@ public class Dictionary {
 		ITEMS_BREATHING_HELMET = new HashSet<>(taggedItems.size());
 		for (final Entry<String, String> taggedItem : taggedItems.entrySet()) {
 			final String itemId = taggedItem.getKey();
-			final Item item = Item.REGISTRY.getObject(new ResourceLocation(itemId));
+			final Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemId));
 			if (item == null) {
 				WarpDrive.logger.info(String.format("Ignoring missing item %s", itemId));
 				continue;
@@ -654,6 +652,7 @@ public class Dictionary {
 	
 	private static void adjustHardnessAndResistance() {
 		// Apply explosion resistance adjustments
+		/* TODO MC1.15 explosion scaling corrections
 		Blocks.OBSIDIAN.setResistance(60.0F);
 		Blocks.ENCHANTING_TABLE.setResistance(60.0F);
 		Blocks.ENDER_CHEST.setResistance(60.0F);
@@ -662,6 +661,7 @@ public class Dictionary {
 		Blocks.FLOWING_WATER.setResistance(30.0F);
 		Blocks.LAVA.setResistance(30.0F);
 		Blocks.FLOWING_LAVA.setResistance(30.0F);
+		**/
 		
 		// keep IC2 Reinforced stone stats 'as is'
 		/*
@@ -672,18 +672,18 @@ public class Dictionary {
 		
 		// scan blocks registry
 		final FakeWorld fakeWorld = new FakeWorld(null, false);
-		for (final ResourceLocation resourceLocation : Block.REGISTRY.getKeys()) {
-			final Block block = Block.REGISTRY.getObject(resourceLocation);
+		for (final ResourceLocation resourceLocation : ForgeRegistries.BLOCKS.getKeys()) {
+			final Block block = ForgeRegistries.BLOCKS.getValue(resourceLocation);
 			WarpDrive.logger.debug(String.format("Checking block registry for %s: %s",
 			                                     resourceLocation, block));
 			
 			try {
 				// get hardness and blast resistance
-				final IBlockState blockState = block.getDefaultState();
-				fakeWorld.setBlockState(BlockPos.ORIGIN, blockState);
-				final float hardness = Math.max(block.blockHardness, blockState.getBlockHardness(fakeWorld, BlockPos.ORIGIN));
-				final Explosion explosion = new Explosion(fakeWorld, null, 0, 0, 0, 1, true, true);
-				final float blastResistance = Math.max(block.getExplosionResistance(null), block.getExplosionResistance(fakeWorld, BlockPos.ORIGIN, null, explosion));
+				final BlockState blockState = block.getDefaultState();
+				fakeWorld.setBlockState(BlockPos.ZERO, blockState);
+				final float hardness = Math.max(block.blockHardness, blockState.getBlockHardness(fakeWorld, BlockPos.ZERO));
+				final Explosion explosion = new Explosion(fakeWorld, null, 0, 0, 0, 1, true, Mode.DESTROY);
+				final float blastResistance = Math.max(block.getExplosionResistance(), blockState.getExplosionResistance(fakeWorld, BlockPos.ZERO, null, explosion));
 				
 				// check actual values
 				if ( hardness < 0
@@ -694,7 +694,6 @@ public class Dictionary {
 				} else if ( hardness > WarpDriveConfig.HULL_HARDNESS[1]
 				         && !( block instanceof BlockAbstractBase
 				            || block instanceof BlockAbstractContainer
-				            || block instanceof BlockHullGlass
 				            || block instanceof BlockHullStairs
 				            || block instanceof IFluidBlock
 				            || BLOCKS_ANCHOR.contains(block) ) ) {
@@ -705,15 +704,15 @@ public class Dictionary {
 				if ( blastResistance > WarpDriveConfig.G_BLAST_RESISTANCE_CAP
 				   && !( block instanceof BlockAbstractBase
 				      || block instanceof BlockAbstractContainer
-				      || block instanceof BlockHullGlass
 				      || block instanceof BlockHullStairs
 				      || BLOCKS_ANCHOR.contains(block) ) ) {
 					if (WarpDriveConfig.LOGGING_DICTIONARY) {
 						WarpDrive.logger.warn(String.format("Found a non-anchor block with high blast resistance %s %s (%.2f)",
 						                                    resourceLocation, block, blastResistance));
 					}
-					block.setResistance(WarpDriveConfig.G_BLAST_RESISTANCE_CAP * 5.0F / 3.0F);
-					final float blastResistance_new = Math.max(block.getExplosionResistance(null), block.getExplosionResistance(fakeWorld, BlockPos.ORIGIN, null, null));
+					// TODO MC1.15 explosion resistance scaling
+					// block.setResistance(WarpDriveConfig.G_BLAST_RESISTANCE_CAP * 5.0F / 3.0F);
+					final float blastResistance_new = Math.max(block.getExplosionResistance(), block.getExplosionResistance(blockState, fakeWorld, BlockPos.ZERO, null, null));
 					if (blastResistance_new <= WarpDriveConfig.G_BLAST_RESISTANCE_CAP) {
 						WarpDrive.logger.info(String.format("Adjusted blast resistance of %s %s from %.2f to %.2f",
 						                                    resourceLocation, block, blastResistance, blastResistance_new ));
@@ -742,14 +741,14 @@ public class Dictionary {
 	}
 	
 	@Nonnull
-	private static String getHashMessage(@Nonnull final HashSet hashSet) {
+	private static String getHashMessage(@Nonnull final HashSet<?> hashSet) {
 		final StringBuilder message = new StringBuilder();
 		for (final Object object : hashSet) {
 			if (message.length() > 0) {
 				message.append(", ");
 			}
 			if (object instanceof IForgeRegistryEntry) {
-				message.append(((IForgeRegistryEntry) object).getRegistryName());
+				message.append(((IForgeRegistryEntry<?>) object).getRegistryName());
 			} else if (object instanceof String) {
 				message.append((String) object);
 			} else {
@@ -772,25 +771,25 @@ public class Dictionary {
 	}
 	
 	@Nonnull
-	public static NBTBase writeItemsToNBT(@Nonnull final HashSet<Item> hashSetItem) {
-		final NBTTagList nbtTagList = new NBTTagList();
+	public static INBT writeItemsToNBT(@Nonnull final HashSet<Item> hashSetItem) {
+		final ListNBT nbtTagList = new ListNBT();
 		for (final Item item : hashSetItem) {
 			assert item.getRegistryName() != null;
 			final String registryName = item.getRegistryName().toString();
-			nbtTagList.appendTag(new NBTTagString(registryName));
+			nbtTagList.add(StringNBT.valueOf(registryName));
 		}
 		return nbtTagList;
 	}
 	
 	@Nonnull
-	public static HashSet<Item> readItemsFromNBT(@Nonnull final NBTTagList nbtTagList) {
-		final int size = nbtTagList.tagCount();
+	public static HashSet<Item> readItemsFromNBT(@Nonnull final ListNBT nbtTagList) {
+		final int size = nbtTagList.size();
 		final HashSet<Item> hashSetItem = new HashSet<>(Math.max(8, size));
 		
 		if (size > 0) {
-			for (int index = 0; index < nbtTagList.tagCount(); index++) {
-				final String registryName = nbtTagList.getStringTagAt(index);
-				final Item item = Item.REGISTRY.getObject(new ResourceLocation(registryName));
+			for (int index = 0; index < nbtTagList.size(); index++) {
+				final String registryName = nbtTagList.getString(index);
+				final Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(registryName));
 				if (item != null) {
 					hashSetItem.add(item);
 				} else {
@@ -804,14 +803,14 @@ public class Dictionary {
 	@Nonnull
 	public static String getId(final Entity entity) {
 		// player entities aren't registered so we use our own definition
-		if (entity instanceof EntityPlayer) {
+		if (entity instanceof PlayerEntity) {
 			if (entity instanceof FakePlayer) {
 				return "forge:fake_player";
 			}
 			return "minecraft:player";
 		}
 		
-		final ResourceLocation resourceLocation = EntityList.getKey(entity);
+		final ResourceLocation resourceLocation = entity.getType().getRegistryName();
 		return resourceLocation == null ? "-null-" : resourceLocation.toString();
 	}
 	
@@ -841,28 +840,29 @@ public class Dictionary {
 	}
 	
 	public static boolean isAnchor(final Entity entity) {
-		final ResourceLocation resourceLocation = EntityList.getKey(entity);
+		final ResourceLocation resourceLocation = entity.getType().getRegistryName();
 		return ENTITIES_ANCHOR.contains(resourceLocation);
 	}
 	
 	public static boolean isLeftBehind(final Entity entity) {
-		final ResourceLocation resourceLocation = EntityList.getKey(entity);
+		final ResourceLocation resourceLocation = entity.getType().getRegistryName();
 		return ENTITIES_LEFTBEHIND.contains(resourceLocation);
 	}
 	
 	public static boolean isLivingWithoutAir(final Entity entity) {
 		// bypass for androids
 		if ( WarpDriveConfig.isMatterOverdriveLoaded
-		  && entity instanceof EntityPlayer ) {
-			return CompatMatterOverdrive.isAndroid((EntityPlayer) entity);
+		  && entity instanceof PlayerEntity) {
+			// TODO MC1.15 compatibility classes
+			// return CompatMatterOverdrive.isAndroid((PlayerEntity) entity);
 		}
 		
-		final ResourceLocation resourceLocation = EntityList.getKey(entity);
+		final ResourceLocation resourceLocation = entity.getType().getRegistryName();
 		return ENTITIES_LIVING_WITHOUT_AIR.contains(resourceLocation);
 	}
 	
 	public static boolean isNonLivingTarget(final Entity entity) {
-		final ResourceLocation resourceLocation = EntityList.getKey(entity);
+		final ResourceLocation resourceLocation = entity.getType().getRegistryName();
 		return ENTITIES_NONLIVINGTARGET.contains(resourceLocation);
 	}
 }

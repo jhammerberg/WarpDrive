@@ -17,21 +17,23 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.world.Explosion;
-import net.minecraft.world.World;
+import net.minecraft.world.Explosion.Mode;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
+	
+	public static TileEntityType<TileEntityEnanReactorCore> TYPE;
 	
 	// generation & instability is 'per tick'
 	private static final double INSTABILITY_MIN = 0.004D;
@@ -93,7 +95,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	private final WeakReference<TileEntityEnanReactorLaser>[] weakTileEntityLasers = (WeakReference<TileEntityEnanReactorLaser>[]) Array.newInstance(WeakReference.class, ReactorFace.maxInstabilities);
 	
 	public TileEntityEnanReactorCore() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveEnanReactorCore";
 		
@@ -129,7 +131,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	
 	@Nonnull
 	@Override
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public AxisAlignedBB getRenderBoundingBox() {
 		if (aabbRender == null) {
 			final double radiusMatterMax = isFirstTick() ? 3.0D : vCenter.y - pos.getY();
@@ -141,8 +143,9 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
+		assert world != null;
 		
 		// we start at 0.5F to have a small animation on block placement
 		client_yCore = containedEnergy == 0 ? 0.5F : (float) vCenter.y - pos.getY();
@@ -211,10 +214,11 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			client_update();
 			return;
 		}
@@ -252,6 +256,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	}
 	
 	private void increaseInstability() {
+		assert world != null;
 		for (final ReactorFace reactorFace : ReactorFace.getLasers(enumTier)) {
 			// increase instability
 			final int indexStability = reactorFace.indexStability;
@@ -281,15 +286,16 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 			return;
 		}
 		
+		assert world != null;
 		lasersReceived = Math.min(10.0F, lasersReceived + 1.0F / WarpDriveConfig.ENAN_REACTOR_MAX_LASERS_PER_SECOND[enumTier.getIndex()]);
 		double nospamFactor = 1.0D;
 		if (lasersReceived > 1.0F) {
 			nospamFactor = 0.5;
-			world.newExplosion(null,
-			                   pos.getX() + reactorFace.x - reactorFace.facingLaserProperty.getXOffset(),
-			                   pos.getY() + reactorFace.y - reactorFace.facingLaserProperty.getYOffset(),
-			                   pos.getZ() + reactorFace.z - reactorFace.facingLaserProperty.getZOffset(),
-			                   1.0F, false, false);
+			world.createExplosion(null,
+			                      pos.getX() + reactorFace.x - reactorFace.facingLaserProperty.getXOffset(),
+			                      pos.getY() + reactorFace.y - reactorFace.facingLaserProperty.getYOffset(),
+			                      pos.getZ() + reactorFace.z - reactorFace.facingLaserProperty.getZOffset(),
+			                      1.0F, false, Mode.NONE);
 		}
 		final double normalisedAmount = Math.min(1.0D, Math.max(0.0D, amount / PR_MAX_LASER_ENERGY)); // 0.0 to 1.0
 		final double baseLaserEffect = 0.5D + 0.5D * Math.cos( Math.PI * Math.log10(0.1D + 0.9D * normalisedAmount) ); // 0.0 to 1.0
@@ -358,12 +364,13 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	
 	@Nullable
 	private TileEntityEnanReactorLaser getLaser(@Nonnull final ReactorFace reactorFace) {
+		assert world != null;
 		final WeakReference<TileEntityEnanReactorLaser> weakTileEntityLaser = weakTileEntityLasers[reactorFace.indexStability];
 		TileEntityEnanReactorLaser tileEntityEnanReactorLaser;
 		if (weakTileEntityLaser != null) {
 			tileEntityEnanReactorLaser = weakTileEntityLaser.get();
 			if ( tileEntityEnanReactorLaser != null
-			  && !tileEntityEnanReactorLaser.isInvalid() ) {
+			  && !tileEntityEnanReactorLaser.isRemoved() ) {
 				return tileEntityEnanReactorLaser;
 			}
 		}
@@ -383,6 +390,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	}
 	
 	private boolean shouldExplode() {
+		assert world != null;
 		boolean exploding = false;
 		for (final ReactorFace reactorFace : ReactorFace.getLasers(enumTier)) {
 			exploding = exploding || (instabilityValues[reactorFace.indexStability] >= 100);
@@ -391,7 +399,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 		
 		if (exploding) {
 			final StringBuilder statusLasers = new StringBuilder();
-			final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+			final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 			for (final ReactorFace reactorFace : ReactorFace.getLasers(enumTier)) {
 				long energyStored = -1L;
 				int countLaserMediums = 0;
@@ -437,6 +445,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	}
 	
 	private void explode() {
+		assert world != null;
 		// remove blocks randomly up to x blocks around (breaking whatever protection is there)
 		final double normalizedEnergy = containedEnergy / (double) energyStored_max;
 		final double factorEnergy = Math.pow(normalizedEnergy, 0.125);
@@ -447,21 +456,21 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 		WarpDrive.logger.info(String.format("%s Explosion radius is %d, Chance of removal is %.3f",
 		                                    this, radius, chanceOfRemoval ));
 		if (radius > 1) {
-			final MutableBlockPos mutableBlockPos = new MutableBlockPos(pos);
-			final Explosion explosion = new Explosion(world, null, vCenter.x, vCenter.y, vCenter.z, radius, true, true);
-			final float explosionResistanceThreshold = Blocks.OBSIDIAN.getExplosionResistance(world, mutableBlockPos, null, explosion);
+			final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(pos);
+			final Explosion explosion = new Explosion(world, null, vCenter.x, vCenter.y, vCenter.z, radius, true, Mode.DESTROY);
+			final float explosionResistanceThreshold = Blocks.OBSIDIAN.getExplosionResistance(null, world, mutableBlockPos, null, explosion);
 			for (int x = pos.getX() - radius; x <= pos.getX() + radius; x++) {
 				for (int y = pos.getY() - radius; y <= pos.getY() + radius; y++) {
 					for (int z = pos.getZ() - radius; z <= pos.getZ() + radius; z++) {
 						if (z != pos.getZ() || y != pos.getY() || x != pos.getX()) {
 							if (world.rand.nextDouble() < chanceOfRemoval) {
 								mutableBlockPos.setPos(x, y, z);
-								final IBlockState blockState = world.getBlockState(mutableBlockPos);
-								final float explosionResistanceActual = blockState.getBlock().getExplosionResistance(world, mutableBlockPos, null, explosion);
+								final BlockState blockState = world.getBlockState(mutableBlockPos);
+								final float explosionResistanceActual = blockState.getExplosionResistance(world, mutableBlockPos, null, explosion);
 								if (explosionResistanceActual >= explosionResistanceThreshold) {
 									WarpDrive.logger.debug(String.format("%s De-materializing %s %s",
 									                                     this, blockState, Commons.format(world, mutableBlockPos) ));
-									world.setBlockToAir(mutableBlockPos);
+									world.removeBlock(mutableBlockPos, false);
 								}
 							}
 						}
@@ -471,22 +480,23 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 		}
 		
 		// remove reactor
-		world.setBlockToAir(pos);
+		world.removeBlock(pos,false);
 		
 		// set a few augmented TnT around reactor core
 		final int countExplosions = WarpDriveConfig.ENAN_REACTOR_EXPLOSION_COUNT_BY_TIER[enumTier.getIndex()];
 		final float strengthMin = WarpDriveConfig.ENAN_REACTOR_EXPLOSION_STRENGTH_MIN_BY_TIER[enumTier.getIndex()];
 		final int strengthRange = (int) Math.ceil(WarpDriveConfig.ENAN_REACTOR_EXPLOSION_STRENGTH_MAX_BY_TIER[enumTier.getIndex()] - strengthMin);
 		for (int i = 0; i < countExplosions; i++) {
-			world.newExplosion(null,
+			world.createExplosion(null,
 			                   pos.getX() + world.rand.nextInt(3) - 1.5D,
 			                   pos.getY() + world.rand.nextInt(3) - 0.5D,
 			                   pos.getZ() + world.rand.nextInt(3) - 1.5D,
-				               strengthMin + world.rand.nextInt(strengthRange), true, true);
+				               strengthMin + world.rand.nextInt(strengthRange), true, Mode.BREAK);
 		}
 	}
 	
 	private void refreshBlockState() {
+		assert world != null;
 		double maxInstability = 0.0D;
 		for (final Double instability : instabilityValues) {
 			if (instability > maxInstability) {
@@ -496,9 +506,9 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 		final int instabilityNibble = (int) Math.max(0, Math.min(3, Math.round(maxInstability / 25.0D)));
 		final int energyNibble = (int) Math.max(0, Math.min(3, Math.round(4.0D * containedEnergy / energyStored_max)));
 		
-		final IBlockState blockStateNew = getBlockType().getDefaultState()
-		                                                .withProperty(BlockEnanReactorCore.ENERGY, energyNibble)
-		                                                .withProperty(BlockEnanReactorCore.INSTABILITY, instabilityNibble);
+		final BlockState blockStateNew = getBlockState()
+				                                 .with(BlockEnanReactorCore.ENERGY, energyNibble)
+				                                 .with(BlockEnanReactorCore.INSTABILITY, instabilityNibble);
 		updateBlockState(null, blockStateNew);
 		
 		world.notifyBlockUpdate(pos, blockStateNew, blockStateNew, 3);
@@ -512,16 +522,17 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	}
 	
 	@Override
-	public void onBlockBroken(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+	public void remove() {
+		assert world != null;
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 		for (final ReactorFace reactorFace : ReactorFace.getLasers(enumTier)) {
 			if (reactorFace.indexStability < 0) {
 				continue;
 			}
 			
-			mutableBlockPos.setPos(blockPos.getX() + reactorFace.x,
-			                       blockPos.getY() + reactorFace.y,
-			                       blockPos.getZ() + reactorFace.z );
+			mutableBlockPos.setPos(pos.getX() + reactorFace.x,
+			                       pos.getY() + reactorFace.y,
+			                       pos.getZ() + reactorFace.z );
 			final TileEntity tileEntity = world.getTileEntity(mutableBlockPos);
 			if ( tileEntity instanceof TileEntityEnanReactorLaser
 			  && ((TileEntityEnanReactorLaser) tileEntity).getReactorFace() == reactorFace ) {
@@ -529,14 +540,15 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 			}
 		}
 		
-		super.onBlockBroken(world, blockPos, blockState);
+		super.remove();
 	}
 	
 	@Override
 	protected boolean doScanAssembly(final boolean isDirty, final WarpDriveText textReason) {
+		assert world != null;
 		boolean isValid = super.doScanAssembly(isDirty, textReason);
 		
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 		
 		// first check if we have the required 'air' blocks
 		for (final ReactorFace reactorFace : ReactorFace.get(enumTier)) {
@@ -545,7 +557,7 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 				mutableBlockPos.setPos(pos.getX() + reactorFace.x,
 				                       pos.getY() + reactorFace.y,
 				                       pos.getZ() + reactorFace.z);
-				final IBlockState blockState = world.getBlockState(mutableBlockPos);
+				final BlockState blockState = world.getBlockState(mutableBlockPos);
 				final boolean isAir = blockState.getBlock().isAir(blockState, world, mutableBlockPos);
 				if (!isAir) {
 					textReason.append(Commons.getStyleWarning(), "warpdrive.enan_reactor.status_line.non_air_block",
@@ -726,14 +738,14 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	}
 	
 	@Override
-	public boolean energy_canOutput(final EnumFacing from) {
+	public boolean energy_canOutput(final Direction from) {
 		if (enumTier == EnumTier.BASIC) {
 			return from == null
-			    || from.equals(EnumFacing.UP)
-			    || from.equals(EnumFacing.DOWN);
+			    || from.equals(Direction.UP)
+			    || from.equals(Direction.DOWN);
 		}
 		return from == null
-		    || !from.equals(EnumFacing.UP);
+		    || !from.equals(Direction.UP);
 	}
 	
 	@Override
@@ -759,29 +771,29 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 	// Forge overrides
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setString("outputMode", enumReactorOutputMode.getName());
-		tagCompound.setInteger("outputThreshold", outputThreshold);
-		tagCompound.setDouble("instabilityTarget", instabilityTarget);
-		tagCompound.setInteger("stabilizerEnergy", stabilizerEnergy);
+		tagCompound.putString("outputMode", enumReactorOutputMode.getName());
+		tagCompound.putInt("outputThreshold", outputThreshold);
+		tagCompound.putDouble("instabilityTarget", instabilityTarget);
+		tagCompound.putInt("stabilizerEnergy", stabilizerEnergy);
 		
-		tagCompound.setInteger("energy", containedEnergy);
-		final NBTTagCompound tagCompoundInstability = new NBTTagCompound();
+		tagCompound.putInt("energy", containedEnergy);
+		final CompoundNBT tagCompoundInstability = new CompoundNBT();
 		for (final ReactorFace reactorFace : ReactorFace.getLasers(enumTier)) {
-			tagCompoundInstability.setDouble(reactorFace.name, instabilityValues[reactorFace.indexStability]);
+			tagCompoundInstability.putDouble(reactorFace.name, instabilityValues[reactorFace.indexStability]);
 		}
-		tagCompound.setTag("instability", tagCompoundInstability);
+		tagCompound.put("instability", tagCompoundInstability);
 		return tagCompound;
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
 		// skip empty NBT on placement to use defaults values
-		if (!tagCompound.hasKey("outputMode")) {
+		if (!tagCompound.contains("outputMode")) {
 			return;
 		}
 		
@@ -789,46 +801,46 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController {
 		if (enumReactorOutputMode == null) {
 			enumReactorOutputMode = EnumReactorOutputMode.OFF;
 		}
-		outputThreshold = tagCompound.getInteger("outputThreshold");
+		outputThreshold = tagCompound.getInt("outputThreshold");
 		instabilityTarget = tagCompound.getDouble("instabilityTarget");
-		stabilizerEnergy = tagCompound.getInteger("stabilizerEnergy");
+		stabilizerEnergy = tagCompound.getInt("stabilizerEnergy");
 		
-		containedEnergy = tagCompound.getInteger("energy");
-		final NBTTagCompound tagCompoundInstability = tagCompound.getCompoundTag("instability");
+		containedEnergy = tagCompound.getInt("energy");
+		final CompoundNBT tagCompoundInstability = tagCompound.getCompound("instability");
 		// tier isn't defined yet, so we check all candidates
 		for (final ReactorFace reactorFace : ReactorFace.getLasers()) {
 			if (reactorFace.indexStability < 0) {
 				continue;
 			}
-			if (tagCompoundInstability.hasKey(reactorFace.name)) {
+			if (tagCompoundInstability.contains(reactorFace.name)) {
 				instabilityValues[reactorFace.indexStability] = tagCompoundInstability.getDouble(reactorFace.name);
 			}
 		}
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
 		
-		tagCompound.removeTag("outputMode");
-		tagCompound.removeTag("outputThreshold");
-		tagCompound.removeTag("instabilityTarget");
-		tagCompound.removeTag("stabilizerEnergy");
+		tagCompound.remove("outputMode");
+		tagCompound.remove("outputThreshold");
+		tagCompound.remove("instabilityTarget");
+		tagCompound.remove("stabilizerEnergy");
 		
-		tagCompound.removeTag("energy");
-		tagCompound.removeTag("instability");
+		tagCompound.remove("energy");
+		tagCompound.remove("instability");
 		return tagCompound;
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound getUpdateTag() {
-		final NBTTagCompound tagCompound = super.getUpdateTag();
+	public CompoundNBT getUpdateTag() {
+		final CompoundNBT tagCompound = super.getUpdateTag();
 		
-		tagCompound.removeTag("outputMode");
-		tagCompound.removeTag("outputThreshold");
-		tagCompound.removeTag("instabilityTarget");
-		tagCompound.removeTag("stabilizerEnergy");
+		tagCompound.remove("outputMode");
+		tagCompound.remove("outputThreshold");
+		tagCompound.remove("instabilityTarget");
+		tagCompound.remove("stabilizerEnergy");
 		
 		return tagCompound;
 	}

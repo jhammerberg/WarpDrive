@@ -3,11 +3,10 @@ package cr0s.warpdrive.client;
 import javax.annotation.Nonnull;
 import java.util.HashSet;
 
-import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.util.ResourceLocation;
 
 import net.minecraftforge.client.event.TextureStitchEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class SpriteManager {
 	
@@ -20,10 +19,8 @@ public class SpriteManager {
 	
 	@SubscribeEvent
 	public void onPreTextureStitchEvent(@Nonnull final TextureStitchEvent.Pre eventPreTextureStitch) {
-		final TextureMap textureMap = eventPreTextureStitch.getMap();
-		
 		for (final ResourceLocation resourceLocationTexture : resourceLocationTextures) {
-			textureMap.registerSprite(resourceLocationTexture);
+			eventPreTextureStitch.addSprite(resourceLocationTexture);
 		}
 	}
 }

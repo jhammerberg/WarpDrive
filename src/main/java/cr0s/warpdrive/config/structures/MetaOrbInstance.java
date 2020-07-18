@@ -14,9 +14,8 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Random;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -44,7 +43,7 @@ public class MetaOrbInstance extends OrbInstance {
 	}
 	
 	@Override
-	public boolean generate(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
+	public boolean place(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
 		if (WarpDriveConfig.LOGGING_WORLD_GENERATION) {
 			WarpDrive.logger.info(String.format("Generating MetaOrb %s of %d cores with radius of %d (thickness of %d) at %s",
 			                                    structure.getFullName(), metaShellInstance.count, radiusTotal, totalThickness, Commons.format(world, blockPos)));
@@ -56,7 +55,7 @@ public class MetaOrbInstance extends OrbInstance {
 		                        Math.max(blockPos.getY(), WarpDriveConfig.SPACE_GENERATOR_Y_MIN_BORDER + radiusTotal));
 		final BlockPos blockPosUpdated = y2 == blockPos.getY() ? blockPos : new BlockPos(blockPos.getX(), y2, blockPos.getZ());
 		if (((MetaOrb) structure).metaShell == null) {
-			return super.generate(world, random, blockPosUpdated);
+			return super.place(world, random, blockPosUpdated);
 		}
 		
 		// prepare bounding box
@@ -68,10 +67,10 @@ public class MetaOrbInstance extends OrbInstance {
 		tickScheduleBlocks(world, random, blockPosUpdated);
 		
 		// place the core blocks
-		if (metaShellInstance.block != null) {
+		if (metaShellInstance.blockState != null) {
 			for (final VectorI location: metaShellInstance.locations) {
 				final BlockPos blockPosCore = new BlockPos(blockPosUpdated.getX() + location.x, blockPosUpdated.getY() + location.y, blockPosUpdated.getZ() + location.z);
-				world.setBlockState(blockPosCore, metaShellInstance.block.getStateFromMeta(metaShellInstance.metadata), 2);
+				world.setBlockState(blockPosCore, metaShellInstance.blockState, 2);
 			}
 		}
 		
@@ -165,18 +164,17 @@ public class MetaOrbInstance extends OrbInstance {
 		zMax = Math.max(zMax, jumpBlock.z);
 		
 		// Replace water with random gas (ship in moon)
-		if (world.getBlockState(new BlockPos(jumpBlock.x, jumpBlock.y, jumpBlock.z)).getBlock().isAssociatedBlock(Blocks.WATER)) {
+		if (world.getBlockState(new BlockPos(jumpBlock.x, jumpBlock.y, jumpBlock.z)).getBlock() == Blocks.WATER) {
 			if (world.rand.nextInt(50) != 1) {
-				jumpBlock.block = WarpDrive.blockGas;
-				jumpBlock.blockMeta = 0; // gasColor;
+				jumpBlock.blockState = WarpDrive.blockGas[0].getDefaultState();
 			}
 		}
 		final BlockPos blockPos = new BlockPos(jumpBlock.x, jumpBlock.y, jumpBlock.z);
 		blockPoses.add(blockPos);
 		if (isSurface && jumpBlock.x % 4 == 0 && jumpBlock.z % 4 == 0) {
-			world.setBlockState(blockPos, jumpBlock.block.getStateFromMeta(jumpBlock.blockMeta), 2);
+			world.setBlockState(blockPos, jumpBlock.blockState, 2);
 		} else {
-			FastSetBlockState.setBlockStateNoLight(world, blockPos, jumpBlock.block.getStateFromMeta(jumpBlock.blockMeta), 2);
+			FastSetBlockState.setBlockStateNoLight(world, blockPos, jumpBlock.blockState, 2);
 		}
 	}
 	
@@ -184,7 +182,7 @@ public class MetaOrbInstance extends OrbInstance {
 		LocalProfiler.start("[MetaOrbInstance] Updating client for " + blockPoses.size() + " blocks");
 		
 		for (final BlockPos blockPos : blockPoses) {
-			final IBlockState blockState = world.getBlockState(blockPos);
+			final BlockState blockState = world.getBlockState(blockPos);
 			world.notifyBlockUpdate(blockPos, blockState, blockState, 3);
 		}
 		
@@ -196,8 +194,7 @@ public class MetaOrbInstance extends OrbInstance {
 		protected final int count;
 		protected final int radius;
 		protected ArrayList<VectorI> locations;
-		protected final Block block;
-		protected final int metadata;
+		protected final BlockState blockState;
 		
 		public MetaShellInstance(@Nonnull final MetaOrb metaOrb, final Random random) {
 			if (metaOrb.metaShell == null) {
@@ -205,14 +202,12 @@ public class MetaOrbInstance extends OrbInstance {
 				                                    metaOrb.getFullName()));
 				count = 1;
 				radius = 0;
-				block = null;
-				metadata = 0;
+				blockState = null;
 				return;
 			}
 			count = Commons.randomRange(random, metaOrb.metaShell.minCount, metaOrb.metaShell.maxCount);
 			final double radiusMax = Math.max(metaOrb.metaShell.minRadius, metaOrb.metaShell.relativeRadius * totalThickness);
-			block = metaOrb.metaShell.block;
-			metadata = metaOrb.metaShell.metadata;
+			blockState = metaOrb.metaShell.blockState;
 			
 			// evaluate core positions
 			locations = new ArrayList<>();

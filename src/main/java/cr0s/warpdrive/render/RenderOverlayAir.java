@@ -1,5 +1,6 @@
 package cr0s.warpdrive.render;
 
+import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.compat.CompatMatterOverdrive;
 import cr0s.warpdrive.BreathingManager;
 import cr0s.warpdrive.api.ExceptionChunkNotLoaded;
@@ -11,31 +12,31 @@ import cr0s.warpdrive.data.StateAir;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.client.gui.AbstractGui;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
 
-import net.minecraftforge.client.GuiIngameForge;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.client.gui.ForgeIngameGui;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-@SideOnly(Side.CLIENT)
+import com.mojang.blaze3d.systems.RenderSystem;
+
+@OnlyIn(Dist.CLIENT)
 public class RenderOverlayAir {
 	
 	private static final int WARNING_ON_JOIN_TICKS = 20 * 20;
 	
-	private static final Minecraft minecraft = Minecraft.getMinecraft();
+	private static final Minecraft minecraft = Minecraft.getInstance();
 	
 	private static float ratioPreviousAir = 1.0F;
 	private static long timePreviousAir = 0;
@@ -44,7 +45,7 @@ public class RenderOverlayAir {
 	
 	private void renderAir(final int width, final int height) {
 		// get player
-		final EntityPlayer entityPlayer = minecraft.player;
+		final PlayerEntity entityPlayer = minecraft.player;
 		if (entityPlayer == null) {
 			return;
 		}
@@ -52,9 +53,9 @@ public class RenderOverlayAir {
 		  || entityPlayer.isSpectator() ) {
 			return;
 		}
-		final int x = MathHelper.floor(entityPlayer.posX);
-		final int y = MathHelper.floor(entityPlayer.posY);
-		final int z = MathHelper.floor(entityPlayer.posZ);
+		final int x = MathHelper.floor(entityPlayer.getPosX());
+		final int y = MathHelper.floor(entityPlayer.getPosY());
+		final int z = MathHelper.floor(entityPlayer.getPosZ());
 		
 		// get celestial object
 		final CelestialObject celestialObject = CelestialObjectManager.get(entityPlayer.world, x, z);
@@ -74,7 +75,7 @@ public class RenderOverlayAir {
 		final float ratioAirReserve = BreathingManager.getAirReserveRatio(entityPlayer);
 		
 		// start rendering
-		GlStateManager.enableBlend();
+		RenderSystem.enableBlend();
 		
 		// show splash message
 		int alpha = 255;
@@ -90,14 +91,14 @@ public class RenderOverlayAir {
 		}
 		
 		// restore texture
-		minecraft.getTextureManager().bindTexture(Gui.ICONS);
+		minecraft.getTextureManager().bindTexture(AbstractGui.GUI_ICONS_LOCATION);
 		
 		// position right above food bar
 		final int left = width / 2 + 91;
-		final int top = height - GuiIngameForge.right_height;
+		final int top = height - ForgeIngameGui.right_height;
 		
 		// draw animated air bubble
-		final long timeWorld =  entityPlayer.world.getTotalWorldTime();
+		final long timeWorld =  entityPlayer.world.getGameTime();
 		if (ratioAirReserve != ratioPreviousAir) {
 			timePreviousAir = timeWorld;
 			ratioPreviousAir = ratioAirReserve;
@@ -131,14 +132,14 @@ public class RenderOverlayAir {
 		RenderCommons.drawTexturedModalRect(left - 10 - full, top + 2, 91 - full, 89, full, 5, 100, fRed, fGreen, fBlue, fAlpha);
 		
 		// close rendering
-		GuiIngameForge.right_height += 10;
+		ForgeIngameGui.right_height += 10;
 		
-		GlStateManager.disableBlend();
+		RenderSystem.disableBlend();
 	}
 	
 	private int cache_rangeToVoid = -1;
 	private int cache_ticksVoidCheck = -1;
-	private int getRangeToVoid(@Nonnull final EntityLivingBase entityLivingBase, final int x, final int y, final int z) {
+	private int getRangeToVoid(@Nonnull final LivingEntity entityLivingBase, final int x, final int y, final int z) {
 		if (entityLivingBase.ticksExisted == cache_ticksVoidCheck) {
 			return cache_rangeToVoid;
 		}
@@ -147,17 +148,17 @@ public class RenderOverlayAir {
 		return cache_rangeToVoid;
 	}
 	private int getRangeToVoid_noCache(@Nonnull final World world, final int x, final int y, final int z) {
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos(x, y, z);
-		final IBlockState blockStateSelf = world.getBlockState(mutableBlockPos);
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(x, y, z);
+		final BlockState blockStateSelf = world.getBlockState(mutableBlockPos);
 		if (isVoid(blockStateSelf, world, mutableBlockPos)) {
 			return 0;
 		}
-		for (final EnumFacing enumFacing : EnumFacing.HORIZONTALS) {
+		for (final Direction enumFacing : Commons.FACINGS_HORIZONTAL) {
 			// check the block directly next
 			mutableBlockPos.setPos(x + enumFacing.getXOffset(),
 			                       y + enumFacing.getYOffset(),
 			                       z + enumFacing.getZOffset() );
-			final IBlockState blockStateClose = world.getBlockState(mutableBlockPos);
+			final BlockState blockStateClose = world.getBlockState(mutableBlockPos);
 			if (isVoid(blockStateClose, world, mutableBlockPos)) {
 				return 1;
 			}
@@ -179,7 +180,7 @@ public class RenderOverlayAir {
 			mutableBlockPos.setPos(x + 2 * enumFacing.getXOffset(),
 			                       y + 2 * enumFacing.getYOffset(),
 			                       z + 2 * enumFacing.getZOffset() );
-			final IBlockState blockStateFar = world.getBlockState(mutableBlockPos);
+			final BlockState blockStateFar = world.getBlockState(mutableBlockPos);
 			if (isVoid(blockStateFar, world, mutableBlockPos)) {
 				return 2;
 			}
@@ -187,8 +188,8 @@ public class RenderOverlayAir {
 		return -1;
 	}
 	
-	private boolean isVoid(@Nonnull final IBlockState blockState, @Nonnull final IBlockAccess blockAccess, final BlockPos blockPos) {
-		return blockState.getBlock().isAir(blockState, blockAccess, blockPos)
+	private boolean isVoid(@Nonnull final BlockState blockState, @Nonnull final IWorldReader worldReader, final BlockPos blockPos) {
+		return blockState.getBlock().isAir(blockState, worldReader, blockPos)
 		    && !BreathingManager.isAirBlock(blockState.getBlock());
 	}
 	
@@ -199,13 +200,13 @@ public class RenderOverlayAir {
 			wasRendered = false;
 			break;
 		case AIR:
-			renderAir(event.getResolution().getScaledWidth(), event.getResolution().getScaledHeight());
+			renderAir(event.getWindow().getScaledWidth(), event.getWindow().getScaledHeight());
 			wasRendered = true;
 			break;
 		case CHAT:
 			if ( !wasRendered
 			  && WarpDriveConfig.CLIENT_BREATHING_OVERLAY_FORCED ) {
-				renderAir(event.getResolution().getScaledWidth(), event.getResolution().getScaledHeight());
+				renderAir(event.getWindow().getScaledWidth(), event.getWindow().getScaledHeight());
 				wasRendered = true;
 			}
 			break;
@@ -218,7 +219,7 @@ public class RenderOverlayAir {
 		case ALL:
 			if ( !wasRendered
 			  && WarpDriveConfig.CLIENT_BREATHING_OVERLAY_FORCED ) {
-				renderAir(event.getResolution().getScaledWidth(), event.getResolution().getScaledHeight());
+				renderAir(event.getWindow().getScaledWidth(), event.getWindow().getScaledHeight());
 			}
 			break;
 		}

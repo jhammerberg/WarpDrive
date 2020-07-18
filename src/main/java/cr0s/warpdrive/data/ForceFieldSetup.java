@@ -10,6 +10,7 @@ import cr0s.warpdrive.block.TileEntityAbstractBase.UpgradeSlot;
 import cr0s.warpdrive.block.forcefield.TileEntityForceFieldProjector;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,13 +20,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
 
 public class ForceFieldSetup extends GlobalPosition {
@@ -44,7 +47,7 @@ public class ForceFieldSetup extends GlobalPosition {
 	public final int beamFrequency;
 	public final EnumTier enumTier;
 	public final Set<TileEntityForceFieldProjector> projectors = new HashSet<>();
-	private IBlockState blockStateCamouflage;
+	private BlockState blockStateCamouflage;
 	private int colorMultiplierCamouflage;
 	private int lightCamouflage;
 	private final HashMap<IForceFieldUpgradeEffector, Float> upgrades = new HashMap<>(EnumForceFieldUpgrade.length);
@@ -77,7 +80,7 @@ public class ForceFieldSetup extends GlobalPosition {
 	public IForceFieldShape shapeProvider;
 	public boolean isDoubleSided = true;
 	
-	public ForceFieldSetup(final int dimensionId, final BlockPos blockPos, final EnumTier enumTier, final int beamFrequency) {
+	public ForceFieldSetup(final ResourceLocation dimensionId, final BlockPos blockPos, final EnumTier enumTier, final int beamFrequency) {
 		super(dimensionId, blockPos);
 		
 		this.enumTier = enumTier;
@@ -94,12 +97,12 @@ public class ForceFieldSetup extends GlobalPosition {
 		}
 	}
 	
-	public boolean isAccessGranted(final EntityPlayer entityPlayer, final EnumPermissionNode enumPermissionNode) {
+	public boolean isAccessGranted(final PlayerEntity entityPlayer, final EnumPermissionNode enumPermissionNode) {
 		return false; // TODO
 	}
 	
 	@Nullable
-	public IBlockState getCamouflageBlockState() {
+	public BlockState getCamouflageBlockState() {
 		if (Commons.isValidCamouflage(blockStateCamouflage)) {
 			return blockStateCamouflage;
 		}
@@ -140,8 +143,8 @@ public class ForceFieldSetup extends GlobalPosition {
 				continue;
 			}
 			// only consider same dimension
-			if ( !tileEntity.hasWorld()
-			  || tileEntity.getWorld().provider.getDimension() != dimensionId ) {
+			if ( tileEntity.getWorld() == null
+			  || !dimensionId.equals(tileEntity.getWorld().getDimension().getType().getRegistryName()) ) {
 				continue;
 			}
 			// ensure entity is constructed
@@ -199,8 +202,8 @@ public class ForceFieldSetup extends GlobalPosition {
 					
 					// camouflage identification
 					if (upgradeEffector == EnumForceFieldUpgrade.CAMOUFLAGE) {
-						final BlockPos blockPosCamouflage = tileEntity.getPos().offset(EnumFacing.UP);
-						final IBlockState blockStateCandidate = tileEntity.getWorld().getBlockState(blockPosCamouflage);
+						final BlockPos blockPosCamouflage = tileEntity.getPos().offset(Direction.UP);
+						final BlockState blockStateCandidate = tileEntity.getWorld().getBlockState(blockPosCamouflage);
 						if (Commons.isValidCamouflage(blockStateCandidate)) {
 							blockStateCamouflage = blockStateCandidate;
 							colorMultiplierCamouflage = 0x808080; // blockStateCandidate.colorMultiplier(tileEntity.getWorld(), blockPosCamouflage);
@@ -308,7 +311,7 @@ public class ForceFieldSetup extends GlobalPosition {
 		return entityEnergyCost * FORCEFIELD_MAX_FACTOR_ENTITY_COST * Math.exp(FORCEFIELD_TAU_FACTOR_ENTITY_COST / countEntityInteractions);
 	}
 	
-	public int onEntityEffect(final World world, final BlockPos blockPos, final Entity entity) {
+	public int onEntityEffect(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final Entity entity) {
 		int countdown = 0;
 		final TileEntity tileEntity = world.getTileEntity(getBlockPos());
 		if (tileEntity instanceof TileEntityForceFieldProjector) {
@@ -329,9 +332,8 @@ public class ForceFieldSetup extends GlobalPosition {
 		return countdown;
 	}
 	
-	public double applyDamage(final World world, final DamageSource damageSource, final double damageLevel) {
-		assert damageSource != null;
-		final TileEntity tileEntity = world.getTileEntity(getBlockPos());
+	public double applyDamage(@Nonnull final IWorldReader worldReader, @Nonnull final DamageSource damageSource, final double damageLevel) {
+		final TileEntity tileEntity = worldReader.getTileEntity(getBlockPos());
 		if (tileEntity instanceof TileEntityForceFieldProjector) {
 			final double scaledDamage;
 			if (damageSource.damageType.contains("explosion")) {
@@ -354,7 +356,7 @@ public class ForceFieldSetup extends GlobalPosition {
 	
 	@Override
 	public String toString() {
-		return String.format("%s @ DIM%d (%d %d %d) (%d %d %d) -> (%d %d %d)",
+		return String.format("%s @ %s (%d %d %d) (%d %d %d) -> (%d %d %d)",
 			getClass().getSimpleName(), dimensionId,
 			x, y, z,
 			vMin.x, vMin.y, vMin.z,

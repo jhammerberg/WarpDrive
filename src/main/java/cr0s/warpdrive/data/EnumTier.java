@@ -4,21 +4,19 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import net.minecraft.item.EnumRarity;
+import net.minecraft.item.Rarity;
 import net.minecraft.util.IStringSerializable;
-
-import net.minecraftforge.common.IRarity;
 
 public enum EnumTier implements IStringSerializable {
 	
-	CREATIVE ("creative", 0, EnumRarity.EPIC     ),
-	BASIC    ("basic"   , 1, EnumRarity.COMMON   ),
-	ADVANCED ("advanced", 2, EnumRarity.UNCOMMON ),
-	SUPERIOR ("superior", 3, EnumRarity.RARE     );
+	CREATIVE ("creative", 0, Rarity.EPIC     ),
+	BASIC    ("basic"   , 1, Rarity.COMMON   ),
+	ADVANCED ("advanced", 2, Rarity.UNCOMMON ),
+	SUPERIOR ("superior", 3, Rarity.RARE     );
 	
 	private final String name;
 	private final int index;
-	private final IRarity rarity;
+	private final Rarity rarity;
 	
 	// cached values
 	public static final int length;
@@ -38,7 +36,7 @@ public enum EnumTier implements IStringSerializable {
 		tblNonCreatives = list.toArray(new EnumTier[0]);
 	}
 	
-	EnumTier(final String name, final int index, @Nonnull final IRarity rarity) {
+	EnumTier(final String name, final int index, @Nonnull final Rarity rarity) {
 		this.name = name;
 		this.index = index;
 		this.rarity = rarity;
@@ -59,7 +57,7 @@ public enum EnumTier implements IStringSerializable {
 	}
 	
 	@Nonnull
-	public IRarity getForgeRarity() {
+	public Rarity getRarity() {
 		return rarity;
 	}
 	

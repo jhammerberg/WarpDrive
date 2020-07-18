@@ -2,18 +2,20 @@ package cr0s.warpdrive.network;
 
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.core.ClassTransformer;
-import io.netty.buffer.ByteBuf;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import cr0s.warpdrive.network.PacketHandler.IMessage;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
-public class MessageClientValidation implements IMessage, IMessageHandler<MessageClientValidation, IMessage> {
+import net.minecraft.network.PacketBuffer;
+
+import net.minecraftforge.fml.network.NetworkEvent.Context;
+
+public class MessageClientValidation implements IMessage {
 	
 	private String mapClass;
 	
@@ -23,17 +25,17 @@ public class MessageClientValidation implements IMessage, IMessageHandler<Messag
 	}
 	
 	@Override
-	public void fromBytes(final ByteBuf buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		final int size = buffer.readInt();
-		mapClass = buffer.toString(buffer.readerIndex(), size, Charset.forName("UTF8"));
+		mapClass = buffer.toString(buffer.readerIndex(), size, StandardCharsets.UTF_8);
 		buffer.readerIndex(buffer.readerIndex() + size);
 	}
 	
 	@Override
-	public void toBytes(final ByteBuf buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		final String mapClassFull = ClassTransformer.getClientValidation();
 		final String mapClassTruncated = mapClassFull.substring(0, Math.min(32700, mapClassFull.length()));
-		final byte[] bytesString = mapClassTruncated.getBytes(Charset.forName("UTF8"));
+		final byte[] bytesString = mapClassTruncated.getBytes(StandardCharsets.UTF_8);
 		buffer.writeInt(bytesString.length);
 		buffer.writeBytes(bytesString);
 	}
@@ -60,13 +62,14 @@ public class MessageClientValidation implements IMessage, IMessageHandler<Messag
 	}
 	
 	@Override
-	public IMessage onMessage(final MessageClientValidation targetingMessage, final MessageContext context) {
+	public IMessage process(@Nonnull final Context context) {
+		assert context.getSender() != null;
 		if (WarpDrive.isDev) {
 			WarpDrive.logger.info(String.format("Received client validation packet from %s",
-			                                    context.getServerHandler().player.getName()));
+			                                    context.getSender().getName()));
 		}
 		
-		targetingMessage.handle(context.getServerHandler().player.getName());
+		handle(context.getSender().getName().getUnformattedComponentText());
         
 		return null;	// no response
 	}

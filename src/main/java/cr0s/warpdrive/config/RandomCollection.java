@@ -10,9 +10,9 @@ import java.util.NavigableMap;
 import java.util.Random;
 import java.util.TreeMap;
 
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.util.IStringSerializable;
 
 import net.minecraftforge.common.util.Constants.NBT;
@@ -36,19 +36,19 @@ public class RandomCollection<E extends IStringSerializable> {
 		E deserialize(final String name);
 	}
 	
-	public void loadFromNBT(final NBTTagCompound tagCompound, final StringDeserializable<E> deserializer) {
-		final NBTTagList tagListWeights = tagCompound.getTagList("weights", NBT.TAG_COMPOUND);
-		for (final NBTBase tagBase : tagListWeights) {
-			final NBTTagCompound tagCompoundWeight = (NBTTagCompound) tagBase;
-			final int weight = tagCompoundWeight.getInteger("key");
+	public void loadFromNBT(final CompoundNBT tagCompound, final StringDeserializable<E> deserializer) {
+		final ListNBT tagListWeights = tagCompound.getList("weights", NBT.TAG_COMPOUND);
+		for (final INBT tagBase : tagListWeights) {
+			final CompoundNBT tagCompoundWeight = (CompoundNBT) tagBase;
+			final int weight = tagCompoundWeight.getInt("key");
 			final String name = tagCompoundWeight.getString("name");
 			final E object = deserializer.deserialize(name);
 			addWeight(weight, object);
 		}
 		
-		final NBTTagList tagListRatios = tagCompound.getTagList("ratios", NBT.TAG_COMPOUND);
-		for (final NBTBase tagBase : tagListRatios) {
-			final NBTTagCompound tagCompoundWeight = (NBTTagCompound) tagBase;
+		final ListNBT tagListRatios = tagCompound.getList("ratios", NBT.TAG_COMPOUND);
+		for (final INBT tagBase : tagListRatios) {
+			final CompoundNBT tagCompoundWeight = (CompoundNBT) tagBase;
 			final double ratio = tagCompoundWeight.getDouble("key");
 			final String name = tagCompoundWeight.getString("name");
 			final E object = deserializer.deserialize(name);
@@ -56,30 +56,30 @@ public class RandomCollection<E extends IStringSerializable> {
 		}
 	}
 	
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		final NBTTagList tagListWeights = new NBTTagList();
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		final ListNBT tagListWeights = new ListNBT();
 		int weightPrevious = 0;
 		for (final Entry<Integer, E> entry : weightMap.entrySet()) {
-			final NBTTagCompound tagCompoundWeight = new NBTTagCompound();
+			final CompoundNBT tagCompoundWeight = new CompoundNBT();
 			final int weightEntry = entry.getKey();
-			tagCompoundWeight.setInteger("key", weightEntry - weightPrevious);
-			tagCompoundWeight.setString("name", entry.getValue().getName());
-			tagListWeights.appendTag(tagCompoundWeight);
+			tagCompoundWeight.putInt("key", weightEntry - weightPrevious);
+			tagCompoundWeight.putString("name", entry.getValue().getName());
+			tagListWeights.add(tagCompoundWeight);
 			weightPrevious = weightEntry;
 		}
-		tagCompound.setTag("weights", tagListWeights);
+		tagCompound.put("weights", tagListWeights);
 		
-		final NBTTagList tagListRatios = new NBTTagList();
+		final ListNBT tagListRatios = new ListNBT();
 		double ratioPrevious = 0.0D;
 		for (final Entry<Double, E> entry : ratioMap.entrySet()) {
-			final NBTTagCompound tagCompoundRatio = new NBTTagCompound();
+			final CompoundNBT tagCompoundRatio = new CompoundNBT();
 			final double ratioEntry = entry.getKey();
-			tagCompoundRatio.setDouble("key", ratioEntry - ratioPrevious);
-			tagCompoundRatio.setString("name", entry.getValue().getName());
-			tagListRatios.appendTag(tagCompoundRatio);
+			tagCompoundRatio.putDouble("key", ratioEntry - ratioPrevious);
+			tagCompoundRatio.putString("name", entry.getValue().getName());
+			tagListRatios.add(tagCompoundRatio);
 			ratioPrevious = ratioEntry;
 		}
-		tagCompound.setTag("ratios", tagListRatios);
+		tagCompound.put("ratios", tagListRatios);
 		
 		return tagCompound;
 	}

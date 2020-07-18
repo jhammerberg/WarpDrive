@@ -8,35 +8,36 @@ import cr0s.warpdrive.data.EntityFXRegistry;
 import cr0s.warpdrive.data.GlobalPosition;
 import cr0s.warpdrive.data.MovingEntity;
 import cr0s.warpdrive.data.Vector3;
+import cr0s.warpdrive.network.PacketHandler.IMessage;
 import cr0s.warpdrive.render.AbstractEntityFX;
 import cr0s.warpdrive.render.EntityFXDot;
 import cr0s.warpdrive.render.EntityFXEnergizing;
-import io.netty.buffer.ByteBuf;
+
+import javax.annotation.Nonnull;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fml.client.FMLClientHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.network.NetworkEvent.Context;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
-public class MessageTransporterEffect implements IMessage, IMessageHandler<MessageTransporterEffect, IMessage> {
+public class MessageTransporterEffect implements IMessage {
 	
 	private boolean isTransporterRoom;
 	private GlobalPosition globalPosition;
@@ -80,10 +81,10 @@ public class MessageTransporterEffect implements IMessage, IMessageHandler<Messa
 	}
 	
 	@Override
-	public void fromBytes(final ByteBuf buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		isTransporterRoom = buffer.readBoolean();
 		
-		final short dimensionId = buffer.readShort();
+		final ResourceLocation dimensionId = new ResourceLocation(buffer.readString());
 		final int x = buffer.readInt();
 		final int y = buffer.readInt();
 		final int z = buffer.readInt();
@@ -108,10 +109,10 @@ public class MessageTransporterEffect implements IMessage, IMessageHandler<Messa
 	}
 	
 	@Override
-	public void toBytes(final ByteBuf buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		buffer.writeBoolean(isTransporterRoom);
 		
-		buffer.writeShort(globalPosition.dimensionId);
+		buffer.writeString(globalPosition.dimensionId.toString());
 		buffer.writeInt(globalPosition.x);
 		buffer.writeInt(globalPosition.y);
 		buffer.writeInt(globalPosition.z);
@@ -131,13 +132,14 @@ public class MessageTransporterEffect implements IMessage, IMessageHandler<Messa
 		buffer.writeShort(tickCooldown);
 	}
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	private void handle(final World world) {
 		// adjust render distance
-		final int maxRenderDistance = Minecraft.getMinecraft().gameSettings.renderDistanceChunks * 16;
+		final int maxRenderDistance = Minecraft.getInstance().gameSettings.renderDistanceChunks * 16;
 		final int maxRenderDistance_squared = maxRenderDistance * maxRenderDistance;
 		
-		final EntityPlayer player = Minecraft.getMinecraft().player;
+		final PlayerEntity player = Minecraft.getInstance().player;
+		assert player != null;
 		
 		// handle source
 		if (globalPosition.distance2To(player) > maxRenderDistance_squared) {
@@ -163,21 +165,21 @@ public class MessageTransporterEffect implements IMessage, IMessageHandler<Messa
 			if (entity != null) {
 				// check existing particle at position
 				final Vector3 v3Position = v3EntityPositions.get(indexEntity).clone();
-				if ( entity instanceof EntityPlayer
-				  && entity == Minecraft.getMinecraft().player) {
-					v3Position.translate(EnumFacing.DOWN, entity.getEyeHeight());
+				if ( entity instanceof PlayerEntity
+				  && entity == Minecraft.getInstance().player) {
+					v3Position.translate(Direction.DOWN, entity.getEyeHeight());
 				}
-				AbstractEntityFX effect = EntityFXRegistry.get(world, v3Position, 0.5D);
+				AbstractEntityFX effect = EntityFXRegistry.get(v3Position, 0.5D);
 				if (effect == null) {
 					// compute height with a margin
-					final Vector3 v3Target = v3Position.clone().translate(EnumFacing.UP, entity.height + 0.5F);
+					final Vector3 v3Target = v3Position.clone().translate(Direction.UP, entity.getHeight() + 0.5F);
 					// add particle to world
 					effect = new EntityFXEnergizing(world, v3Position, v3Target,
 					                                0.35F + 0.05F * world.rand.nextFloat(),
 					                                0.50F + 0.15F * world.rand.nextFloat(),
 					                                0.85F + 0.10F * world.rand.nextFloat(),
-					                                20, entity.width);
-					FMLClientHandler.instance().getClient().effectRenderer.addEffect(effect);
+					                                20, entity.getWidth() );
+					Minecraft.getInstance().particles.addEffect(effect);
 					EntityFXRegistry.add(effect);
 				} else {
 					effect.refresh();
@@ -186,7 +188,7 @@ public class MessageTransporterEffect implements IMessage, IMessageHandler<Messa
 		}
 	}
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	private void spawnParticlesInArea(final World world, final BlockPos blockPosCenter, final boolean isFalling,
 	                                  final float redBase, final float greenBase, final float blueBase,
 	                                  final float redFactor, final float greenFactor, final float blueFactor) {
@@ -225,10 +227,10 @@ public class MessageTransporterEffect implements IMessage, IMessageHandler<Messa
 				final BlockPos position = new BlockPos(MathHelper.floor(v3Position.x),
 				                                       MathHelper.floor(v3Position.y),
 				                                       MathHelper.floor(v3Position.z));
-				final IBlockState blockState = world.getBlockState(position);
+				final BlockState blockState = world.getBlockState(position);
 				final Block block = blockState.getBlock();
 				if ( !block.isAir(blockState, world, position)
-				  && blockState.isOpaqueCube() ) {
+				  && blockState.isOpaqueCube(world, position) ) {
 					y += isFalling ? -1.0D : 1.0D;
 					v3Position.y = y;
 				}
@@ -238,15 +240,15 @@ public class MessageTransporterEffect implements IMessage, IMessageHandler<Messa
 			final Particle effect = new EntityFXDot(world, v3Position,
 			                                        v3Motion, v3Acceleration, 0.98D,
 			                                        30);
-			effect.setRBGColorF(redBase   + redFactor   * world.rand.nextFloat(),
-			                    greenBase + greenFactor * world.rand.nextFloat(),
-			                    blueBase  + blueFactor  * world.rand.nextFloat() );
+			effect.setColor(redBase   + redFactor   * world.rand.nextFloat(),
+			                greenBase + greenFactor * world.rand.nextFloat(),
+			                blueBase  + blueFactor  * world.rand.nextFloat() );
 			effect.setAlphaF(1.0F);
-			FMLClientHandler.instance().getClient().effectRenderer.addEffect(effect);
+			Minecraft.getInstance().particles.addEffect(effect);
 		}
 	}
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	private void spawnParticlesInTransporterRoom(final World world, final BlockPos blockPosTransporter, final boolean isFalling,
 	                                             final float redBase, final float greenBase, final float blueBase,
 	                                             final float redFactor, final float greenFactor, final float blueFactor) {
@@ -291,31 +293,31 @@ public class MessageTransporterEffect implements IMessage, IMessageHandler<Messa
 			final Particle effect = new EntityFXDot(world, v3Position,
 			                                        v3Motion, v3Acceleration, 0.98D,
 			                                        30);
-			effect.setRBGColorF(redBase   + redFactor   * world.rand.nextFloat(),
-			                    greenBase + greenFactor * world.rand.nextFloat(),
-			                    blueBase  + blueFactor  * world.rand.nextFloat() );
+			effect.setColor(redBase   + redFactor   * world.rand.nextFloat(),
+			                greenBase + greenFactor * world.rand.nextFloat(),
+			                blueBase  + blueFactor  * world.rand.nextFloat() );
 			effect.setAlphaF(1.0F);
-			FMLClientHandler.instance().getClient().effectRenderer.addEffect(effect);
+			Minecraft.getInstance().particles.addEffect(effect);
 		}
 	}
 	
 	@Override
-	@SideOnly(Side.CLIENT)
-	public IMessage onMessage(final MessageTransporterEffect messageTransporterEffect, final MessageContext context) {
+	@OnlyIn(Dist.CLIENT)
+	public IMessage process(@Nonnull final Context context) {
 		// skip in case player just logged in
-		if (Minecraft.getMinecraft().world == null) {
+		if (Minecraft.getInstance().world == null) {
 			WarpDrive.logger.error("WorldObj is null, ignoring particle packet");
 			return null;
 		}
 		
 		if (WarpDriveConfig.LOGGING_EFFECTS) {
 			WarpDrive.logger.info(String.format("Received transporter effect isTransporterRoom %s at %s towards %d entities, with %.3f lockStrength, energizing in %d ticks, cool down for %d ticks",
-			                      messageTransporterEffect.isTransporterRoom, messageTransporterEffect.globalPosition,
-			                      messageTransporterEffect.idEntities.size(),
-			                      messageTransporterEffect.lockStrength, messageTransporterEffect.tickEnergizing, messageTransporterEffect.tickCooldown));
+			                      isTransporterRoom, globalPosition,
+			                      idEntities.size(),
+			                      lockStrength, tickEnergizing, tickCooldown));
 		}
 		
-		messageTransporterEffect.handle(Minecraft.getMinecraft().world);
+		handle(Minecraft.getInstance().world);
 		
 		return null;	// no response
 	}

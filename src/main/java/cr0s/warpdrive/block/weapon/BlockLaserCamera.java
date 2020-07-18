@@ -5,30 +5,28 @@ import cr0s.warpdrive.data.EnumTier;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.World;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockReader;
 
 public class BlockLaserCamera extends BlockAbstractContainer {
 	
-	public BlockLaserCamera(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier, Material.IRON);
-		
-		setHardness(50.0F);
-		setResistance(20.0F * 5 / 3);
-		setTranslationKey("warpdrive.weapon.laser_camera");
+	public BlockLaserCamera(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(getDefaultProperties(null)
+				      .hardnessAndResistance(50.0F, 20.0F),
+		      registryName, enumTier);
 	}
 	
 	@Nonnull
 	@Override
-	public TileEntity createNewTileEntity(@Nonnull final World world, final int metadata) {
+	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
 		return new TileEntityLaserCamera();
 	}
 	
 	@SuppressWarnings("deprecation")
 	@Override
-	public boolean causesSuffocation(@Nonnull final IBlockState blockState) {
+	public boolean causesSuffocation(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos) {
 		return false;
 	}
 }

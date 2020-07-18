@@ -15,17 +15,18 @@ import li.cil.oc.api.machine.Context;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 
-import net.minecraftforge.fml.common.Optional;
-
 public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrController implements IGlobalRegionProvider {
+	
+	public static TileEntityType<TileEntityVirtualAssistant> TYPE;
 	
 	// persistent properties
 	private String lastCommand = "";
@@ -35,7 +36,7 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 	private int tickUpdate;
 	
 	public TileEntityVirtualAssistant() {
-		super();
+		super(TYPE);
 		
 		peripheralName = "warpdriveVirtualAssistant";
 		addMethods(new String[] {
@@ -45,7 +46,7 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 	}
 	
 	@Override
-	public boolean energy_canInput(final EnumFacing from) {
+	public boolean energy_canInput(final Direction from) {
 		return true;
 	}
 	
@@ -59,8 +60,8 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		
 		final float range = WarpDriveConfig.VIRTUAL_ASSISTANT_RANGE_BLOCKS_BY_TIER[enumTier.getIndex()];
 		aabbArea = new AxisAlignedBB(
@@ -69,10 +70,11 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -80,7 +82,7 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 		if (tickUpdate < 0) {
 			tickUpdate = WarpDriveConfig.G_PARAMETERS_UPDATE_INTERVAL_TICKS;
 			
-			final IBlockState blockState = world.getBlockState(pos);
+			final BlockState blockState = world.getBlockState(pos);
 			updateBlockState(blockState, BlockProperties.ACTIVE, isEnabled);
 		}
 	}
@@ -91,18 +93,18 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
 		lastCommand = tagCompound.getString("lastCommand");
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setString("lastCommand", lastCommand);
+		tagCompound.putString("lastCommand", lastCommand);
 		return tagCompound;
 	}
 	
@@ -114,7 +116,7 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 				EnergyWrapper.convert(WarpDriveConfig.VIRTUAL_ASSISTANT_ENERGY_PER_TICK_BY_TIER[enumTier.getIndex()], units) };
 	}
 	
-	public boolean onChatReceived(@Nonnull final EntityPlayer entityPlayer, @Nonnull final String message) {
+	public boolean onChatReceived(@Nonnull final PlayerEntity entityPlayer, @Nonnull final String message) {
 		if (!isEnabled) {
 			return false;
 		}
@@ -147,7 +149,7 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 	@Override
 	public WarpDriveText getStatus() {
 		final WarpDriveText textCommandStatus = getCommandStatus();
-		if (textCommandStatus.getUnformattedText().isEmpty()) {
+		if (textCommandStatus.getUnformattedComponentText().isEmpty()) {
 			return super.getStatus();
 		} else {
 			return super.getStatus()
@@ -177,7 +179,7 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 	}
 	
 	@Override
-	public boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final IBlockState blockState) {
+	public boolean onBlockUpdatingInArea(@Nullable final Entity entity, final BlockPos blockPos, final BlockState blockState) {
 		return true;
 	}
 	
@@ -200,22 +202,19 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getLastCommand(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getLastCommand();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] pullLastCommand(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return pullLastCommand();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "getLastCommand":

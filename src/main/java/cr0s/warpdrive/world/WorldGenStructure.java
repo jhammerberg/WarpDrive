@@ -19,10 +19,13 @@ import java.util.Iterator;
 import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.Explosion.Mode;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 
 public class WorldGenStructure {
@@ -51,12 +54,12 @@ public class WorldGenStructure {
 			WarpDrive.logger.warn(String.format("No FillerSet found within group %s during world generation: check your configuration",
 			                                    "hull_plain"));
 			fillerHullPlain = new Filler();
-			fillerHullPlain.block = Blocks.STONE;
+			fillerHullPlain.blockState = Blocks.STONE.getDefaultState();
 			fillerHullGlass = new Filler();
-			fillerHullGlass.block = Blocks.GLASS;
+			fillerHullGlass.blockState = Blocks.GLASS.getDefaultState();
 		} else {
 			fillerHullPlain = fillerSetHull_plain.getRandomUnit(rand);
-			fillerHullGlass = getGenericSetWithDefault(rand, "hull_glass:" + fillerSetHull_plain.getName(), Blocks.GLASS, 0);
+			fillerHullGlass = getGenericSetWithDefault(rand, "hull_glass:" + fillerSetHull_plain.getName(), Blocks.GLASS.getDefaultState());
 		}
 		
 		// solarPanel and wiring are linked by same name
@@ -65,12 +68,12 @@ public class WorldGenStructure {
 			WarpDrive.logger.warn(String.format("No FillerSet found within group %s during world generation: check your configuration",
 			                                    "ship_solarPanel"));
 			fillerSolarPanel = new Filler();
-			fillerSolarPanel.block = Blocks.SANDSTONE;
+			fillerSolarPanel.blockState = Blocks.SANDSTONE.getDefaultState();
 			fillerWiring = new Filler();
-			fillerWiring.block = Blocks.OAK_FENCE;
+			fillerWiring.blockState = Blocks.OAK_FENCE.getDefaultState();
 		} else {
 			fillerSolarPanel = fillerSetSolarPanel.getRandomUnit(rand);
-			fillerWiring = getGenericSetWithDefault(rand, "ship_wiring:" + fillerSetSolarPanel.getName(), Blocks.OAK_FENCE, 0);
+			fillerWiring = getGenericSetWithDefault(rand, "ship_wiring:" + fillerSetSolarPanel.getName(), Blocks.OAK_FENCE.getDefaultState());
 		}
 		
 		// Computer core and screen are linked by same name
@@ -80,18 +83,18 @@ public class WorldGenStructure {
 			WarpDrive.logger.warn(String.format("No FillerSet found within group %s during world generation: check your configuration",
 			                                    nameFillerComputer));
 			fillerComputerCore = new Filler();
-			fillerComputerCore.block = Blocks.GOLD_BLOCK;
+			fillerComputerCore.blockState = Blocks.GOLD_BLOCK.getDefaultState();
 			fillerComputerScreen = new Filler();
-			fillerComputerScreen.block = Blocks.GLASS_PANE;
+			fillerComputerScreen.blockState = Blocks.GLASS_PANE.getDefaultState();
 			fillerComputerKeyboard = new Filler();
-			fillerComputerKeyboard.block = Blocks.STANDING_SIGN;
+			fillerComputerKeyboard.blockState = Blocks.OAK_SIGN.getDefaultState();
 			fillerComputerFloppy = new Filler();
-			fillerComputerFloppy.block = Blocks.STANDING_SIGN;
+			fillerComputerFloppy.blockState = Blocks.OAK_SIGN.getDefaultState();
 		} else {
 			fillerComputerCore = fillerSetComputerCore.getRandomUnit(rand);
-			fillerComputerScreen = getGenericSetWithDefault(rand, "ship_computerScreen:" + fillerSetComputerCore.getName(), Blocks.GLASS_PANE, 0);
-			fillerComputerKeyboard = getGenericSetWithDefault(rand, "ship_computerKeyboard:" + fillerSetComputerCore.getName(), Blocks.STANDING_SIGN, 0);
-			fillerComputerFloppy = getGenericSetWithDefault(rand, "ship_computerFloppy:" + fillerSetComputerCore.getName(), Blocks.STANDING_SIGN, 0);
+			fillerComputerScreen = getGenericSetWithDefault(rand, "ship_computerScreen:" + fillerSetComputerCore.getName(), Blocks.GLASS_PANE.getDefaultState());
+			fillerComputerKeyboard = getGenericSetWithDefault(rand, "ship_computerKeyboard:" + fillerSetComputerCore.getName(), Blocks.OAK_SIGN.getDefaultState());
+			fillerComputerFloppy = getGenericSetWithDefault(rand, "ship_computerFloppy:" + fillerSetComputerCore.getName(), Blocks.OAK_SIGN.getDefaultState());
 		}
 		
 		// propulsion is on it's own
@@ -100,21 +103,20 @@ public class WorldGenStructure {
 			WarpDrive.logger.warn(String.format("No FillerSet found within group %s during world generation: check your configuration",
 			                                    "ship_propulsion"));
 			fillerPropulsion = new Filler();
-			fillerPropulsion.block = Blocks.LOG;
+			fillerPropulsion.blockState = Blocks.OAK_LOG.getDefaultState();
 		} else {
 			fillerPropulsion = fillerSetPropulsion.getRandomUnit(rand);
 		}
 	}
 	
-	private Filler getGenericSetWithDefault(final Random rand, final String nameFillerKeyboard, final Block block, final int metadata) {
+	private Filler getGenericSetWithDefault(final Random rand, final String nameFillerKeyboard, final BlockState blockState) {
 		final GenericSet<Filler> fillerSetKeyboard = WarpDriveConfig.FillerManager.getGenericSet(nameFillerKeyboard);
 		final Filler result;
 		if (fillerSetKeyboard == null) {
 			WarpDrive.logger.warn(String.format("No FillerSet found within group %s during world generation: check your configuration",
 			                                    nameFillerKeyboard));
 			result = new Filler();
-			result.block = block;
-			result.metadata = metadata;
+			result.blockState = blockState;
 		} else {
 			result = fillerSetKeyboard.getRandomUnit(rand);
 		}
@@ -123,7 +125,7 @@ public class WorldGenStructure {
 	
 	public void setHullPlain(final World world, final int x, final int y, final int z) {
 		if (corrupted && (rand.nextInt(400) == 1)) {
-			world.newExplosion(null, x + 0.5D, y + 0.5D, z + 0.5D, 17.0F, false, true);
+			world.createExplosion(null, x + 0.5D, y + 0.5D, z + 0.5D, 17.0F, false, Mode.DESTROY);
 		} else if (corrupted && (rand.nextInt(10) == 1)) {
 			world.setBlockState(new BlockPos(x, y, z), Blocks.AIR.getDefaultState(), 2);
 		} else {
@@ -212,7 +214,7 @@ public class WorldGenStructure {
 			return;
 		}
 		
-		if (tileEntity.isInvalid()) {
+		if (tileEntity.isRemoved()) {
 			WarpDrive.logger.warn(String.format("Unable to fill inventory with LootSet %s %s: %s is Invalid",
 			                                    group,
 			                                    Commons.format(world, blockPos),
@@ -327,13 +329,13 @@ public class WorldGenStructure {
 				if (WarpDriveConfig.LOGGING_BUILDING) {
 					WarpDrive.logger.info(String.format("At index %d, skipping undefined block", index));
 				}
-			} else if (jumpBlock.block == Blocks.AIR) {
+			} else if (jumpBlock.blockState.getBlock() == Blocks.AIR) {
 				if (WarpDriveConfig.LOGGING_BUILDING) {
 					WarpDrive.logger.info(String.format("At index %d, skipping air block", index));
 				}
-			} else if (Dictionary.BLOCKS_ANCHOR.contains(jumpBlock.block)) {
+			} else if (Dictionary.BLOCKS_ANCHOR.contains(jumpBlock.blockState.getBlock())) {
 				if (WarpDriveConfig.LOGGING_BUILDING) {
-					WarpDrive.logger.info(String.format("At index %d, skipping anchor block %s", index, jumpBlock.block));
+					WarpDrive.logger.info(String.format("At index %d, skipping anchor block %s", index, jumpBlock.blockState));
 				}
 			} else {
 				index++;

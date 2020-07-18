@@ -12,16 +12,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.StringNBT;
 
 import net.minecraftforge.common.util.Constants.NBT;
 
 /**
  * Represents a set of 'units' that will be chosen randomly during world generation.
  **/
-public class GenericSet<E extends IXmlRepresentableUnit> implements IXmlRepresentable, Comparable {
+public class GenericSet<E extends IXmlRepresentableUnit> implements IXmlRepresentable, Comparable<GenericSet<E>> {
 	
 	protected String group;
 	protected String name;
@@ -51,8 +51,8 @@ public class GenericSet<E extends IXmlRepresentableUnit> implements IXmlRepresen
 		importGroups = new ArrayList<>();
 	}
 	
-	public GenericSet(final NBTTagCompound tagCompound, final E unitDefault, final String nameElementUnit) {
-		if (tagCompound.hasKey("group")) {
+	public GenericSet(final CompoundNBT tagCompound, final E unitDefault, final String nameElementUnit) {
+		if (tagCompound.contains("group")) {
 			group = tagCompound.getString("group");
 		} else {
 			group = null;
@@ -61,7 +61,7 @@ public class GenericSet<E extends IXmlRepresentableUnit> implements IXmlRepresen
 		this.unitDefault = unitDefault;
 		this.nameElementUnit = nameElementUnit;
 		units = new XmlRandomCollection<>();
-		units.loadFromNBT(tagCompound.getCompoundTag("units"), (String name) -> {
+		units.loadFromNBT(tagCompound.getCompound("units"), (String name) -> {
 			if (unitDefault instanceof Filler) {
 				final Filler filler = new Filler();
 				if (filler.loadFromName(name)) {
@@ -71,42 +71,42 @@ public class GenericSet<E extends IXmlRepresentableUnit> implements IXmlRepresen
 			return unitDefault; // TODO not implemented
 		});
 		
-		final NBTTagList listImportGroupNames = tagCompound.getTagList("importGroupNames", NBT.TAG_STRING);
+		final ListNBT listImportGroupNames = tagCompound.getList("importGroupNames", NBT.TAG_STRING);
 		importGroupNames = new ArrayList<>();
-		for (int indexImportGroupName = 0; indexImportGroupName < listImportGroupNames.tagCount(); indexImportGroupName++) {
-			final String importGroupName = listImportGroupNames.getStringTagAt(indexImportGroupName);
+		for (int indexImportGroupName = 0; indexImportGroupName < listImportGroupNames.size(); indexImportGroupName++) {
+			final String importGroupName = listImportGroupNames.getString(indexImportGroupName);
 			importGroupNames.add(importGroupName);
 		}
 		
-		final NBTTagList listImportGroups = tagCompound.getTagList("importGroups", NBT.TAG_STRING);
+		final ListNBT listImportGroups = tagCompound.getList("importGroups", NBT.TAG_STRING);
 		importGroups = new ArrayList<>();
-		for (int indexImportGroup = 0; indexImportGroup < listImportGroups.tagCount(); indexImportGroup++) {
-			final String importGroup = listImportGroups.getStringTagAt(indexImportGroup);
+		for (int indexImportGroup = 0; indexImportGroup < listImportGroups.size(); indexImportGroup++) {
+			final String importGroup = listImportGroups.getString(indexImportGroup);
 			importGroups.add(importGroup);
 		}
 	}
 	
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
 		if (group != null) {
-			tagCompound.setString("group", group);
+			tagCompound.putString("group", group);
 		}
-		tagCompound.setString("name", name);
-		tagCompound.setTag("units", units.writeToNBT(new NBTTagCompound()));
+		tagCompound.putString("name", name);
+		tagCompound.put("units", units.write(new CompoundNBT()));
 		
 		if (!importGroupNames.isEmpty()) {
-			final NBTTagList listImportGroupNames = new NBTTagList();
+			final ListNBT listImportGroupNames = new ListNBT();
 			for (final String importGroupName : importGroupNames) {
-				listImportGroupNames.appendTag(new NBTTagString(importGroupName));
+				listImportGroupNames.add(StringNBT.valueOf(importGroupName));
 			}
-			tagCompound.setTag("importGroupNames", listImportGroupNames);
+			tagCompound.put("importGroupNames", listImportGroupNames);
 		}
 		
 		if (!importGroups.isEmpty()) {
-			final NBTTagList listImportGroups = new NBTTagList();
+			final ListNBT listImportGroups = new ListNBT();
 			for (final String importGroup : importGroups) {
-				listImportGroups.appendTag(new NBTTagString(importGroup));
+				listImportGroups.add(StringNBT.valueOf(importGroup));
 			}
-			tagCompound.setTag("importGroups", listImportGroups);
+			tagCompound.put("importGroups", listImportGroups);
 		}
 		
 		return tagCompound;
@@ -156,8 +156,8 @@ public class GenericSet<E extends IXmlRepresentableUnit> implements IXmlRepresen
 	}
 	
 	@Override
-	public int compareTo(@Nonnull final Object object) {
-		return name.compareTo(((GenericSet) object).name);
+	public int compareTo(@Nonnull final GenericSet genericSet) {
+		return name.compareTo(genericSet.name);
 	}
 	
 	@Override

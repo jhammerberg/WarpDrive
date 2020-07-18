@@ -1,6 +1,7 @@
 package cr0s.warpdrive.block.movement;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.api.computer.ICoreSignature;
 import cr0s.warpdrive.api.computer.IMultiBlockCoreOrController;
@@ -11,32 +12,44 @@ import javax.annotation.Nullable;
 import java.util.UUID;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.SoundEvents;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemUseContext;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Hand;
+import net.minecraft.util.SoundEvents;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.world.World;
 
 public class ItemBlockController extends ItemBlockAbstractBase {
 	
-	public ItemBlockController(final Block block) {
-		super(block, false, false);
-		
-		setMaxStackSize(1);
+	@Nonnull
+	protected static Item.Properties getDefaultProperties() {
+		return ItemBlockAbstractBase.getDefaultProperties()
+		                            .maxStackSize(1);
 	}
 	
+	public <T extends Block & IBlockBase> ItemBlockController(final T block) {
+		this(block, getDefaultProperties());
+	}
+	
+	public <T extends Block & IBlockBase> ItemBlockController(final T block, @Nonnull final Item.Properties itemProperties) {
+		super(block, itemProperties);
+	}
+	
+	@Nonnull
 	protected static String getName(@Nonnull final ItemStack itemStack) {
 		if (!(itemStack.getItem() instanceof ItemBlockController)) {
 			return "";
 		}
-		final NBTTagCompound tagCompound = itemStack.getTagCompound();
+		final CompoundNBT tagCompound = itemStack.getTag();
 		if (tagCompound == null) {
 			return "";
 		}
@@ -53,7 +66,7 @@ public class ItemBlockController extends ItemBlockAbstractBase {
 		if (!(itemStack.getItem() instanceof ItemBlockController)) {
 			return null;
 		}
-		final NBTTagCompound tagCompound = itemStack.getTagCompound();
+		final CompoundNBT tagCompound = itemStack.getTag();
 		if (tagCompound == null) {
 			return null;
 		}
@@ -68,58 +81,63 @@ public class ItemBlockController extends ItemBlockAbstractBase {
 		if (!(itemStack.getItem() instanceof ItemBlockController)) {
 			return itemStack;
 		}
-		NBTTagCompound tagCompound = itemStack.getTagCompound();
+		CompoundNBT tagCompound = itemStack.getTag();
 		if (tagCompound == null) {
-			tagCompound = new NBTTagCompound();
+			tagCompound = new CompoundNBT();
 		}
 		if ( name == null
 		  || name.isEmpty() ) {
-			tagCompound.removeTag(ICoreSignature.NAME_TAG);
+			tagCompound.remove(ICoreSignature.NAME_TAG);
 		} else {
-			tagCompound.setString(ICoreSignature.NAME_TAG, name);
+			tagCompound.putString(ICoreSignature.NAME_TAG, name);
 		}
 		if (uuid == null || (uuid.getMostSignificantBits() == 0L && uuid.getLeastSignificantBits() == 0L)) {
-			tagCompound.removeTag(ICoreSignature.UUID_MOST_TAG);
-			tagCompound.removeTag(ICoreSignature.UUID_LEAST_TAG);
+			tagCompound.remove(ICoreSignature.UUID_MOST_TAG);
+			tagCompound.remove(ICoreSignature.UUID_LEAST_TAG);
 		} else {
-			tagCompound.setLong(ICoreSignature.UUID_MOST_TAG, uuid.getMostSignificantBits());
-			tagCompound.setLong(ICoreSignature.UUID_LEAST_TAG, uuid.getLeastSignificantBits());
+			tagCompound.putLong(ICoreSignature.UUID_MOST_TAG, uuid.getMostSignificantBits());
+			tagCompound.putLong(ICoreSignature.UUID_LEAST_TAG, uuid.getLeastSignificantBits());
 		}
-		itemStack.setTagCompound(tagCompound);
+		itemStack.setTag(tagCompound);
 		return itemStack;
 	}
 	
 	@Nonnull
 	@Override
-	public EnumActionResult onItemUse(@Nonnull final EntityPlayer entityPlayer,
-	                                  @Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final EnumHand hand,
-	                                  @Nonnull final EnumFacing facing, final float hitX, final float hitY, final float hitZ) {
-		if (world.isRemote) {
-			return EnumActionResult.FAIL;
+	public ActionResultType onItemUse(@Nonnull final ItemUseContext context) {
+		final PlayerEntity entityPlayer = context.getPlayer();
+		final World world = context.getWorld();
+		final BlockPos blockPos = context.getPos();
+		final Hand hand = context.getHand();
+		final Direction facing = context.getFace();
+		
+		if ( world.isRemote()
+		  || entityPlayer == null ) {
+			return ActionResultType.FAIL;
 		}
 		
 		// get context
 		final ItemStack itemStackHeld = entityPlayer.getHeldItem(hand);
 		if (itemStackHeld.isEmpty()) {
-			return EnumActionResult.FAIL;
+			return ActionResultType.FAIL;
 		}
 		
 		// check if clicked block can be interacted with
-		final IBlockState blockState = world.getBlockState(blockPos);
+		final BlockState blockState = world.getBlockState(blockPos);
 		final TileEntity tileEntity = world.getTileEntity(blockPos);
 		
 		if (!(tileEntity instanceof IMultiBlockCoreOrController)) {
-			return super.onItemUse(entityPlayer, world, blockPos, hand, facing, hitX, hitY, hitZ);
+			return super.onItemUse(context);
 		}
 		if (!entityPlayer.canPlayerEdit(blockPos, facing, itemStackHeld)) {
-			return EnumActionResult.FAIL;
+			return ActionResultType.FAIL;
 		}
 		
 		final UUID uuidSignatureFromItem = getSignature(itemStackHeld);
 		final String nameSignatureFromItem = getName(itemStackHeld);
 		final UUID uuidSignatureFromBlock = ((IMultiBlockCoreOrController) tileEntity).getSignatureUUID();
 		final String nameSignatureFromBlock = ((IMultiBlockCoreOrController) tileEntity).getSignatureName();
-		final String nameItem = itemStackHeld.getDisplayName();
+		final ITextComponent nameItem = itemStackHeld.getDisplayName();
 		final String nameBlock = Commons.format(blockState, world, blockPos);
 		if (entityPlayer.isSneaking()) {// get block signature
 			if ( uuidSignatureFromBlock == null
@@ -133,10 +151,10 @@ public class ItemBlockController extends ItemBlockAbstractBase {
 				                                                       nameSignatureFromItem, nameItem, nameBlock ));
 				
 			} else {
-				final ItemStack itemStackNew = setNameAndSignature(itemStackHeld, nameSignatureFromBlock, uuidSignatureFromBlock);
+				setNameAndSignature(itemStackHeld, nameSignatureFromBlock, uuidSignatureFromBlock);
 				Commons.addChatMessage(entityPlayer, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.core_signature.get",
 				                                                       nameSignatureFromBlock, nameItem, nameBlock ));
-				world.playSound(entityPlayer.posX + 0.5D, entityPlayer.posY + 0.5D, entityPlayer.posZ + 0.5D,
+				world.playSound(entityPlayer.getPosX() + 0.5D, entityPlayer.getPosY() + 0.5D, entityPlayer.getPosZ() + 0.5D,
 				                SoundEvents.ENTITY_ZOMBIE_VILLAGER_CURE, SoundCategory.PLAYERS,
 				                1.0F, 1.8F + 0.2F * world.rand.nextFloat(), false);
 			}
@@ -155,7 +173,7 @@ public class ItemBlockController extends ItemBlockAbstractBase {
 				if (isSuccess) {
 					Commons.addChatMessage(entityPlayer, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.core_signature.set",
 					                                                       nameSignatureFromItem, nameItem, nameBlock));
-					world.playSound(entityPlayer.posX + 0.5D, entityPlayer.posY + 0.5D, entityPlayer.posZ + 0.5D,
+					world.playSound(entityPlayer.getPosX() + 0.5D, entityPlayer.getPosY() + 0.5D, entityPlayer.getPosZ() + 0.5D,
 					                SoundEvents.ENTITY_ZOMBIE_VILLAGER_CONVERTED, SoundCategory.PLAYERS,
 					                1.0F, 1.2F + 0.2F * world.rand.nextFloat(), false);
 				} else {
@@ -165,6 +183,6 @@ public class ItemBlockController extends ItemBlockAbstractBase {
 			}
 		}
 		
-		return EnumActionResult.SUCCESS;
+		return ActionResultType.SUCCESS;
 	}
 }

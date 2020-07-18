@@ -14,8 +14,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -77,17 +77,17 @@ public class OrbInstance extends AbstractStructureInstance {
 		}
 	}
 	
-	public OrbInstance(final NBTTagCompound tagCompound) {
+	public OrbInstance(final CompoundNBT tagCompound) {
 		super(tagCompound);
 		
-		final NBTTagList listOrbShells = tagCompound.getTagList("orbShellInstances", Constants.NBT.TAG_COMPOUND);
+		final ListNBT listOrbShells = tagCompound.getList("orbShellInstances", Constants.NBT.TAG_COMPOUND);
 		if (listOrbShells.isEmpty()) {
 			throw new RuntimeException(String.format("Empty orbShellInstances list isn't supported in %s: %s",
 			                                         this, tagCompound));
 		}
-		orbShellInstances = new ArrayList<>(listOrbShells.tagCount());
-		for (int indexOrbShell = 0; indexOrbShell < listOrbShells.tagCount(); indexOrbShell++) {
-			final NBTTagCompound tagCompoundOrbShell = listOrbShells.getCompoundTagAt(indexOrbShell);
+		orbShellInstances = new ArrayList<>(listOrbShells.size());
+		for (int indexOrbShell = 0; indexOrbShell < listOrbShells.size(); indexOrbShell++) {
+			final CompoundNBT tagCompoundOrbShell = listOrbShells.getCompound(indexOrbShell);
 			final GenericSet<Filler> orbShell = new GenericSet<>(tagCompoundOrbShell, Filler.DEFAULT, "filler");
 			orbShellInstances.add(orbShell);
 		}
@@ -96,10 +96,10 @@ public class OrbInstance extends AbstractStructureInstance {
 			throw new RuntimeException(String.format("Inconsistent orbShell and thicknesses sizes: %d != %d\n%s",
 			                                         orbShellInstances.size(), orbShellThicknesses.length, tagCompound));
 		}
-		totalThickness = tagCompound.getInteger("totalThickness");
-		minThickness = tagCompound.getInteger("minThickness");
+		totalThickness = tagCompound.getInt("totalThickness");
+		minThickness = tagCompound.getInt("minThickness");
 		
-		if (tagCompound.hasKey("schematicName")) {
+		if (tagCompound.contains("schematicName")) {
 			schematicName = tagCompound.getString("schematicName");
 		} else {
 			schematicName = null;
@@ -109,24 +109,24 @@ public class OrbInstance extends AbstractStructureInstance {
 	}
 	
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull final CompoundNBT tagCompound) {
+		super.write(tagCompound);
 		
-		final NBTTagList listOrbShells = new NBTTagList();
+		final ListNBT listOrbShells = new ListNBT();
 		if (orbShellInstances.isEmpty()) {
 			throw new RuntimeException(String.format("Empty orbShellInstances list isn't supported in %s",
 			                                         this));
 		}
 		for (final GenericSet<Filler> orbShellInstance : orbShellInstances) {
-			final NBTTagCompound tagCompoundOrbShell = orbShellInstance.writeToNBT(new NBTTagCompound());
-			listOrbShells.appendTag(tagCompoundOrbShell);
+			final CompoundNBT tagCompoundOrbShell = orbShellInstance.write(new CompoundNBT());
+			listOrbShells.add(tagCompoundOrbShell);
 		}
-		tagCompound.setTag("orbShellInstances", listOrbShells);
-		tagCompound.setIntArray("orbShellThicknesses", orbShellThicknesses);
-		tagCompound.setInteger("totalThickness", totalThickness);
-		tagCompound.setInteger("minThickness", minThickness);
+		tagCompound.put("orbShellInstances", listOrbShells);
+		tagCompound.putIntArray("orbShellThicknesses", orbShellThicknesses);
+		tagCompound.putInt("totalThickness", totalThickness);
+		tagCompound.putInt("minThickness", minThickness);
 		if (schematicName != null) {
-			tagCompound.setString("schematicName", schematicName);
+			tagCompound.putString("schematicName", schematicName);
 		}
 		
 		return tagCompound;
@@ -137,18 +137,18 @@ public class OrbInstance extends AbstractStructureInstance {
 	}
 	
 	@Override
-	public boolean generate(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
+	public boolean place(@Nonnull final World world, @Nonnull final Random random, @Nonnull final BlockPos blockPos) {
 		final boolean hasShip = schematicName != null && !schematicName.isEmpty();
 		final int y2 = Math.min(WarpDriveConfig.SPACE_GENERATOR_Y_MAX_BORDER - totalThickness,
 			  Math.max(blockPos.getY(), WarpDriveConfig.SPACE_GENERATOR_Y_MIN_BORDER + totalThickness));
 		final BlockPos blockPosUpdated = y2 == blockPos.getY() ? blockPos : new BlockPos(blockPos.getX(), y2, blockPos.getZ());
 		if (hasShip) {
-			new WorldGenSmallShip(random.nextFloat() < 0.2F, false).generate(world, random, blockPosUpdated);
+			new WorldGenSmallShip(random.nextFloat() < 0.2F, false).place(world, random, blockPosUpdated);
 		}
 		final EntitySphereGen entitySphereGen = new EntitySphereGen(world, blockPos.getX(), y2, blockPos.getZ(), this, !hasShip);
-		world.spawnEntity(entitySphereGen);
+		world.addEntity(entitySphereGen);
 		if (((Orb) structure).hasStarCore) {
-			return world.spawnEntity(new EntityStarCore(world, blockPos.getX(), y2, blockPos.getZ(), totalThickness));
+			return world.addEntity(new EntityStarCore(world, blockPos.getX(), y2, blockPos.getZ(), totalThickness));
 		}
 		return true;
 	}

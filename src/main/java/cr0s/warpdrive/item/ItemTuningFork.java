@@ -1,6 +1,7 @@
 package cr0s.warpdrive.item;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IBeamFrequency;
 import cr0s.warpdrive.api.IControlChannel;
 import cr0s.warpdrive.api.IVideoChannel;
@@ -16,68 +17,43 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 import net.minecraft.block.Block;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.EnumDyeColor;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.DyeColor;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUseContext;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.ActionResultType;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class ItemTuningFork extends ItemAbstractBase implements IWarpTool {
 	
-	public ItemTuningFork(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier);
+	public ItemTuningFork(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(new Item.Properties()
+				      .group(WarpDrive.itemGroupMain)
+				      .maxDamage(0)
+				      .maxStackSize(1),
+		      registryName,
+		      enumTier );
 		
-		setMaxDamage(0);
-		setMaxStackSize(1);
 		setTranslationKey("warpdrive.tool.tuning_fork");
-		setFull3D();
-		setHasSubtypes(true);
-	}
-	
-	@Override
-	public void getSubItems(@Nonnull final CreativeTabs creativeTab, @Nonnull final NonNullList<ItemStack> list) {
-		if (!isInCreativeTab(creativeTab)) {
-			return;
-		}
-		for (int dyeColor = 0; dyeColor < 16; dyeColor++) {
-			list.add(new ItemStack(this, 1, dyeColor));
-		}
-	}
-	
-	@Nonnull
-	@SideOnly(Side.CLIENT)
-	@Override
-	public ModelResourceLocation getModelResourceLocation(final ItemStack itemStack) {
-		final int damage = itemStack.getItemDamage();
-		ResourceLocation resourceLocation = getRegistryName();
-		assert resourceLocation != null;
-		if (damage >= 0 && damage < 16) {
-			resourceLocation = new ResourceLocation(resourceLocation.getNamespace(), resourceLocation.getPath() + "-" + EnumDyeColor.byDyeDamage(damage).getName());
-		}
-		return new ModelResourceLocation(resourceLocation, "inventory");
 	}
 	
 	@Nonnull
 	@Override
 	public String getTranslationKey(final ItemStack itemStack) {
-		final int damage = itemStack.getItemDamage();
+		final int damage = itemStack.getDamage();
 		if (damage >= 0 && damage < 16) {
-			return getTranslationKey() + "." + EnumDyeColor.byDyeDamage(damage).getTranslationKey();
+			return getTranslationKey() + "." + DyeColor.byId(damage).getTranslationKey();
 		}
 		return getTranslationKey();
 	}
@@ -86,81 +62,84 @@ public class ItemTuningFork extends ItemAbstractBase implements IWarpTool {
 		if (!(itemStack.getItem() instanceof ItemTuningFork)) {
 			return -1;
 		}
-		return (itemStack.getItemDamage() % 16) + 100;
+		return (itemStack.getDamage() % 16) + 100;
 	}
 	
 	public static int getBeamFrequency(final ItemStack itemStack) {
 		if (!(itemStack.getItem() instanceof ItemTuningFork)) {
 			return -1;
 		}
-		return ((itemStack.getItemDamage() % 16) + 1) * 10;
+		return ((itemStack.getDamage() % 16) + 1) * 10;
 	}
 	
 	public static int getControlChannel(final ItemStack itemStack) {
 		if (!(itemStack.getItem() instanceof ItemTuningFork)) {
 			return -1;
 		}
-		return ((itemStack.getItemDamage() % 16) + 2);
+		return ((itemStack.getDamage() % 16) + 2);
 	}
 	
 	@Nonnull
 	@Override
-	public EnumActionResult onItemUse(@Nonnull final EntityPlayer entityPlayer,
-	                                  @Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final EnumHand hand,
-	                                  @Nonnull final EnumFacing enumFacing, final float hitX, final float hitY, final float hitZ) {
-		if (world.isRemote) {
-			return EnumActionResult.FAIL;
+	public ActionResultType onItemUse(@Nonnull final ItemUseContext context) {
+		final World world = context.getWorld();
+		if (world.isRemote()) {
+			return ActionResultType.FAIL;
 		}
 		// get context
-		final ItemStack itemStackHeld = entityPlayer.getHeldItem(hand);
-		final TileEntity tileEntity = world.getTileEntity(blockPos);
+		final PlayerEntity entityPlayer = context.getPlayer();
+		if (entityPlayer == null) {
+			return ActionResultType.FAIL;
+		}
+		final ItemStack itemStackHeld = entityPlayer.getHeldItem(context.getHand());
+		final TileEntity tileEntity = world.getTileEntity(context.getPos());
 		if (tileEntity == null) {
-			return EnumActionResult.FAIL;
+			return ActionResultType.FAIL;
 		}
 		
 		final boolean hasVideoChannel = tileEntity instanceof IVideoChannel;
 		final boolean hasBeamFrequency = tileEntity instanceof IBeamFrequency;
 		final boolean hasControlChannel = tileEntity instanceof IControlChannel;
 		if (!hasVideoChannel && !hasBeamFrequency && !hasControlChannel) {
-			return EnumActionResult.FAIL;
+			return ActionResultType.FAIL;
 		}
 		if (hasVideoChannel && !(entityPlayer.isSneaking() && hasBeamFrequency)) {
 			((IVideoChannel)tileEntity).setVideoChannel(getVideoChannel(itemStackHeld));
-			Commons.addChatMessage(entityPlayer, new TextComponentTranslation("warpdrive.video_channel.set",
-					tileEntity.getBlockType().getLocalizedName(),
-					getVideoChannel(itemStackHeld)));
-			world.playSound(entityPlayer.posX, entityPlayer.posY, entityPlayer.posZ, SoundEvents.DING, SoundCategory.PLAYERS, 0.1F, 1F, false);
+			Commons.addChatMessage(entityPlayer, new TranslationTextComponent("warpdrive.video_channel.set",
+			                                                                  tileEntity.getBlockState().getBlock().getNameTextComponent(),
+			                                                                  getVideoChannel(itemStackHeld)));
+			world.playSound(entityPlayer.getPosX(), entityPlayer.getPosY(), entityPlayer.getPosZ(), SoundEvents.DING, SoundCategory.PLAYERS, 0.1F, 1F, false);
 			
 		} else if (hasControlChannel && !(entityPlayer.isSneaking() && hasBeamFrequency)) {
 			((IControlChannel)tileEntity).setControlChannel(getControlChannel(itemStackHeld));
-			Commons.addChatMessage(entityPlayer, new TextComponentTranslation("warpdrive.control_channel.set",
-				tileEntity.getBlockType().getLocalizedName(),
-				getControlChannel(itemStackHeld)));
-			world.playSound(entityPlayer.posX, entityPlayer.posY, entityPlayer.posZ, SoundEvents.DING, SoundCategory.PLAYERS, 0.1F, 1F, false);
+			Commons.addChatMessage(entityPlayer, new TranslationTextComponent("warpdrive.control_channel.set",
+			                                                                  tileEntity.getBlockState().getBlock().getNameTextComponent(),
+			                                                                  getControlChannel(itemStackHeld)));
+			world.playSound(entityPlayer.getPosX(), entityPlayer.getPosY(), entityPlayer.getPosZ(), SoundEvents.DING, SoundCategory.PLAYERS, 0.1F, 1F, false);
 			
 		} else {
 			// assert hasBeamFrequency;
 			((IBeamFrequency)tileEntity).setBeamFrequency(getBeamFrequency(itemStackHeld));
-			Commons.addChatMessage(entityPlayer, new TextComponentTranslation("warpdrive.beam_frequency.set",
-					tileEntity.getBlockType().getLocalizedName(),
-					getBeamFrequency(itemStackHeld)));
-			world.playSound(entityPlayer.posX, entityPlayer.posY, entityPlayer.posZ, SoundEvents.DING, SoundCategory.PLAYERS, 0.1F, 1F, false);
+			Commons.addChatMessage(entityPlayer, new TranslationTextComponent("warpdrive.beam_frequency.set",
+			                                                                  tileEntity.getBlockState().getBlock().getNameTextComponent(),
+			                                                                  getBeamFrequency(itemStackHeld)));
+			world.playSound(entityPlayer.getPosX(), entityPlayer.getPosY(), entityPlayer.getPosZ(), SoundEvents.DING, SoundCategory.PLAYERS, 0.1F, 1F, false);
 		}
-		return EnumActionResult.SUCCESS;
+		return ActionResultType.SUCCESS;
 	}
 	
 	@Override
 	public boolean doesSneakBypassUse(@Nonnull final ItemStack itemStack,
-	                                  @Nonnull final IBlockAccess blockAccess, @Nonnull final BlockPos blockPos,
-	                                  @Nonnull final EntityPlayer player) {
-		final Block block = blockAccess.getBlockState(blockPos).getBlock();
-		return block instanceof BlockCapacitor || super.doesSneakBypassUse(itemStack, blockAccess, blockPos, player);
+	                                  @Nonnull final IWorldReader worldReader, @Nonnull final BlockPos blockPos,
+	                                  @Nonnull final PlayerEntity player) {
+		final Block block = worldReader.getBlockState(blockPos).getBlock();
+		return block instanceof BlockCapacitor || super.doesSneakBypassUse(itemStack, worldReader, blockPos, player);
 	}
 	
 	@Override
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public void addInformation(@Nonnull final ItemStack itemStack, @Nullable final World world,
-	                           @Nonnull final List<String> list, @Nonnull final ITooltipFlag advancedItemTooltips) {
+	                           @Nonnull final List<ITextComponent> list, @Nonnull final ITooltipFlag advancedItemTooltips) {
 		super.addInformation(itemStack, world, list, advancedItemTooltips);
 		
 		final WarpDriveText textTooltip = new WarpDriveText();

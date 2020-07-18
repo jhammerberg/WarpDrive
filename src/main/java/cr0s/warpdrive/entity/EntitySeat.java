@@ -8,25 +8,43 @@ import javax.annotation.Nonnull;
 import java.util.List;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.EntityType;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.IPacket;
+import net.minecraft.network.play.server.SSpawnObjectPacket;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class EntitySeat extends Entity {
 	
+	public static final EntityType<EntitySeat> TYPE;
+	
+	// persistent properties
+	// (none)
+	
+	// computed properties
 	private BlockPos blockPos;
 	
-	public EntitySeat(@Nonnull final World world) {
-		super(world);
-		
-		setSize(0.25F, 0.25F);
+	static {
+		TYPE = EntityType.Builder.create(EntitySeat::new, EntityClassification.MISC)
+		                         .size(0.25F, 0.25F)
+		                         .setTrackingRange(200)
+		                         .setUpdateInterval(1)
+		                         .setShouldReceiveVelocityUpdates(false)
+		                         .build("entity_seat");
+		TYPE.setRegistryName(WarpDrive.MODID, "entity_seat");
+	}
+	
+	public EntitySeat(@Nonnull final EntityType<EntitySeat> entityType, @Nonnull final World world) {
+		super(entityType, world);
 	}
 	
 	@Override
-	protected void entityInit() {
+	protected void registerData() {
 		// no operation, abstract parent
 	}
 	
@@ -39,58 +57,64 @@ public class EntitySeat extends Entity {
 	@Override
 	public BlockPos getPosition() {
 		if ( blockPos == null
-		  || blockPos.getX() != (int) posX
-		  || blockPos.getY() != (int) posY
-		  || blockPos.getZ() != (int) posZ ) {
+		  || blockPos.getX() != (int) getPosX()
+		  || blockPos.getY() != (int) getPosY()
+		  || blockPos.getZ() != (int) getPosZ() ) {
 			if (blockPos != null) {
 				WarpDrive.logger.error(String.format("EntitySeat has moved unexpectedly from %s to (%.3f %.3f %.3f): %s",
-				                                     blockPos, posX, posY, posZ, this ));
+				                                     blockPos, getPosX(), getPosY(), getPosZ(), this ));
 			}
-			blockPos = new BlockPos(posX, posY, posZ);
+			blockPos = new BlockPos(getPosX(), getPosY(), getPosZ());
 		}
 		return blockPos;
 	}
 	
+	@Nonnull
 	@Override
-	public void readEntityFromNBT(@Nonnull final NBTTagCompound tagCompound) {
+	public IPacket<?> createSpawnPacket() {
+		return new SSpawnObjectPacket(this);
+	}
+	
+	@Override
+	public void readAdditional(@Nonnull final CompoundNBT tagCompound) {
 		// no operation, abstract parent
 	}
 	
 	@Override
-	public void writeEntityToNBT(@Nonnull final NBTTagCompound tagCompound) {
+	public void writeAdditional(@Nonnull final CompoundNBT tagCompound) {
 		// no operation, abstract parent
 	}
 	
 	@Override
-	public void onUpdate() {
-		super.onUpdate();
+	public void tick() {
+		super.tick();
 		
 		final BlockPos blockPos = getPosition();
 		
 		if (!world.isAirBlock(blockPos)) {
-			setDead();
+			remove();
 			return;
 		}
 		
 		// remove when no longer mounted or passenger is too far away
 		final List<Entity> passengers = getPassengers();
 		if (passengers.isEmpty()) {
-			setDead();
+			remove();
 		}
 		for (final Entity entityPassenger : passengers) {
 			if ( entityPassenger.isSneaking()
 			  || entityPassenger.getDistanceSq(this) >= 1.0D ) {
-				setDead();
+				remove();
 			}
 		}
 	}
 	
 	@Override
-	public void setDead() {
-		super.setDead();
+	public void remove(final boolean keepData) {
+		super.remove(keepData);
 		
 		// enforce server synchronization
-		if (world.isRemote) {
+		if (world.isRemote()) {
 			PacketHandler.sendUnseating();
 		}
 	}
@@ -113,13 +137,13 @@ public class EntitySeat extends Entity {
 	
 	// ensure no rendering happens
 	@Override
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public boolean isInRangeToRender3d(final double x, final double y, final double z) {
 		return false;
 	}
 	
 	@Override
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public boolean isInRangeToRenderDist(final double distance) {
 		return false;
 	}

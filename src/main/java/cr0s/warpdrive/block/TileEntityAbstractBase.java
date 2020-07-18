@@ -24,18 +24,19 @@ import java.util.Set;
 import java.util.UUID;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.init.Items;
+import net.minecraft.item.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.NetworkManager;
-import net.minecraft.network.play.server.SPacketUpdateTileEntity;
+import net.minecraft.network.play.server.SUpdateTileEntityPacket;
+import net.minecraft.state.IProperty;
+import net.minecraft.tileentity.ITickableTileEntity;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ITickable;
+import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Style;
 import net.minecraft.world.World;
@@ -43,7 +44,7 @@ import net.minecraft.world.World;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public abstract class TileEntityAbstractBase extends TileEntity implements IBlockUpdateDetector, ITickable {
+public abstract class TileEntityAbstractBase extends TileEntity implements IBlockUpdateDetector, ITickableTileEntity {
 	
 	// persistent properties
 	// (none)
@@ -55,14 +56,14 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 	
 	protected EnumTier enumTier;
 	
-	public TileEntityAbstractBase() {
-		super();
+	public TileEntityAbstractBase(@Nonnull TileEntityType<? extends TileEntityAbstractBase> tileEntityType) {
+		super(tileEntityType);
 	}
 	
 	@Override
 	public void onLoad() {
 		super.onLoad();
-		assert hasWorld() && pos != BlockPos.ORIGIN;
+		assert hasWorld() && pos != BlockPos.ZERO;
 		if (!isConstructed) {
 			onConstructed();
 		}
@@ -70,7 +71,7 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 	
 	protected void onConstructed() {
 		// warning: we can't use Block.CreateNewTileEntity() as world loading calls the TileEntity constructor directly
-		// warning: we can't use setPos(), setWorld() or validate() as getBlockType() will cause a stack overflow
+		// warning: we can't use setPos(), setWorld() or validate() as getBlockState() will cause a stack overflow
 		// warning: we can't use onLoad() to trigger this method as onLoad() isn't always called, see https://github.com/MinecraftForge/MinecraftForge/issues/5061
 		
 		if (world == null) {// we're client side, tier is already set
@@ -78,9 +79,9 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		}
 		
 		// immediately retrieve tier, we need it to connect energy conduits and save the world before the first tick
-		final Block block = getBlockType();
+		final Block block = getBlockState().getBlock();
 		if (block instanceof IBlockBase) {
-			enumTier = ((IBlockBase) block).getTier(ItemStack.EMPTY);
+			enumTier = ((IBlockBase) block).getTier();
 		} else {
 			WarpDrive.logger.error(String.format("Invalid block for %s %s: %s",
 			                                     this, Commons.format(world, pos), block));
@@ -100,17 +101,17 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		}
 	}
 	
-	protected void onFirstUpdateTick() {
+	protected void onFirstTick() {
 		// No operation
 		assert isConstructed;
 		assert enumTier != null;
 	}
 	
 	@Override
-	public void update() {
+	public void tick() {
 		if (isFirstTick) {
 			isFirstTick = false;
-			onFirstUpdateTick();
+			onFirstTick();
 		}
 		
 		if (isDirty) {
@@ -130,33 +131,32 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		}
 	}
 	
-	public void onBlockBroken(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState) {
-		
-	}
-	
-	protected <T extends Comparable<T>, V extends T> void updateBlockState(final IBlockState blockState_in, final IProperty<T> property, final V value) {
-		IBlockState blockState = blockState_in;
-		if (blockState == null) {
-			blockState = world.getBlockState(pos);
+	protected <T extends Comparable<T>, V extends T> void updateBlockState(final BlockState blockState_in, final IProperty<T> property, final V value) {
+		assert world != null;
+		BlockState blockState_old = blockState_in;
+		if (blockState_old == null) {
+			blockState_old = world.getBlockState(pos);
 		}
+		BlockState blockState_new = blockState_old;
 		if (property != null) {
-			if (!blockState.getProperties().containsKey(property)) {
+			if (!blockState_new.getProperties().contains(property)) {
 				WarpDrive.logger.error(String.format("Unable to update block state due to missing property in %s: %s calling updateBlockState(%s, %s, %s)",
-				                                     blockState.getBlock(), this, blockState_in, property, value));
+				                                     blockState_new.getBlock(), this, blockState_in, property, value));
 				return;
 			}
-			if (blockState.getValue(property) == value) {
+			if (blockState_new.get(property) == value) {
 				return;
 			}
-			blockState = blockState.withProperty(property, value);
+			blockState_new = blockState_new.with(property, value);
 		}
-		if (getBlockMetadata() != blockState.getBlock().getMetaFromState(blockState)) {
-			world.setBlockState(pos, blockState, 2);
+		if (blockState_old != blockState_new) {
+			world.setBlockState(pos, blockState_new, 2);
 		}
 	}
 	
-	protected void updateBlockState(final IBlockState blockState_in, @Nonnull final IBlockState blockState_new) {
-		IBlockState blockState_old = blockState_in;
+	protected void updateBlockState(final BlockState blockState_in, @Nonnull final BlockState blockState_new) {
+		assert world != null;
+		BlockState blockState_old = blockState_in;
 		if (blockState_old == null) {
 			blockState_old = world.getBlockState(pos);
 		}
@@ -169,9 +169,7 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 			return;
 		}
 		
-		final int metadata_old = block_old.getMetaFromState(blockState_old);
-		final int metadata_new = block_new.getMetaFromState(blockState_new);
-		if (metadata_old != metadata_new) {
+		if (blockState_old != blockState_new) {
 			world.setBlockState(pos, blockState_new, 2);
 		}
 	}
@@ -182,7 +180,8 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		  && Commons.isSafeThread() ) {
 			super.markDirty();
 			isDirty = false;
-			final IBlockState blockState = world.getBlockState(pos);
+			assert world != null;
+			final BlockState blockState = world.getBlockState(pos);
 			world.notifyBlockUpdate(pos, blockState, blockState, 3);
 			GlobalRegionManager.onBlockUpdating(null, world, pos, blockState);
 		} else {
@@ -190,29 +189,22 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		}
 	}
 	
-	@Override
-	public boolean shouldRefresh(@Nonnull final World world, @Nonnull final BlockPos blockPos,
-	                             @Nonnull final IBlockState blockStateOld, @Nonnull final IBlockState blockStateNew) {
-		return blockStateOld.getBlock() != blockStateNew.getBlock();
-	}
-	
-	
 	// area protection
 	protected boolean isBlockBreakCanceled(final UUID uuidPlayer, final World world, final BlockPos blockPosEvent) {
 		return CommonProxy.isBlockBreakCanceled(uuidPlayer, pos, world, blockPosEvent);
 	}
 	
-	protected boolean isBlockPlaceCanceled(final UUID uuidPlayer, final World world, final BlockPos blockPosEvent, final IBlockState blockState) {
+	protected boolean isBlockPlaceCanceled(final UUID uuidPlayer, final World world, final BlockPos blockPosEvent, final BlockState blockState) {
 		return CommonProxy.isBlockPlaceCanceled(uuidPlayer, pos, world, blockPosEvent, blockState);
 	}
 	
 	// saved properties
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
-		if (tagCompound.hasKey("upgrades")) {
-			final NBTTagCompound nbtTagCompoundUpgrades = tagCompound.getCompoundTag("upgrades");
-			final Set<String> keys = nbtTagCompoundUpgrades.getKeySet();
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
+		if (tagCompound.contains("upgrades")) {
+			final CompoundNBT nbtTagCompoundUpgrades = tagCompound.getCompound("upgrades");
+			final Set<String> keys = nbtTagCompoundUpgrades.keySet();
 			for (final String key : keys) {
 				UpgradeSlot upgradeSlot = getUpgradeSlot(key);
 				final int quantity = nbtTagCompoundUpgrades.getByte(key);
@@ -228,55 +220,55 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
 		// forge cleanup
-		if (tagCompound.getCompoundTag("ForgeCaps").isEmpty()) {
-			tagCompound.removeTag("ForgeCaps");
+		if (tagCompound.getCompound("ForgeCaps").isEmpty()) {
+			tagCompound.remove("ForgeCaps");
 		}
 		
 		if (!upgradeSlots.isEmpty()) {
-			final NBTTagCompound nbtTagCompoundUpgrades = new NBTTagCompound();
+			final CompoundNBT nbtTagCompoundUpgrades = new CompoundNBT();
 			for (final Entry<UpgradeSlot, Integer> entry : upgradeSlots.entrySet()) {
 				if (entry.getValue() != 0) {
 					final String key = entry.getKey().toString();
-					nbtTagCompoundUpgrades.setByte(key, (byte) (int) entry.getValue());
+					nbtTagCompoundUpgrades.putByte(key, (byte) (int) entry.getValue());
 				}
 			}
 			if (!nbtTagCompoundUpgrades.isEmpty()) {
-				tagCompound.setTag("upgrades", nbtTagCompoundUpgrades);
+				tagCompound.put("upgrades", nbtTagCompoundUpgrades);
 			}
 		}
 		
 		return tagCompound;
 	}
 	
-	public NBTTagCompound writeItemDropNBT(final NBTTagCompound tagCompound) {
-		writeToNBT(tagCompound);
-		tagCompound.removeTag("id");
-		tagCompound.removeTag("x");
-		tagCompound.removeTag("y");
-		tagCompound.removeTag("z");
+	public CompoundNBT writeItemDropNBT(final CompoundNBT tagCompound) {
+		write(tagCompound);
+		tagCompound.remove("id");
+		tagCompound.remove("x");
+		tagCompound.remove("y");
+		tagCompound.remove("z");
 		return tagCompound;
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound getUpdateTag() {
-		return writeToNBT(super.getUpdateTag());
+	public CompoundNBT getUpdateTag() {
+		return write(super.getUpdateTag());
 	}
 	
 	@Nullable
 	@Override
-	public SPacketUpdateTileEntity getUpdatePacket() {
-		return new SPacketUpdateTileEntity(pos, getBlockMetadata(), getUpdateTag());
+	public SUpdateTileEntityPacket getUpdatePacket() {
+		return new SUpdateTileEntityPacket(pos, -1, getUpdateTag());
 	}
 	
 	@Override
-	public void onDataPacket(@Nonnull final NetworkManager networkManager, @Nonnull final SPacketUpdateTileEntity packet) {
-		final NBTTagCompound tagCompound = packet.getNbtCompound();
-		readFromNBT(tagCompound);
+	public void onDataPacket(@Nonnull final NetworkManager networkManager, @Nonnull final SUpdateTileEntityPacket packet) {
+		final CompoundNBT tagCompound = packet.getNbtCompound();
+		read(tagCompound);
 	}
 	
 	// tier
@@ -314,9 +306,9 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 	@Nonnull
 	protected WarpDriveText getStatusPrefix() {
 		if (world != null) {
-			final Item item = Item.getItemFromBlock(getBlockType());
+			final Item item = Item.getItemFromBlock(getBlockState().getBlock());
 			if (item != Items.AIR) {
-				final ItemStack itemStack = new ItemStack(item, 1, getBlockMetadata());
+				final ItemStack itemStack = new ItemStack(item, 1);
 				return Commons.getChatPrefix(itemStack);
 			}
 		}
@@ -378,7 +370,7 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		if (this instanceof IBeamFrequency) {
 			// only show in item form or from server side
 			if ( world == null
-			  || !world.isRemote ) {
+			  || !world.isRemote() ) {
 				message.append( getBeamFrequencyStatus(((IBeamFrequency) this).getBeamFrequency()) );
 			}
 		}
@@ -386,7 +378,7 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		if (this instanceof IVideoChannel) {
 			// only show in item form or from client side
 			if ( world == null
-			  || world.isRemote ) {
+			  || world.isRemote() ) {
 				message.append( getVideoChannelStatus(((IVideoChannel) this).getVideoChannel()) );
 			}
 		}
@@ -394,20 +386,20 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		if (this instanceof ICoreSignature) {
 			// only show in item form or from client side
 			if ( world == null
-			  || world.isRemote ) {
+			  || world.isRemote() ) {
 				message.append( getCoreSignatureStatus(((ICoreSignature) this).getSignatureName()) );
 			}
 		}
 		
 		if (isUpgradeable()) {
 			// hide upgrades in the world on client side (server side will do it)
-			if ( !hasWorld()
-			  || !world.isRemote ) {
+			if ( world == null
+			  || !world.isRemote() ) {
 				// show updates details in the world or while sneaking in the inventory
 				boolean showDetails = hasWorld();
 				if (Commons.isClientThread()) {
-					final KeyBinding keyBindingSneak = Minecraft.getMinecraft().gameSettings.keyBindSneak;
-					final String keyName = keyBindingSneak.getDisplayName();
+					final KeyBinding keyBindingSneak = Minecraft.getInstance().gameSettings.keyBindSneak;
+					final String keyName = keyBindingSneak.getLocalizedName();
 					showDetails = Commons.isKeyPressed(keyBindingSneak);
 					if (!showDetails) {
 						message.append(null, "warpdrive.upgrade.status_line.upgradeable",
@@ -424,19 +416,19 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		return message;
 	}
 	
-	public final WarpDriveText getStatus(@Nonnull final ItemStack itemStack, @Nonnull final IBlockState blockState) {
+	public final WarpDriveText getStatus(@Nonnull final ItemStack itemStack, @Nonnull final BlockState blockState) {
 		// (this is a temporary object to compute status)
 		// get tier from ItemStack
 		final Block block = blockState.getBlock();
 		if (block instanceof IBlockBase) {
-			enumTier = ((IBlockBase) block).getTier(itemStack);
+			enumTier = ((IBlockBase) block).getTier();
 			onConstructed();
 		}
 		
 		// get persistent properties
-		final NBTTagCompound tagCompound = itemStack.getTagCompound();
+		final CompoundNBT tagCompound = itemStack.getTag();
 		if (tagCompound != null) {
-			readFromNBT(tagCompound);
+			read(tagCompound);
 		}
 		
 		// compute status
@@ -444,7 +436,7 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 	}
 	
 	public String getStatusHeaderInPureText() {
-		return Commons.removeFormatting( getStatusHeader().getUnformattedText() );
+		return Commons.removeFormatting( getStatusHeader().getUnformattedComponentText() );
 	}
 	
 	public String getInternalStatus() {
@@ -452,7 +444,7 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		                   + "NBT %s\n"
 		                   + "isConstructed %s isFirstTick %s isDirty %s",
 		                     this,
-		                     writeToNBT(new NBTTagCompound()),
+		                     write(new CompoundNBT()),
 		                     isConstructed, isFirstTick, isDirty );
 	}
 	

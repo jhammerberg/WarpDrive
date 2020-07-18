@@ -3,17 +3,19 @@ package cr0s.warpdrive.client;
 import javax.annotation.Nonnull;
 import java.util.Random;
 
-import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
 
-public abstract class CreativeTabAbstractBase extends CreativeTabs {
+public abstract class ItemGroupAbstractBase extends ItemGroup {
 	
-	static protected Random random = new Random();
+	protected static Random random = new Random();
+	
+	private final long period;
+	
 	private ItemStack itemStack = ItemStack.EMPTY;
 	private long timeLastChange;
-	private long period;
 	
-	public CreativeTabAbstractBase(final String label, final long period) {
+	public ItemGroupAbstractBase(final String label, final long period) {
 		super(label);
 		
 		this.period = period;

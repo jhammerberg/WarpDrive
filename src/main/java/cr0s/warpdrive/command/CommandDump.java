@@ -6,12 +6,12 @@ import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.data.InventoryWrapper;
 
 import net.minecraft.command.ICommandSender;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.World;
 
 import javax.annotation.Nonnull;
@@ -32,7 +32,7 @@ public class CommandDump extends AbstractCommand {
 	
 	@Nonnull
 	@Override
-	public String getUsage(@Nonnull final ICommandSender commandSender) {
+	public String getUsage(@Nonnull final ICommandSource commandSource) {
 		return "/" + getName() + " (<inventory type>) (<player selector>)"
 		       + "\nWrite loot table in console for selected inventory type of selected player"
 		       + "\nInventory types are:"
@@ -43,15 +43,15 @@ public class CommandDump extends AbstractCommand {
 	}
 	
 	@Override
-	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSender commandSender, @Nonnull final String[] args) {
+	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSource commandSource, @Nonnull final String[] args) {
 		// parse arguments
 		if (args.length > 2) {
-			Commons.addChatMessage(commandSender, new TextComponentString(getUsage(commandSender)));
+			Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
 			return;
 			
 		}
 		
-		EntityPlayerMP entityPlayer = commandSender instanceof EntityPlayerMP ? (EntityPlayerMP) commandSender : null;
+		ServerPlayerEntity entityPlayer = commandSource instanceof ServerPlayerEntity ? (ServerPlayerEntity) commandSource : null;
 		final String subCommand;
 		
 		if (args.length == 0) {
@@ -60,15 +60,15 @@ public class CommandDump extends AbstractCommand {
 		} else {
 			if ( args[0].equalsIgnoreCase("help")
 			  || args[0].equalsIgnoreCase("?") ) {
-				Commons.addChatMessage(commandSender, new TextComponentString(getUsage(commandSender)));
+				Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
 				return;
 			}
 			
 			// get player context
 			if (args.length == 2) {
-				final EntityPlayerMP[] entityPlayers = Commons.getOnlinePlayerByNameOrSelector(commandSender, args[1]);
+				final ServerPlayerEntity[] entityPlayers = Commons.getOnlinePlayerByNameOrSelector(commandSource, args[1]);
 				if (entityPlayers == null || entityPlayers.length < 1) {
-					Commons.addChatMessage(commandSender, new WarpDriveText().append(getPrefix())
+					Commons.addChatMessage(commandSource, new WarpDriveText().append(getPrefix())
 					                                                         .append(Commons.getStyleWarning(), "warpdrive.command.player_not_found",
 					                                                                 args[1]) );
 					return;
@@ -82,7 +82,7 @@ public class CommandDump extends AbstractCommand {
 		
 		// validate context
 		if (entityPlayer == null) {
-			Commons.addChatMessage(commandSender, new WarpDriveText().append(getPrefix())
+			Commons.addChatMessage(commandSource, new WarpDriveText().append(getPrefix())
 			                                                         .append(Commons.getStyleWarning(), "warpdrive.command.player_required") );
 			return;
 		}
@@ -96,14 +96,14 @@ public class CommandDump extends AbstractCommand {
 			
 			//noinspection ConstantConditions
 			if (world == null || blockPos == null) {
-				Commons.addChatMessage(commandSender, new WarpDriveText().append(getPrefix())
+				Commons.addChatMessage(commandSource, new WarpDriveText().append(getPrefix())
 				                                                         .append(Commons.getStyleWarning(), "warpdrive.command.invalid_location") );
 				return;
 			}
 			
 			final Collection<Object> inventories = InventoryWrapper.getConnectedInventories(world, blockPos);
 			if (inventories.isEmpty()) {
-				Commons.addChatMessage(commandSender, new WarpDriveText().append(getPrefix())
+				Commons.addChatMessage(commandSource, new WarpDriveText().append(getPrefix())
 				                                                         .append(Commons.getStyleWarning(), "warpdrive.command.no_container") );
 				return;
 			}
@@ -131,18 +131,18 @@ public class CommandDump extends AbstractCommand {
 			break;
 			
 		default:
-			Commons.addChatMessage(commandSender, new WarpDriveText().append(getPrefix())
+			Commons.addChatMessage(commandSource, new WarpDriveText().append(getPrefix())
 			                                                         .append(Commons.getStyleWarning(), "warpdrive.command.invalid_parameter", 
 			                                                                 args[0])
 			                                                         .appendLineBreak()
-			                                                         .appendSibling(new TextComponentString(getUsage(commandSender))) );
+			                                                         .appendSibling(new StringTextComponent(getUsage(commandSource))));
 			return;
 		}
 		
 		// actually dump
 		final int size = InventoryWrapper.getSize(inventory);
 		if (size == 0) {
-			Commons.addChatMessage(commandSender, new WarpDriveText().append(getPrefix())
+			Commons.addChatMessage(commandSource, new WarpDriveText().append(getPrefix())
 			                                                         .append(Commons.getStyleWarning(), "warpdrive.command.empty_inventory") );
 		}
 		for (int indexSlot = 0; indexSlot < size; indexSlot++) {
@@ -150,8 +150,8 @@ public class CommandDump extends AbstractCommand {
 			if (itemStack != ItemStack.EMPTY && !itemStack.isEmpty()) {
 				final ResourceLocation uniqueIdentifier = itemStack.getItem().getRegistryName();
 				assert uniqueIdentifier != null;
-				final String stringDamage = itemStack.getItemDamage() == 0 ? "" : String.format(" damage=\"%d\"", itemStack.getItemDamage());
-				final String stringNBT = !itemStack.hasTagCompound() ? "" : String.format(" nbt=\"%s\"", itemStack.getTagCompound());
+				final String stringDamage = itemStack.getDamage() == 0 ? "" : String.format(" damage=\"%d\"", itemStack.getDamage());
+				final String stringNBT = !itemStack.hasTag() ? "" : String.format(" nbt=\"%s\"", itemStack.getTag());
 				WarpDrive.logger.info(String.format("Slot %3d is <loot item=\"%s:%s\"%s minQuantity=\"%d\" minQuantity=\"%d\"%s weight=\"1\" /><!-- %s -->",
 				                                    indexSlot,
 				                                    uniqueIdentifier.getNamespace(), uniqueIdentifier.getPath(),

@@ -14,13 +14,11 @@ import li.cil.oc.api.machine.Context;
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
 
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.math.AxisAlignedBB;
-
-import net.minecraftforge.fml.common.Optional;
 
 public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterfaced implements IMachine {
 	
@@ -46,8 +44,8 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	// parameters have changed, new computation is required
 	protected final AtomicBoolean isDirty = new AtomicBoolean(true);
 	
-	public TileEntityAbstractMachine() {
-		super();
+	public TileEntityAbstractMachine(@Nonnull TileEntityType<? extends TileEntityAbstractMachine> tileEntityType) {
+		super(tileEntityType);
 		
 		addMethods(new String[] {
 				"name",
@@ -57,11 +55,12 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
+	protected void onFirstTick() {
+		super.onFirstTick();
 		
 		// force full assembly scan and parameters update, only server side, before any other processing
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -75,10 +74,11 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -119,7 +119,8 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	}
 	
 	private void doScanAssembly(final boolean isDirty) {
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -150,7 +151,7 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	public WarpDriveText getStatus() {
 		final WarpDriveText textStatus = super.getStatus();
 		if ( world != null
-		  && !world.isRemote
+		  && !world.isRemote()
 		  && !textValidityIssues.isEmpty() ) {
 			textStatus.append(textValidityIssues);
 		}
@@ -162,7 +163,8 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	}
 	
 	protected boolean calculation_start() {
-		assert !world.isRemote;
+		assert world != null
+		    && !world.isRemote();
 		if (isAssemblyValid) {
 			if (!isGlobalThreadRunning.getAndSet(true)) {
 				isThreadRunning.set(true);
@@ -181,47 +183,47 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
 		name = tagCompound.getString(ICoreSignature.NAME_TAG);
-		setIsEnabled( !tagCompound.hasKey("isEnabled") || tagCompound.getBoolean("isEnabled"));
+		setIsEnabled( !tagCompound.contains("isEnabled") || tagCompound.getBoolean("isEnabled"));
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
 		if (!name.equals("")) {
-			tagCompound.setString(ICoreSignature.NAME_TAG, name);
+			tagCompound.putString(ICoreSignature.NAME_TAG, name);
 		}
-		tagCompound.setBoolean("isEnabled", isEnabled);
+		tagCompound.putBoolean("isEnabled", isEnabled);
 		return tagCompound;
 	}
 	
 	@Override
-	public NBTTagCompound writeItemDropNBT(NBTTagCompound tagCompound) {
+	public CompoundNBT writeItemDropNBT(CompoundNBT tagCompound) {
 		tagCompound = super.writeItemDropNBT(tagCompound);
 		
-		tagCompound.removeTag("isEnabled");
+		tagCompound.remove("isEnabled");
 		return tagCompound;
 	}
 	
-	private static final Predicate<EntityPlayerMP> ALIVE_NOT_SPECTATING_PLAYER = entityPlayerMP -> entityPlayerMP != null
-	                                                                                               && entityPlayerMP.isEntityAlive()
-	                                                                                               && !entityPlayerMP.isSpectator();
 	public String getAllPlayersInArea() {
 		final AxisAlignedBB axisalignedbb = this instanceof IGlobalRegionProvider
 		                                  ? ((IGlobalRegionProvider) this).getGlobalRegionArea()
 		                                  : new AxisAlignedBB(pos).grow(10.0D);
 		
-		final List<EntityPlayerMP> entityPlayers = world.getPlayers(EntityPlayerMP.class, ALIVE_NOT_SPECTATING_PLAYER::test);
+		assert world != null;
+		final List<? extends PlayerEntity> entityPlayers = world.getPlayers();
 		final StringBuilder stringBuilderResult = new StringBuilder();
 		
 		boolean isFirst = true;
-		for (final EntityPlayerMP entityPlayerMP : entityPlayers) {
-			if (!entityPlayerMP.getEntityBoundingBox().intersects(axisalignedbb)) {
+		for (final PlayerEntity entityPlayer : entityPlayers) {
+			if ( entityPlayer == null
+			  || !entityPlayer.isAlive()
+			  || !entityPlayer.getBoundingBox().intersects(axisalignedbb) ) {
 				continue;
 			}
 			if (isFirst) {
@@ -229,7 +231,7 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 			} else {
 				stringBuilderResult.append(", ");
 			}
-			stringBuilderResult.append(entityPlayerMP.getName());
+			stringBuilderResult.append(entityPlayer.getName());
 		}
 		return stringBuilderResult.toString();
 	}
@@ -295,7 +297,7 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 		if (isAssemblyValid && textValidityIssues.isEmpty()) {
 			return new Object[] { isAssemblyValid, "ok" };
 		}
-		return new Object[] { isAssemblyValid, Commons.removeFormatting( textValidityIssues.getUnformattedText() ) };
+		return new Object[] { isAssemblyValid, Commons.removeFormatting( textValidityIssues.getUnformattedComponentText() ) };
 	}
 	
 	@Override
@@ -305,27 +307,23 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] name(final Context context, final Arguments arguments) {
 		return name(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] enable(final Context context, final Arguments arguments) {
 		return enable(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getAssemblyStatus(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getAssemblyStatus();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "name":

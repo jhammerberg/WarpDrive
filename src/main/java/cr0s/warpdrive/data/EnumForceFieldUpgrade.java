@@ -13,20 +13,20 @@ import javax.annotation.Nullable;
 import java.util.HashMap;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.item.EntityBoat;
-import net.minecraft.entity.item.EntityFallingBlock;
-import net.minecraft.entity.item.EntityFireworkRocket;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.item.EntityMinecart;
-import net.minecraft.entity.item.EntityTNTPrimed;
-import net.minecraft.entity.item.EntityXPOrb;
-import net.minecraft.entity.monster.EntityGolem;
-import net.minecraft.entity.monster.EntityMob;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.projectile.EntityArrow;
-import net.minecraft.entity.projectile.EntityFireball;
-import net.minecraft.entity.projectile.EntityThrowable;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.item.BoatEntity;
+import net.minecraft.entity.item.FallingBlockEntity;
+import net.minecraft.entity.item.FireworkRocketEntity;
+import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.item.TNTEntity;
+import net.minecraft.entity.item.minecart.AbstractMinecartEntity;
+import net.minecraft.entity.item.ExperienceOrbEntity;
+import net.minecraft.entity.monster.MonsterEntity;
+import net.minecraft.entity.passive.GolemEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.AbstractArrowEntity;
+import net.minecraft.entity.projectile.DamagingProjectileEntity;
+import net.minecraft.entity.projectile.ThrowableEntity;
 import net.minecraft.util.IStringSerializable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -184,8 +184,8 @@ public enum EnumForceFieldUpgrade implements IStringSerializable, IForceFieldUpg
 	
 	
 	@Override
-	public int onEntityEffect(final float scaledValue, final World world, final int projectorX, final int projectorY, final int projectorZ,
-							  final BlockPos blockPos, final Entity entity) {
+	public int onEntityEffect(final float scaledValue, @Nonnull final World world, final int projectorX, final int projectorY, final int projectorZ,
+	                          @Nonnull final BlockPos blockPos, @Nonnull final Entity entity) {
 		if (scaledValue == 0.0F) {
 			return 0;
 		}
@@ -201,24 +201,24 @@ public enum EnumForceFieldUpgrade implements IStringSerializable, IForceFieldUpg
 		
 		// entity classification
 		int entityLevel = 0;
-		if (!entity.isDead) {
-			if (entity instanceof EntityPlayer) {
+		if (entity.isAlive()) {
+			if (entity instanceof PlayerEntity) {
 				entityLevel = 4;
-			} else if ( entity instanceof EntityMob
-				     || entity instanceof EntityGolem
-				     || entity instanceof EntityFireball 
-				     || entity instanceof EntityTNTPrimed
-				     || entity instanceof EntityThrowable
-				     || entity instanceof EntityMinecart ) {
+			} else if ( entity instanceof MonsterEntity
+				     || entity instanceof GolemEntity
+				     || entity instanceof DamagingProjectileEntity 
+				     || entity instanceof TNTEntity
+				     || entity instanceof ThrowableEntity
+				     || entity instanceof AbstractMinecartEntity) {
 				entityLevel = 3;
-			} else if ( entity instanceof EntityLivingBase
-				     || entity instanceof EntityXPOrb
-				     || entity instanceof EntityBoat ) {
+			} else if ( entity instanceof LivingEntity
+				     || entity instanceof ExperienceOrbEntity
+				     || entity instanceof BoatEntity) {
 				entityLevel = 2;
-			} else if ( entity instanceof EntityItem
-				     || entity instanceof EntityArrow
-				     || entity instanceof EntityFallingBlock
-				     || entity instanceof EntityFireworkRocket ) {
+			} else if ( entity instanceof ItemEntity
+				     || entity instanceof AbstractArrowEntity
+				     || entity instanceof FallingBlockEntity
+				     || entity instanceof FireworkRocketEntity) {
 				entityLevel = 1;
 			}
 		}
@@ -244,23 +244,23 @@ public enum EnumForceFieldUpgrade implements IStringSerializable, IForceFieldUpg
 			
 			// pass through force field
 			if (distanceCollision <= distanceEntity) {
-				if (entity instanceof EntityLivingBase) {
+				if (entity instanceof LivingEntity) {
 					entity.setPositionAndUpdate(
-						entity.posX - v3Direction.x * 2.0D,
-						entity.posY - v3Direction.y * 2.0D,
-						entity.posZ - v3Direction.z * 2.0D);
+						entity.getPosX() - v3Direction.x * 2.0D,
+						entity.getPosY() - v3Direction.y * 2.0D,
+						entity.getPosZ() - v3Direction.z * 2.0D);
 				} else {
 					entity.setPosition(
-						entity.posX - v3Direction.x * 2.0D,
-						entity.posY - v3Direction.y * 2.0D,
-						entity.posZ - v3Direction.z * 2.0D);
+						entity.getPosX() - v3Direction.x * 2.0D,
+						entity.getPosY() - v3Direction.y * 2.0D,
+						entity.getPosZ() - v3Direction.z * 2.0D);
 				}
 				v3Entity.translateFactor(v3Direction, 2.0D);
-			} else if (entity instanceof EntityPlayer) {
+			} else if (entity instanceof PlayerEntity) {
 				entity.setPositionAndUpdate(
-					entity.posX - v3Direction.x * 0.4D,
-					entity.posY - v3Direction.y * 0.4D,
-					entity.posZ - v3Direction.z * 0.4D);
+					entity.getPosX() - v3Direction.x * 0.4D,
+					entity.getPosY() - v3Direction.y * 0.4D,
+					entity.getPosZ() - v3Direction.z * 0.4D);
 			}
 			
 			// visual effect
@@ -277,23 +277,23 @@ public enum EnumForceFieldUpgrade implements IStringSerializable, IForceFieldUpg
 			
 			// pass through force field
 			if (distanceCollision >= distanceEntity) {
-				if (entity instanceof EntityLivingBase) {
+				if (entity instanceof LivingEntity) {
 					entity.setPositionAndUpdate(
-						entity.posX + v3Direction.x * 2.0D,
-						entity.posY + v3Direction.y * 2.0D,
-						entity.posZ + v3Direction.z * 2.0D);
+						entity.getPosX() + v3Direction.x * 2.0D,
+						entity.getPosY() + v3Direction.y * 2.0D,
+						entity.getPosZ() + v3Direction.z * 2.0D);
 				} else {
 					entity.setPosition(
-						entity.posX + v3Direction.x * 2.0D,
-						entity.posY + v3Direction.y * 2.0D,
-						entity.posZ + v3Direction.z * 2.0D);
+						entity.getPosX() + v3Direction.x * 2.0D,
+						entity.getPosY() + v3Direction.y * 2.0D,
+						entity.getPosZ() + v3Direction.z * 2.0D);
 				}
 				v3Entity.translateFactor(v3Direction, 2.0D);
-			} else if (entity instanceof EntityPlayer) {
+			} else if (entity instanceof PlayerEntity) {
 				entity.setPositionAndUpdate(
-					entity.posX + v3Direction.x * 0.4D,
-					entity.posY + v3Direction.y * 0.4D,
-					entity.posZ + v3Direction.z * 0.4D);
+					entity.getPosX() + v3Direction.x * 0.4D,
+					entity.getPosY() + v3Direction.y * 0.4D,
+					entity.getPosZ() + v3Direction.z * 0.4D);
 			}
 			
 			// visual effect
@@ -302,7 +302,7 @@ public enum EnumForceFieldUpgrade implements IStringSerializable, IForceFieldUpg
 			return 10;
 		
 		case COOLING:
-			if (scaledValue >= 295.0F || !(entity instanceof EntityLivingBase) || entityLevel <= 0) {
+			if (scaledValue >= 295.0F || !(entity instanceof LivingEntity) || entityLevel <= 0) {
 				return 0;
 			}
 			entity.attackEntityFrom(WarpDrive.damageCold, (300 - scaledValue) / 10);
@@ -317,7 +317,7 @@ public enum EnumForceFieldUpgrade implements IStringSerializable, IForceFieldUpg
 			return 10;
 		
 		case HEATING:
-			if (scaledValue <= 305.0F || !(entity instanceof EntityLivingBase) || entityLevel <= 0) {
+			if (scaledValue <= 305.0F || !(entity instanceof LivingEntity) || entityLevel <= 0) {
 				return 0;
 			}
 			if (!entity.isImmuneToFire()) {
@@ -341,7 +341,7 @@ public enum EnumForceFieldUpgrade implements IStringSerializable, IForceFieldUpg
 			return 10;
 		
 		case SHOCK:
-			if (scaledValue <= 0 || !(entity instanceof EntityLivingBase) || entityLevel <= 0) {
+			if (scaledValue <= 0 || !(entity instanceof LivingEntity) || entityLevel <= 0) {
 				return 0;
 			}
 			entity.attackEntityFrom(WarpDrive.damageShock, Math.abs(scaledValue));

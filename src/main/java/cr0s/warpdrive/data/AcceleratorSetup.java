@@ -27,17 +27,17 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.item.ItemStack;
+import net.minecraft.block.BlockState;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.server.ServerWorld;
 
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.common.thread.EffectiveSide;
 
 public class AcceleratorSetup extends GlobalPosition {
 	
@@ -84,16 +84,16 @@ public class AcceleratorSetup extends GlobalPosition {
 	protected WarpDriveText textValidityIssues = new WarpDriveText(Commons.getStyleWarning(), "-undefined accelerator setup-");
 	private boolean isLoaded = true;
 	
-	public AcceleratorSetup(final int dimensionId, @Nonnull final BlockPos blockPos) {
+	public AcceleratorSetup(final ResourceLocation dimensionId, @Nonnull final BlockPos blockPos) {
 		super(dimensionId, blockPos.getX(), blockPos.getY(), blockPos.getZ());
 		
-		LocalProfiler.start(String.format("[AcceleratorSetup] Scanning @ DIM%d (%d %d %d)",
+		LocalProfiler.start(String.format("[AcceleratorSetup] Scanning @ %s (%d %d %d)",
 		                                  dimensionId, x, y, z));
 		
-		final WorldServer world = getWorldServerIfLoaded();
+		final ServerWorld world = getWorldServerIfLoaded();
 		if (world == null) {
 			if (WarpDriveConfig.LOGGING_ACCELERATOR) {
-				WarpDrive.logger.warn(String.format("Accelerator scan cancelled: Dimension %d isn't loaded", dimensionId));
+				WarpDrive.logger.warn(String.format("Accelerator scan cancelled: Dimension %s isn't loaded", dimensionId));
 			}
 		} else {
 			refresh(world);
@@ -144,8 +144,8 @@ public class AcceleratorSetup extends GlobalPosition {
 		vMax.z = Math.max(vMax.z, vector.z + range);
 	}
 	
-	private void refresh(final WorldServer world) {
-		if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) {
+	private void refresh(final ServerWorld world) {
+		if (EffectiveSide.get() == LogicalSide.CLIENT) {
 			WarpDrive.logger.warn("Accelerator scan cancelled: client side");
 			return;
 		}
@@ -179,7 +179,7 @@ public class AcceleratorSetup extends GlobalPosition {
 		particleEnergy_energyCost_perTick = countMagnets[0] * 1.00 + countMagnets[1] * 2.00 + countMagnets[2] * 3.00;
 	}
 	
-	private void fillTrajectoryPoints(final WorldServer world) {
+	private void fillTrajectoryPoints(final ServerWorld world) {
 		// find closest connected VoidShell
 		Set<Block> whitelist = ImmutableSet.of(
 			WarpDrive.blockElectromagnets_plain[1],
@@ -213,11 +213,11 @@ public class AcceleratorSetup extends GlobalPosition {
 			WarpDrive.blockVoidShellPlain,
 			WarpDrive.blockVoidShellGlass);
 		TrajectoryPoint trajectoryPoint = null;
-		for (final EnumFacing direction : EnumFacing.HORIZONTALS) {
+		for (final Direction direction : Commons.FACINGS_HORIZONTAL) {
 			final BlockPos next = new BlockPos(firstVoidShell.x + direction.getXOffset(),
 			                                   firstVoidShell.y + direction.getYOffset(),
 			                                   firstVoidShell.z + direction.getZOffset() );
-			final IBlockState blockStateNext = Commons.getBlockState_noChunkLoading(world, next);
+			final BlockState blockStateNext = Commons.getBlockState_noChunkLoading(world, next);
 			if ( blockStateNext != null
 			  && whitelist.contains(blockStateNext.getBlock()) ) {
 				trajectoryPoint = new TrajectoryPoint(world, firstVoidShell.translate(direction), direction);
@@ -331,7 +331,7 @@ public class AcceleratorSetup extends GlobalPosition {
 		}
 	}
 	
-	private void computeVectorArrays(@Nonnull final WorldServer world) {
+	private void computeVectorArrays(@Nonnull final ServerWorld world) {
 		final WarpDriveText textReason = new WarpDriveText();
 		boolean isValid = true; 
 		// check for chillers, injectors and colliders blocks
@@ -430,9 +430,9 @@ public class AcceleratorSetup extends GlobalPosition {
 		textValidityIssues = textReason;
 	}
 	
-	private void scanCorners(@Nonnull final WorldServer world, @Nonnull final VectorI vCenter, @Nonnull final EnumFacing forgeDirection) {
-		final EnumFacing directionLeft = forgeDirection.rotateYCCW();
-		final EnumFacing directionRight = forgeDirection.rotateY();
+	private void scanCorners(@Nonnull final ServerWorld world, @Nonnull final VectorI vCenter, @Nonnull final Direction forgeDirection) {
+		final Direction directionLeft = forgeDirection.rotateYCCW();
+		final Direction directionRight = forgeDirection.rotateY();
 		for (int indexCorner = 0; indexCorner < 4; indexCorner++) {
 			final VectorI vector = new VectorI(
 				vCenter.x + ((indexCorner & 1) != 0 ? directionLeft.getXOffset() : directionRight.getXOffset()),
@@ -440,7 +440,7 @@ public class AcceleratorSetup extends GlobalPosition {
 			    vCenter.z + ((indexCorner & 1) != 0 ? directionLeft.getZOffset() : directionRight.getZOffset()));
 			final Block block = vector.getBlock(world);
 			if (block instanceof BlockChiller) {
-				final EnumTier enumTier = ((BlockChiller) block).getTier(ItemStack.EMPTY);
+				final EnumTier enumTier = ((BlockChiller) block).getTier();
 				setChillers.add(vector.getBlockPos());
 				countChillers[enumTier.getIndex() - 1]++;
 			} else if (block instanceof BlockCapacitor) {
@@ -519,14 +519,14 @@ public class AcceleratorSetup extends GlobalPosition {
 		
 		// check connections
 		if (checkDirectConnection || checkCornerConnection) {
-			for (final EnumFacing forgeDirection : EnumFacing.VALUES) {
+			for (final Direction forgeDirection : Direction.values()) {
 				final Block blockConnected = vector.translate(forgeDirection).getBlock(world);
 				if (blockConnected instanceof BlockVoidShellPlain) {
 					if (isTrajectoryPoint(vector)) {
 						return true;
 					}
 				} else if (checkCornerConnection && blockConnected instanceof BlockElectromagnetPlain) {
-					for (final EnumFacing forgeDirection2 : EnumFacing.VALUES) {
+					for (final Direction forgeDirection2 : Direction.values()) {
 						final Block blockSubConnected = vector.translate(forgeDirection2).getBlock(world);
 						if (blockSubConnected instanceof BlockVoidShellPlain) {
 							if (isTrajectoryPoint(vector)) {
@@ -539,7 +539,7 @@ public class AcceleratorSetup extends GlobalPosition {
 		}
 		
 		if (checkRangedConnection) {
-			for (final EnumFacing forgeDirection : EnumFacing.VALUES) {
+			for (final Direction forgeDirection : Direction.values()) {
 				final Block blockConnected = vector.translate(forgeDirection, 2).getBlock(world);
 				if (blockConnected instanceof BlockVoidShellPlain) {
 					if (isTrajectoryPoint(vector)) {
@@ -703,11 +703,11 @@ public class AcceleratorSetup extends GlobalPosition {
 	@Override
 	public String toString() {
 		if (vMin == null || vMax == null) {
-			return String.format("%s @ DIM%d (%d %d %d) (-null-) -> (-null)",
+			return String.format("%s @ %s (%d %d %d) (-null-) -> (-null)",
 				getClass().getSimpleName(), dimensionId,
 				x, y, z);
 		}
-		return String.format("%s @ DIM%d (%d %d %d) (%d %d %d) -> (%d %d %d)",
+		return String.format("%s @ %s (%d %d %d) (%d %d %d) -> (%d %d %d)",
 			getClass().getSimpleName(), dimensionId,
 			x, y, z,
 			vMin.x, vMin.y, vMin.z,

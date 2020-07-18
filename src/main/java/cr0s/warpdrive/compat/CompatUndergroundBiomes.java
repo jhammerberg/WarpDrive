@@ -11,10 +11,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -37,25 +37,26 @@ public class CompatUndergroundBiomes implements IBlockTransformer {
 	}
 	
 	@Override
-	public boolean isApplicable(final Block block, final int metadata, final TileEntity tileEntity) {
-		return classBlockUBStoneButton.isInstance(block)
-		    || classBlockUBStoneStairs.isInstance(block);
+	public boolean isApplicable(final BlockState blockState, final TileEntity tileEntity) {
+		return classBlockUBStoneButton.isInstance(blockState.getBlock())
+		    || classBlockUBStoneStairs.isInstance(blockState.getBlock());
 	}
 	
 	@Override
-	public boolean isJumpReady(final Block block, final int metadata, final TileEntity tileEntity, final WarpDriveText reason) {
+	public boolean isJumpReady(final BlockState blockState, final TileEntity tileEntity, final WarpDriveText reason) {
 		return true;
 	}
 	
 	@Override
-	public NBTBase saveExternals(final World world, final int x, final int y, final int z, final Block block, final int blockMeta, final TileEntity tileEntity) {
+	public INBT saveExternals(final World world, final int x, final int y, final int z,
+	                          final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 		return null;
 	}
 	
 	@Override
 	public void removeExternals(final World world, final int x, final int y, final int z,
-	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
+	                            final BlockState blockState, final TileEntity tileEntity) {
 		// nothing to do
 	}
 	
@@ -70,14 +71,14 @@ public class CompatUndergroundBiomes implements IBlockTransformer {
 	}
 	
 	@Override
-	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
-		return metadata;
+	public BlockState rotate(final BlockState blockState, final CompoundNBT nbtTileEntity, final ITransformation transformation) {
+		return blockState;
 	}
 	
 	@Override
 	public void restoreExternals(final World world, final BlockPos blockPos,
-	                             final IBlockState blockState, final TileEntity tileEntity,
-	                             final ITransformation transformation, final NBTBase nbtBase) {
+	                             final BlockState blockState, final TileEntity tileEntity,
+	                             final ITransformation transformation, final INBT nbtBase) {
 		final byte rotationSteps = transformation.getRotationSteps();
 		if (rotationSteps == 0) {
 			return;
@@ -114,13 +115,13 @@ public class CompatUndergroundBiomes implements IBlockTransformer {
 			break;
 		}
 		final ResourceLocation registryNameNew = new ResourceLocation(registryNameOld.getNamespace(), pathNoFacing + facingNew);
-		final Block blockNew = Block.REGISTRY.getObject(registryNameNew);
+		final Block blockNew = ForgeRegistries.BLOCKS.getValue(registryNameNew);
 		if (blockNew == Blocks.AIR) {
 			WarpDrive.logger.error(String.format("Invalid new registry name for UndergroundBiomes, unable to proceed with rotation: old is %s, new is %s",
 			                                     registryNameOld, registryNameNew));
 			return;
 		}
-		final IBlockState blockStateNew = blockNew.getStateFromMeta(blockState.getBlock().getMetaFromState(blockState));
+		final BlockState blockStateNew = blockNew.getStateFromMeta(blockState.getBlock().getMetaFromState(blockState));
 		world.setBlockState(blockPos, blockStateNew, 2);
 	}
 }

@@ -9,7 +9,7 @@ import li.cil.oc.api.machine.Context;
 
 import javax.annotation.Nonnull;
 
-import net.minecraftforge.fml.common.Optional;
+import net.minecraft.tileentity.TileEntityType;
 
 public abstract class TileEntityAbstractEnergyConsumer extends TileEntityAbstractEnergy implements IEnergyConsumer {
 	
@@ -19,8 +19,8 @@ public abstract class TileEntityAbstractEnergyConsumer extends TileEntityAbstrac
 	// computed properties
 	// (none)
 	
-	public TileEntityAbstractEnergyConsumer() {
-		super();
+	public TileEntityAbstractEnergyConsumer(@Nonnull TileEntityType<? extends TileEntityAbstractEnergyConsumer> tileEntityType) {
+		super(tileEntityType);
 		
 		addMethods(new String[] {
 				"getEnergyRequired",
@@ -33,15 +33,13 @@ public abstract class TileEntityAbstractEnergyConsumer extends TileEntityAbstrac
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] getEnergyRequired(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return getEnergyRequired();
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "getEnergyRequired":

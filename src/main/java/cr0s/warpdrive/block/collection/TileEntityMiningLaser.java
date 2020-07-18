@@ -24,26 +24,30 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.fluid.Fluid;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.world.Explosion;
+import net.minecraft.world.Explosion.Mode;
 
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fml.common.Optional;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public class TileEntityMiningLaser extends TileEntityAbstractMiner {
+	
+	public static TileEntityType<TileEntityMiningLaser> TYPE;
 	
 	// global properties
 	private static final UpgradeSlot upgradeSlotPumping = new UpgradeSlot("mining_laser.pumping",
 	                                                                      ItemComponent.getItemStackNoCache(EnumComponentType.PUMP, 1),
 	                                                                      20);
-	private static final boolean canSilktouch = (WarpDriveConfig.MINING_LASER_MINE_SILKTOUCH_DEUTERIUM_MB <= 0 || FluidRegistry.isFluidRegistered("deuterium"));
+	private static final boolean canSilktouch = WarpDriveConfig.MINING_LASER_MINE_SILKTOUCH_DEUTERIUM_MB <= 0 
+	                                         || ForgeRegistries.FLUIDS.containsKey(new ResourceLocation("deuterium"));
 	
 	// persistent properties
 	private int layerOffset = 1;
@@ -74,9 +78,9 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 	private int indexValuable = 0;
 	
 	public TileEntityMiningLaser() {
-		super();
+		super(TYPE);
 		
-		laserOutputSide = EnumFacing.DOWN;
+		laserOutputSide = Direction.DOWN;
 		peripheralName = "warpdriveMiningLaser";
 		addMethods(new String[] {
 				"state",
@@ -92,10 +96,12 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 	}
 	
 	@Override
-	protected void onFirstUpdateTick() {
-		super.onFirstUpdateTick();
-		explosion = new Explosion(world, null, pos.getX(), pos.getY(), pos.getZ(), 1, true, true);
-		explosionResistanceMax = Blocks.OBSIDIAN.getExplosionResistance(world, pos, null, explosion);
+	protected void onFirstTick() {
+		super.onFirstTick();
+		assert world != null;
+		
+		explosion = new Explosion(world, null, pos.getX(), pos.getY(), pos.getZ(), 1, true, Mode.BREAK);
+		explosionResistanceMax = Blocks.OBSIDIAN.getExplosionResistance(null, world, pos, null, explosion);
 		updateParameters();
 	}
 	
@@ -122,10 +128,11 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 	}
 	
 	@Override
-	public void update() {
-		super.update();
+	public void tick() {
+		super.tick();
 		
-		if (world.isRemote) {
+		assert world != null;
+		if (world.isRemote()) {
 			return;
 		}
 		
@@ -282,7 +289,7 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 			indexValuable++;
 			
 			// Mine valuable ore
-			final IBlockState blockStateValuable = world.getBlockState(blockPosValuable);
+			final BlockState blockStateValuable = world.getBlockState(blockPosValuable);
 			
 			// Skip if block is too hard or its empty block (check again in case it changed)
 			if (!canDig(blockStateValuable, blockPosValuable)) {
@@ -307,7 +314,8 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 		}
 	}
 	
-	private boolean canDig(@Nonnull final IBlockState blockState, final BlockPos blockPos) {
+	private boolean canDig(@Nonnull final BlockState blockState, final BlockPos blockPos) {
+		assert world != null;
 		final Block block = blockState.getBlock();
 		// ignore air
 		if (world.isAirBlock(blockPos)) {
@@ -337,7 +345,7 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 		// check liquids
 		final Fluid fluid = FluidWrapper.getFluid(blockState);
 		if (fluid != null) {
-			return viscosityMax >= fluid.getViscosity();
+			return viscosityMax >= fluid.getAttributes().getViscosity();
 		}
 		// check whitelist
 		if ( Dictionary.BLOCKS_MINING.contains(block)
@@ -345,7 +353,7 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 			return true;
 		}
 		// check default (explosion resistance is used to test for force fields and reinforced blocks, basically preventing mining a base or ship)
-		final float explosionResistance = blockState.getBlock().getExplosionResistance(world, blockPos, null, explosion);
+		final float explosionResistance = blockState.getExplosionResistance(world, blockPos, null, explosion);
 		if (explosionResistance <= explosionResistanceMax) {
 			return true;
 		}
@@ -358,9 +366,10 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 	}
 	
 	private void scanLayer() {
+		assert world != null;
 		// WarpDrive.logger.info("Scanning layer");
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos(pos);
-		IBlockState blockState;
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(pos);
+		BlockState blockState;
 		for (int y = pos.getY() - 1; y > currentLayer; y --) {
 			mutableBlockPos.setPos(pos.getX(), y, pos.getZ());
 			blockState = world.getBlockState(mutableBlockPos);
@@ -468,49 +477,45 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 	}
 	
 	@Override
-	public void readFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
+	public void read(@Nonnull final CompoundNBT tagCompound) {
+		super.read(tagCompound);
 		
-		layerOffset = tagCompound.getInteger("layerOffset");
+		layerOffset = tagCompound.getInt("layerOffset");
 		mineAllBlocks = tagCompound.getBoolean("mineAllBlocks");
-		stateCurrent = tagCompound.getInteger("stateCurrent");
-		currentLayer = tagCompound.getInteger("currentLayer");
+		stateCurrent = tagCompound.getInt("stateCurrent");
+		currentLayer = tagCompound.getInt("currentLayer");
 	}
 	
 	@Nonnull
 	@Override
-	public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound tagCompound) {
-		tagCompound = super.writeToNBT(tagCompound);
+	public CompoundNBT write(@Nonnull CompoundNBT tagCompound) {
+		tagCompound = super.write(tagCompound);
 		
-		tagCompound.setInteger("layerOffset", layerOffset);
-		tagCompound.setBoolean("mineAllBlocks", mineAllBlocks);
-		tagCompound.setInteger("stateCurrent", stateCurrent);
-		tagCompound.setInteger("currentLayer", currentLayer);
+		tagCompound.putInt("layerOffset", layerOffset);
+		tagCompound.putBoolean("mineAllBlocks", mineAllBlocks);
+		tagCompound.putInt("stateCurrent", stateCurrent);
+		tagCompound.putInt("currentLayer", currentLayer);
 		return tagCompound;
 	}
 	
 	// OpenComputers callback methods
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] state(final Context context, final Arguments arguments) {
 		OC_convertArgumentsAndLogCall(context, arguments);
 		return state();
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] offset(final Context context, final Arguments arguments) {
 		return offset(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] onlyOres(final Context context, final Arguments arguments) {
 		return onlyOres(OC_convertArgumentsAndLogCall(context, arguments));
 	}
 	
 	@Callback(direct = true)
-	@Optional.Method(modid = "opencomputers")
 	public Object[] silktouch(final Context context, final Arguments arguments) {
 		return silktouch(OC_convertArgumentsAndLogCall(context, arguments));
 	}
@@ -575,9 +580,8 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 		return new Object[] { enableSilktouch };
 	}
 	
-	// ComputerCraft IPeripheral methods
+	// ComputerCraft IDynamicPeripheral methods
 	@Override
-	@Optional.Method(modid = "computercraft")
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "state":

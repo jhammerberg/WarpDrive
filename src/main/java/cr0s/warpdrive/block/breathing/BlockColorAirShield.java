@@ -3,21 +3,20 @@ package cr0s.warpdrive.block.breathing;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import net.minecraft.block.BlockColored;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.renderer.color.IBlockColor;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.ILightReader;
 
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class BlockColorAirShield implements IBlockColor {
 	
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	@Override
-	public int colorMultiplier(@Nonnull final IBlockState blockState, @Nullable final IBlockAccess blockAccess, @Nullable final BlockPos blockPos, final int tintIndex) {
-		switch (blockState.getValue(BlockColored.COLOR)) {
+	public int getColor(@Nonnull final BlockState blockState, @Nullable final ILightReader lightReader, @Nullable final BlockPos blockPos, final int tintIndex) {
+		switch (((BlockAirShield) blockState.getBlock()).dyeColor) { // getMaterialColor(lightReader, blockPos)) {
 		case WHITE:
 			return 0xFFFFFF;
 		case ORANGE:
@@ -32,9 +31,9 @@ public class BlockColorAirShield implements IBlockColor {
 			return 0x90E801;
 		case PINK:
 			return 0xFB0680;
-		case SILVER: // gray
+		case GRAY: // silver
 			return 0x2C2C2C;
-		case GRAY: // light gray
+		case LIGHT_GRAY:
 			return 0x686868;
 		case CYAN:
 		default: // SciFi cyan
@@ -52,6 +51,5 @@ public class BlockColorAirShield implements IBlockColor {
 		case BLACK:
 			return 0x080808;
 		}
-		// return MapColor.getBlockColor(blockState.getValue(BlockColored.COLOR)).colorValue;
 	}
 }

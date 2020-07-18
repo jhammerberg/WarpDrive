@@ -7,40 +7,41 @@ import cr0s.warpdrive.data.EnumTier;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
 public class BlockAirGeneratorTiered extends BlockAbstractRotatingContainer {
 	
-	public BlockAirGeneratorTiered(final String registryName, final EnumTier enumTier) {
-		super(registryName, enumTier, Material.IRON);
-		
-		setTranslationKey("warpdrive.breathing.air_generator." + enumTier.getName());
+	public BlockAirGeneratorTiered(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(getDefaultProperties(null),
+		      registryName, enumTier);
 	}
 	
 	@Nonnull
 	@Override
-	public TileEntity createNewTileEntity(@Nonnull final World world, final int metadata) {
+	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
 		return new TileEntityAirGeneratorTiered();
 	}
 	
+	@Nonnull
 	@Override
-	public boolean onBlockActivated(@Nonnull final World world, @Nonnull final BlockPos blockPos, @Nonnull final IBlockState blockState,
-	                                @Nonnull final EntityPlayer entityPlayer, @Nonnull final EnumHand enumHand,
-	                                @Nonnull final EnumFacing enumFacing, final float hitX, final float hitY, final float hitZ) {
-		if ( world.isRemote
-		  || enumHand != EnumHand.MAIN_HAND ) {
-			return super.onBlockActivated(world, blockPos, blockState, entityPlayer, enumHand, enumFacing, hitX, hitY, hitZ);
+	public ActionResultType onBlockActivated(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,
+	                                         @Nonnull final PlayerEntity entityPlayer, @Nonnull final Hand enumHand,
+	                                         @Nonnull final BlockRayTraceResult blockRaytraceResult) {
+		if ( world.isRemote()
+		  || enumHand != Hand.MAIN_HAND ) {
+			return super.onBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
 		}
 		
 		// get context
@@ -60,18 +61,18 @@ public class BlockAirGeneratorTiered extends BlockAbstractRotatingContainer {
 						final ItemStack toAdd = airContainerItem.getFullAirContainer(itemStackCopy);
 						if (toAdd != null) {
 							if (!entityPlayer.inventory.addItemStackToInventory(toAdd)) {
-								final EntityItem entityItem = new EntityItem(entityPlayer.world, entityPlayer.posX, entityPlayer.posY, entityPlayer.posZ, toAdd);
-								entityPlayer.world.spawnEntity(entityItem);
+								final ItemEntity entityItem = new ItemEntity(entityPlayer.world, entityPlayer.getPosX(), entityPlayer.getPosY(), entityPlayer.getPosZ(), toAdd);
+								entityPlayer.world.addEntity(entityItem);
 							}
-							((EntityPlayerMP) entityPlayer).sendContainerToPlayer(entityPlayer.inventoryContainer);
+							((ServerPlayerEntity) entityPlayer).sendContainerToPlayer(entityPlayer.container);
 							airGenerator.energy_consume(WarpDriveConfig.BREATHING_ENERGY_PER_CANISTER, false);
 						}
-						return true;
+						return ActionResultType.CONSUME;
 					}
 				}
 			}
 		}
 		
-		return super.onBlockActivated(world, blockPos, blockState, entityPlayer, enumHand, enumFacing, hitX, hitY, hitZ);
+		return super.onBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
 	}
 }

@@ -6,17 +6,18 @@ import cr0s.warpdrive.entity.EntityNPC;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.command.ICommandSender;
 import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.nbt.NBTException;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.common.thread.EffectiveSide;
+
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 public class CommandNPC extends AbstractCommand {
 	
@@ -33,28 +34,28 @@ public class CommandNPC extends AbstractCommand {
 	
 	@Nonnull
 	@Override
-	public String getUsage(@Nonnull final ICommandSender commandSender) {
+	public String getUsage(@Nonnull final ICommandSource commandSource) {
 		return String.format("/%s <name> (<scale>) (<texture>) ({<nbt>})\nName may contain space using _ character",
 		                     getName() );
 	}
 	
 	@Override
-	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSender commandSender, @Nonnull final String[] args) {
-		final World world = commandSender.getEntityWorld();
-		final BlockPos blockPos = commandSender.getPosition();
+	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSource commandSource, @Nonnull final String[] args) {
+		final World world = commandSource.getEntityWorld();
+		final BlockPos blockPos = commandSource.getPosition();
 		
 		//noinspection ConstantConditions
 		if (world == null || blockPos == null) {
-			Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("warpdrive.command.invalid_location").setStyle(Commons.getStyleWarning())));
+			Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.invalid_location").setStyle(Commons.getStyleWarning())));
 			return;
 		}
 		
 		if (args.length < 1 || args.length > 4) {
-			Commons.addChatMessage(commandSender, new TextComponentString(getUsage(commandSender)));
+			Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
 			return;
 		}
 		
-		if (!FMLCommonHandler.instance().getEffectiveSide().isServer()) {
+		if (EffectiveSide.get() != LogicalSide.SERVER) {
 			return;
 		}
 		
@@ -86,29 +87,29 @@ public class CommandNPC extends AbstractCommand {
 		}
 		
 		if (args.length > indexArg) {
-			Commons.addChatMessage(commandSender, new TextComponentString(getUsage(commandSender)));
+			Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
 			return;
 		}
 		
 		// spawn the entity
 		final EntityNPC entityNPC = new EntityNPC(world);
 		entityNPC.setPosition(blockPos.getX() + 0.5D, blockPos.getY() + 0.1D, blockPos.getZ() + 0.5D);
-		entityNPC.setCustomNameTag(name);
+		entityNPC.setCustomName(name);
 		entityNPC.setSizeScale(scale);
 		entityNPC.setTextureString(texturePath);
 		if (!stringNBT.isEmpty()) {
-			final NBTTagCompound tagCompound;
+			final CompoundNBT tagCompound;
 			try {
 				tagCompound = JsonToNBT.getTagFromJson(stringNBT);
-			} catch (final NBTException exception) {
+			} catch (final CommandSyntaxException exception) {
 				WarpDrive.logger.error(exception.getMessage());
-				Commons.addChatMessage(commandSender, new TextComponentString(getUsage(commandSender)));
+				Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
 				return;
 			}
 			entityNPC.deserializeNBT(tagCompound);
 		}
-		world.spawnEntity(entityNPC);
-		Commons.addChatMessage(commandSender, getPrefix().appendSibling(new TextComponentTranslation("Added NPC %1$s",
+		world.addEntity(entityNPC);
+		Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("Added NPC %1$s",
 		                                                                                             entityNPC )));
 	}
 	

@@ -11,12 +11,15 @@ import cr0s.warpdrive.data.JumpBlock;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.init.Blocks;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.Blocks;
+import net.minecraft.entity.EntityClassification;
+import net.minecraft.entity.EntityType;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.IPacket;
+import net.minecraft.network.play.server.SSpawnObjectPacket;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.world.World;
 
 /*
@@ -50,6 +53,12 @@ import net.minecraft.world.World;
  */
 public final class EntitySphereGen extends Entity {
 	
+	public static final EntityType<EntitySphereGen> TYPE;
+	
+	// persistent properties
+	// (none)
+	
+	// computed properties
 	public int xCoord;
 	public int yCoord;
 	public int zCoord;
@@ -74,20 +83,28 @@ public final class EntitySphereGen extends Entity {
 	private OrbInstance orbInstance;
 	private boolean replace;
 	
-	public EntitySphereGen(final World world) {
-		super(world);
+	static {
+		TYPE = EntityType.Builder.<EntitySphereGen>create(EntitySphereGen::new, EntityClassification.MISC)
+				       .setTrackingRange(200)
+				       .setUpdateInterval(1)
+				       .setShouldReceiveVelocityUpdates(false)
+				       .disableSummoning()
+				       .build("entity_sphere_generator");
+		TYPE.setRegistryName(WarpDrive.MODID, "entity_sphere_generator");
+	}
+	
+	public EntitySphereGen(@Nonnull final EntityType<EntitySphereGen> entityType, @Nonnull final World world) {
+		super(entityType, world);
 	}
 	
 	public EntitySphereGen(final World world, final int x, final int y, final int z,
 	                       final OrbInstance orbInstance, final boolean replace) {
-		super(world);
+		super(TYPE, world);
 		
 		this.xCoord = x;
-		this.posX = x;
 		this.yCoord = y;
-		this.posY = y;
 		this.zCoord = z;
-		this.posZ = z;
+		this.setPosition(x, y, z);
 		this.orbInstance = orbInstance;
 		this.gasColor = world.rand.nextInt(12);
 		this.replace = replace;
@@ -95,28 +112,34 @@ public final class EntitySphereGen extends Entity {
 		constructionFinalizer();
 	}
 	
+	@Nonnull
+	@Override
+	public IPacket<?> createSpawnPacket() {
+		return new SSpawnObjectPacket(this);
+	}
+	
 	public void killEntity() {
 		this.state = STATE_STOP;
 		final int minY_clamped = Math.max(0, yCoord - radius);
 		final int maxY_clamped = Math.min(255, yCoord + radius);
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 		for (int x = xCoord - radius; x <= xCoord + radius; x++) {
 			for (int z = zCoord - radius; z <= zCoord + radius; z++) {
 				for (int y = minY_clamped; y <= maxY_clamped; y++) {
 					mutableBlockPos.setPos(x, y, z);
-					final IBlockState blockState = world.getBlockState(mutableBlockPos);
+					final BlockState blockState = world.getBlockState(mutableBlockPos);
 					if (blockState.getBlock() != Blocks.AIR) {
 						world.notifyBlockUpdate(mutableBlockPos, blockState, blockState, 3);
 					}
 				}
 			}
 		}
-		world.removeEntity(this);
+		remove(false);
 	}
 	
 	@Override
-	public void onUpdate() {
-		if (world.isRemote) {
+	public void tick() {
+		if (world.isRemote()) {
 			return;
 		}
 		 
@@ -155,16 +178,16 @@ public final class EntitySphereGen extends Entity {
 		final int blocksToMove = Math.min(BLOCKS_PER_TICK, blocks.size() - currentIndex);
 		LocalProfiler.start("[EntitySphereGen] Placing blocks from " + currentIndex + " to " + (currentIndex + blocksToMove) + "/" + blocks.size());
 		
-		final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable();
 		for (int index = 0; index < blocksToMove; index++) {
 			if (currentIndex >= blocks.size())
 				break;
 			final JumpBlock jumpBlock = blocks.get(currentIndex);
 			mutableBlockPos.setPos(jumpBlock.x, jumpBlock.y, jumpBlock.z);
 			if (isSurfaces.get(currentIndex) && jumpBlock.x % 4 == 0 && jumpBlock.z % 4 == 0) {
-				world.setBlockState(mutableBlockPos, jumpBlock.block.getStateFromMeta(jumpBlock.blockMeta), 2);
+				world.setBlockState(mutableBlockPos, jumpBlock.blockState, 2);
 			} else {
-				FastSetBlockState.setBlockStateNoLight(world, mutableBlockPos, jumpBlock.block.getStateFromMeta(jumpBlock.blockMeta), 2);
+				FastSetBlockState.setBlockStateNoLight(world, mutableBlockPos, jumpBlock.blockState, 2);
 			}
 			currentIndex++;
 		}
@@ -240,10 +263,9 @@ public final class EntitySphereGen extends Entity {
 			return;
 		}
 		// Replace water with random gas (ship in moon)
-		if (world.getBlockState(new BlockPos(jumpBlock.x, jumpBlock.y, jumpBlock.z)).getBlock().isAssociatedBlock(Blocks.WATER)) {
+		if (world.getBlockState(new BlockPos(jumpBlock.x, jumpBlock.y, jumpBlock.z)).getBlock() == Blocks.WATER) {
 			if (world.rand.nextInt(50) != 1) {
-				jumpBlock.block = WarpDrive.blockGas;
-				jumpBlock.blockMeta = gasColor;
+				jumpBlock.blockState = WarpDrive.blockGas[gasColor].getDefaultState();
 			}
 			blocks.add(jumpBlock);
 			isSurfaces.add(isSurface);
@@ -258,7 +280,7 @@ public final class EntitySphereGen extends Entity {
 	}
 	
 	@Override
-	protected void entityInit() {
+	protected void registerData() {
 		noClip = true;
 	}
 	
@@ -273,12 +295,12 @@ public final class EntitySphereGen extends Entity {
 	}
 	
 	@Override
-	public void readEntityFromNBT(@Nonnull final NBTTagCompound tagCompound) {
-		xCoord = tagCompound.getInteger("warpdrive:xCoord");
-		yCoord = tagCompound.getInteger("warpdrive:yCoord");
-		zCoord = tagCompound.getInteger("warpdrive:zCoord");
-		orbInstance = new OrbInstance(tagCompound.getCompoundTag("warpdrive:orbInstance"));
-		gasColor = tagCompound.getInteger("warpdrive:gasColor");
+	public void readAdditional(@Nonnull final CompoundNBT tagCompound) {
+		xCoord = tagCompound.getInt("warpdrive:xCoord");
+		yCoord = tagCompound.getInt("warpdrive:yCoord");
+		zCoord = tagCompound.getInt("warpdrive:zCoord");
+		orbInstance = new OrbInstance(tagCompound.getCompound("warpdrive:orbInstance"));
+		gasColor = tagCompound.getInt("warpdrive:gasColor");
 		replace = tagCompound.getBoolean("warpdrive:replace");
 		
 		constructionFinalizer();
@@ -287,25 +309,17 @@ public final class EntitySphereGen extends Entity {
 	}
 	
 	@Override
-	public void writeEntityToNBT(final NBTTagCompound tagCompound) {
-		tagCompound.setInteger("warpdrive:xCoord", xCoord);
-		tagCompound.setInteger("warpdrive:yCoord", yCoord);
-		tagCompound.setInteger("warpdrive:zCoord", zCoord);
-		tagCompound.setTag("warpdrive:orbInstance", orbInstance.writeToNBT(new NBTTagCompound()));
-		tagCompound.setInteger("warpdrive:gasColor", gasColor);
-		tagCompound.setBoolean("warpdrive:replace", replace);
-	}
-	
-	// override to skip the block bounding override on client side
-	@Override
-	public void setPositionAndRotation(final double x, final double y, final double z, final float yaw, final float pitch) {
-		//	super.setPositionAndRotation(x, y, z, yaw, pitch);
-		this.setPosition(x, y, z);
-		this.setRotation(yaw, pitch);
+	public void writeAdditional(final CompoundNBT tagCompound) {
+		tagCompound.putInt("warpdrive:xCoord", xCoord);
+		tagCompound.putInt("warpdrive:yCoord", yCoord);
+		tagCompound.putInt("warpdrive:zCoord", zCoord);
+		tagCompound.put("warpdrive:orbInstance", orbInstance.write(new CompoundNBT()));
+		tagCompound.putInt("warpdrive:gasColor", gasColor);
+		tagCompound.putBoolean("warpdrive:replace", replace);
 	}
 	
 	@Override
-	public boolean shouldRenderInPass(final int pass) {
+	public boolean isInRangeToRenderDist(double distance) {
 		return false;
 	}
 }
