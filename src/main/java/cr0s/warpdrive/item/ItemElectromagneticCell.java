@@ -4,13 +4,17 @@ import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IParticleContainerItem;
 import cr0s.warpdrive.api.Particle;
+import cr0s.warpdrive.api.ParticleRegistry;
 import cr0s.warpdrive.api.ParticleStack;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.EnumTier;
 import cr0s.warpdrive.data.Vector3;
+import cr0s.warpdrive.event.ModelHandler;
+import cr0s.warpdrive.render.BakedModelElectromagneticCell;
 
 import java.util.List;
+import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -18,11 +22,12 @@ import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.block.Blocks;
 import net.minecraft.item.IItemPropertyGetter;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -33,16 +38,14 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class ItemElectromagneticCell extends ItemAbstractBase implements IParticleContainerItem {
 	
-	public ItemElectromagneticCell(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nullable final Particle particle) {
+	public ItemElectromagneticCell(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(new Item.Properties()
 				      .group(WarpDrive.itemGroupMain)
 				      .maxDamage(0)
-				      .containerItem(Item.getItemFromBlock(Blocks.FIRE))
+				      .containerItem(WarpDrive.itemElectromagneticCell[enumTier.getIndex()]) // just for reference, it's null at this point...
 				      .maxStackSize(1),
 		      registryName,
 		      enumTier );
-		
-		setTranslationKey("warpdrive.atomic.electromagnetic_cell." + enumTier.getName());
 		
 		addPropertyOverride(new ResourceLocation(WarpDrive.MODID, "fill"), new IItemPropertyGetter() {
 			@OnlyIn(Dist.CLIENT)
@@ -57,29 +60,67 @@ public class ItemElectromagneticCell extends ItemAbstractBase implements IPartic
 		});
 	}
 	
-	@Nonnull
 	@OnlyIn(Dist.CLIENT)
 	@Override
-	public ModelResourceLocation getModelResourceLocation(final ItemStack itemStack) {
-		String variant = "empty";
-		final ParticleStack particleStack = getParticleStack(itemStack);
-		if (particleStack != null) {
-			variant = particleStack.getTranslationKey().replace("warpdrive.particle.", "");
+	public void modelInitialisation() {
+		super.modelInitialisation();
+		
+		final ResourceLocation registryName = getRegistryName();
+		assert registryName != null;
+		
+		// register particle variants
+		final Map<String, Particle> particles = ParticleRegistry.getRegisteredParticles();
+		for(final Particle particle : particles.values()) {
+			final String variant = particle.getTranslationKey().replace("warpdrive.particle.", "");
+			final ResourceLocation resourceLocationModel = new ResourceLocation(registryName.getNamespace(), registryName.getPath() + "-" + variant);
+			ModelHandler.registerSpecialModel(new ModelResourceLocation(resourceLocationModel, "inventory"));
 		}
-		ResourceLocation resourceLocation = getRegistryName();
-		assert resourceLocation != null;
-		resourceLocation = new ResourceLocation(resourceLocation.getNamespace(), resourceLocation.getPath() + "-" + variant);
-		return new ModelResourceLocation(resourceLocation, "inventory");
+		
+		// register (smart) baked model
+		ModelHandler.registerBakedModel(new ModelResourceLocation(registryName, "inventory"), BakedModelElectromagneticCell.class);
+	}
+	
+	@Override
+	public void fillItemGroup(@Nonnull final ItemGroup group, @Nonnull final NonNullList<ItemStack> items) {
+		super.fillItemGroup(group, items);
+		if (this.isInGroup(group)) {
+			// items.add(getItemStackNoCache(null, 0));
+			final int capacity10PC = WarpDriveConfig.ELECTROMAGNETIC_CELL_CAPACITY_BY_TIER[enumTier.getIndex()] / 10;
+			items.add(getItemStackNoCache(ParticleRegistry.ION, capacity10PC));
+			items.add(getItemStackNoCache(ParticleRegistry.ION, capacity10PC * 3));
+			items.add(getItemStackNoCache(ParticleRegistry.ION, capacity10PC * 5));
+			items.add(getItemStackNoCache(ParticleRegistry.ION, capacity10PC * 7));
+			items.add(getItemStackNoCache(ParticleRegistry.ION, capacity10PC * 9));
+			items.add(getItemStackNoCache(ParticleRegistry.ION, capacity10PC * 10));
+			items.add(getItemStackNoCache(ParticleRegistry.PROTON, capacity10PC));
+			items.add(getItemStackNoCache(ParticleRegistry.PROTON, capacity10PC * 3));
+			items.add(getItemStackNoCache(ParticleRegistry.PROTON, capacity10PC * 5));
+			items.add(getItemStackNoCache(ParticleRegistry.PROTON, capacity10PC * 7));
+			items.add(getItemStackNoCache(ParticleRegistry.PROTON, capacity10PC * 9));
+			items.add(getItemStackNoCache(ParticleRegistry.PROTON, capacity10PC * 10));
+			items.add(getItemStackNoCache(ParticleRegistry.ANTIMATTER, capacity10PC));
+			items.add(getItemStackNoCache(ParticleRegistry.ANTIMATTER, capacity10PC * 3));
+			items.add(getItemStackNoCache(ParticleRegistry.ANTIMATTER, capacity10PC * 5));
+			items.add(getItemStackNoCache(ParticleRegistry.ANTIMATTER, capacity10PC * 7));
+			items.add(getItemStackNoCache(ParticleRegistry.ANTIMATTER, capacity10PC * 9));
+			items.add(getItemStackNoCache(ParticleRegistry.ANTIMATTER, capacity10PC * 10));
+			items.add(getItemStackNoCache(ParticleRegistry.STRANGE_MATTER, capacity10PC));
+			items.add(getItemStackNoCache(ParticleRegistry.STRANGE_MATTER, capacity10PC * 3));
+			items.add(getItemStackNoCache(ParticleRegistry.STRANGE_MATTER, capacity10PC * 5));
+			items.add(getItemStackNoCache(ParticleRegistry.STRANGE_MATTER, capacity10PC * 7));
+			items.add(getItemStackNoCache(ParticleRegistry.STRANGE_MATTER, capacity10PC * 9));
+			items.add(getItemStackNoCache(ParticleRegistry.STRANGE_MATTER, capacity10PC * 10));
+		}
 	}
 	
 	@Nonnull
 	public static ItemStack getItemStackNoCache(@Nonnull final EnumTier enumTier, @Nullable final Particle particle, final int amount) {
-		return WarpDrive.itemElectromagneticCell[enumTier.getIndex()][0].getItemStackNoCache(particle, amount);
+		return WarpDrive.itemElectromagneticCell[enumTier.getIndex()].getItemStackNoCache(particle, amount);
 	}
 	
 	@Nonnull
 	public ItemStack getItemStackNoCache(@Nullable final Particle particle, final int amount) {
-		final ItemStack itemStack = new ItemStack(WarpDrive.itemElectromagneticCell[enumTier.getIndex()][0], 1);
+		final ItemStack itemStack = new ItemStack(WarpDrive.itemElectromagneticCell[enumTier.getIndex()], 1);
 		ParticleStack particleStack = null;
 		if ( particle != null
 		  && amount != 0 ) {

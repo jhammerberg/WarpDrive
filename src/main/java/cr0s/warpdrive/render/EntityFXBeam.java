@@ -146,15 +146,15 @@ public class EntityFXBeam extends Particle {
 		
 		final Tessellator tessellator = Tessellator.getInstance();
 		final BufferBuilder bufferbuilder = tessellator.getBuffer();
-		bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX_LIGHTMAP);
 		for (int t = 0; t < 3; t++) {
 			final float vMin = -1.0F + vOffset + t / 3.0F;
 			final float vMax = vMin + length * size;
 			RenderSystem.rotatef(60.0F, 0.0F, 1.0F, 0.0F);
-			vertexBuffer.pos(xMinEnd  , yMax, 0.0D).tex(uMax, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(xMinStart, 0.0D, 0.0D).tex(uMax, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(xMaxStart, 0.0D, 0.0D).tex(uMin, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(xMaxEnd  , yMax, 0.0D).tex(uMin, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+			bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX_LIGHTMAP);
+			vertexBuffer.pos(xMinEnd  , yMax, 0.0D).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(xMinStart, 0.0D, 0.0D).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(xMaxStart, 0.0D, 0.0D).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(xMaxEnd  , yMax, 0.0D).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
 			tessellator.draw();
 		}
 		
@@ -163,7 +163,6 @@ public class EntityFXBeam extends Particle {
 		RenderSystem.enableCull();
 		RenderSystem.popMatrix();
 		prevSize = size;
-		Minecraft.getInstance().getTextureManager().bindTexture(new ResourceLocation("textures/particle/particles.png"));
 	}
 	
 	@Override

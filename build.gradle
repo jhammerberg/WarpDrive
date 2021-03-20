@@ -37,9 +37,13 @@ configFile.withReader {
 }
 
 group = "cr0s.warpdrive" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-version = "${config.minecraft_version}-${config.mod_version}.${System.getenv("BUILD_NUMBER") ?: 'SNAPSHOT'}"
+def versionParts = "${config.mod_version}".split(/\./).collect { it.toInteger() }
+if (System.getenv().BUILD_NUMBER != null) {// override build number when on a build server
+    versionParts[3] = "${System.getenv().BUILD_NUMBER}"
+}
+version = "${config.minecraft_version}-${versionParts[0]}.${versionParts[1]}.${versionParts[2]}.${versionParts[3]}"
 archivesBaseName = "WarpDrive"
-config.protocol_version = config.mod_version.substring(0, config.mod_version.lastIndexOf("."))
+config.protocol_version = "${versionParts[0]}.${versionParts[1]}"
 
 // Enforce Java version explicitly so eclipse task generates correctly.
 sourceCompatibility = compileJava.sourceCompatibility = JavaVersion.VERSION_1_8
@@ -108,7 +112,7 @@ minecraft {
             // Recommended logging level for the console
             property 'forge.logging.console.level', 'debug'
             
-            args '--mod', 'warpdrive', '--all', '--output', file('src/generated/resources/')
+            args '--mod', 'warpdrive', '--all', '--output', file('src/generated/resources/'),  '--existing', file('src/main/resources/')
             
             mods {
                 warpdrive {
@@ -117,6 +121,10 @@ minecraft {
             }
         }
     }
+}
+
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
 }
 
 curseforge {
@@ -225,7 +233,7 @@ dependencies {
     compileOnly fg.deobf("GC-1.12-dev:GalacticraftCore-Dev:${config.Galacticraft_version}.${config.Galacticraft_build}")
     // compileOnly fg.deobf("com.builtbroken.icbm-classic:ICBM-classic:${config.ICBMclassic_version}")
     compileOnly fg.deobf(curse.resolve("icbm-classic", "${config.ICBMclassic_fileid}"))
-    compileOnly fg.deobf("li.cil.oc:OpenComputers:${config.OpenComputers_version}")
+    // compileOnly fg.deobf("li.cil.oc:OpenComputers:${config.OpenComputers_version}")
     compileOnly fg.deobf("vazkii.patchouli:Patchouli:${config.Patchouli_version}")
     compileOnly fg.deobf(curse.resolve("matteroverdrive", "${config.MatterOverdrive_fileid}")) // "${config.MatterOverdrive_version}"
 }
@@ -257,42 +265,42 @@ processResources {
 
 // build the storage space for each computer scripts
 task copyShipControllerCommons1(type: Copy) {
-    from 'src/main/resources/assets/warpdrive/lua.ComputerCraft/warpdriveShipController'
-    into('build/resources/main/assets/warpdrive/lua.ComputerCraft/warpdriveShipCore')
+    from 'src/main/resources/data/warpdrive/lua.computercraft/shipcontroller'
+    into('build/resources/main/assets/warpdrive/lua.computercraft/shipcore')
 }
 task copyShipControllerCommons2(type: Copy) {
-    from 'src/main/resources/assets/warpdrive/lua.OpenComputers/warpdriveShipController'
-    into('build/resources/main/assets/warpdrive/lua.OpenComputers/warpdriveShipCore')
+    from 'src/main/resources/data/warpdrive/lua.opencomputers/shipcontroller'
+    into('build/resources/main/assets/warpdrive/lua.opencomputers/shipcore')
 }
 
 task copyOpenComputersCommons1(type: Copy) {
-    from 'src/main/resources/assets/warpdrive/lua.OpenComputers/common'
-    into('build/resources/main/assets/warpdrive/lua.OpenComputers/warpdriveAccelerator')
+    from 'src/main/resources/data/warpdrive/lua.opencomputers/common'
+    into('build/resources/main/assets/warpdrive/lua.opencomputers/accelerator')
 }
 
 task copyOpenComputersCommons2(type: Copy) {
-    from 'src/main/resources/assets/warpdrive/lua.OpenComputers/common'
-    into('build/resources/main/assets/warpdrive/lua.OpenComputers/warpdriveEnanReactorCore')
+    from 'src/main/resources/data/warpdrive/lua.opencomputers/common'
+    into('build/resources/main/assets/warpdrive/lua.opencomputers/enanreactorcore')
 }
 
 task copyOpenComputersCommons3(type: Copy) {
-    from 'src/main/resources/assets/warpdrive/lua.OpenComputers/common'
-    into('build/resources/main/assets/warpdrive/lua.OpenComputers/warpdriveShipController')
+    from 'src/main/resources/data/warpdrive/lua.opencomputers/common'
+    into('build/resources/main/assets/warpdrive/lua.opencomputers/shipcontroller')
 }
 
 task copyOpenComputersCommons4(type: Copy) {
-    from 'src/main/resources/assets/warpdrive/lua.OpenComputers/common'
-    into('build/resources/main/assets/warpdrive/lua.OpenComputers/warpdriveShipCore')
+    from 'src/main/resources/data/warpdrive/lua.opencomputers/common'
+    into('build/resources/main/assets/warpdrive/lua.opencomputers/shipcore')
 }
 
 task copyOpenComputersCommons5(type: Copy) {
-    from 'src/main/resources/assets/warpdrive/lua.OpenComputers/common'
-    into('build/resources/main/assets/warpdrive/lua.OpenComputers/warpdriveTransporterCore')
+    from 'src/main/resources/data/warpdrive/lua.opencomputers/common'
+    into('build/resources/main/assets/warpdrive/lua.opencomputers/transportercore')
 }
 
 task copyOpenComputersCommons6(type: Copy) {
-    from 'src/main/resources/assets/warpdrive/lua.OpenComputers/common'
-    into('build/resources/main/assets/warpdrive/lua.OpenComputers/warpdriveWeaponController')
+    from 'src/main/resources/data/warpdrive/lua.opencomputers/common'
+    into('build/resources/main/assets/warpdrive/lua.opencomputers/weaponcontroller')
 }
 
 jar {
@@ -334,6 +342,43 @@ task signJar(type: SignJar, dependsOn: jar) {
 
 build.dependsOn signJar
 
+task apiJar(type: Jar) {
+    from(sourceSets.main.allJava)
+    from(sourceSets.main.output)
+    include 'cr0s/warpdrive/api/**'
+
+    classifier = 'api'
+    destinationDir = file 'output'
+}
+
+artifacts {
+    archives apiJar
+}
+
+task incrementMinorVersion {
+    doFirst {
+        def versionStep = '0.0.1.0'.split(/\./).collect { it.toInteger() }
+        def indexedVersionList = config.mod_version.split(/\./).toList().withIndex()
+        def updatedVersionList = indexedVersionList.collect{num, index -> num.toInteger() + versionStep[index]}
+        def updatedVersion = updatedVersionList.join(".")
+        String result = configFile.getText().replaceFirst("mod_version=$config.mod_version", "mod_version=$updatedVersion")
+        configFile.setText(result)
+        // note: the updated/saved version applies to the next build
+    }
+}
+
+task incrementBuildNumber {
+    doFirst {
+        def versionStep = '0.0.0.1'.split(/\./).collect { it.toInteger() }
+        def indexedVersionList = config.mod_version.split(/\./).toList().withIndex()
+        def updatedVersionList = indexedVersionList.collect{num, index -> num.toInteger() + versionStep[index]}
+        def updatedVersion = updatedVersionList.join(".")
+        String result = configFile.getText().replaceFirst("mod_version=$config.mod_version", "mod_version=$updatedVersion")
+        configFile.setText(result)
+        // note: the updated/saved version applies to the next build
+    }
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -346,3 +391,5 @@ publishing {
         }
     }
 }
+
+defaultTasks 'clean', 'runData', 'build', 'incrementMinorVersion', 'incrementBuildNumber', 'upload'

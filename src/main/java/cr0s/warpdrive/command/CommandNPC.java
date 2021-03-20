@@ -1,116 +1,135 @@
 package cr0s.warpdrive.command;
 
-import cr0s.warpdrive.Commons;
-import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.entity.EntityNPC;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.nbt.JsonToNBT;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.Commands;
+import net.minecraft.command.arguments.NBTCompoundTagArgument;
+import net.minecraft.command.arguments.Vec3Argument;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
 
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.common.thread.EffectiveSide;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.FloatArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-
-public class CommandNPC extends AbstractCommand {
+public class CommandNPC {
 	
-	@Nonnull
-	@Override
-	public String getName() {
-		return "wnpc";
+	public static void register(@Nonnull final CommandDispatcher<CommandSource> dispatcher) {
+		dispatcher.register(
+				Commands.literal("wnpc")
+				        .requires(commandSource -> commandSource.hasPermissionLevel(2)
+				                                && commandSource.getEntity() != null )
+				        .then(Commands.argument("position", Vec3Argument.vec3())
+				                      .then(Commands.argument("name", StringArgumentType.string())
+				                                    .then(Commands.argument("scale", FloatArgumentType.floatArg(0.001F, 10.0F))
+				                                                  .then(Commands.argument("texture", StringArgumentType.string())
+				                                                                .then(Commands.argument("nbt", NBTCompoundTagArgument.nbt())
+				                                                                              .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                                                                                    Vec3Argument.getVec3(commandContext, "position"),
+				                                                                                                                    StringArgumentType.getString(commandContext, "name"),
+				                                                                                                                    FloatArgumentType.getFloat(commandContext, "scale"),
+				                                                                                                                    StringArgumentType.getString(commandContext, "texture"),
+				                                                                                                                    NBTCompoundTagArgument.getNbt(commandContext, "nbt") ))
+				                                                                     )
+				                                                                .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                                                                      Vec3Argument.getVec3(commandContext, "position"),
+				                                                                                                      StringArgumentType.getString(commandContext, "name"),
+				                                                                                                      FloatArgumentType.getFloat(commandContext, "scale"),
+				                                                                                                      StringArgumentType.getString(commandContext, "texture"),
+				                                                                                                      new CompoundNBT() ))
+				                                                       )
+				                                                  .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                                                        Vec3Argument.getVec3(commandContext, "position"),
+				                                                                                        StringArgumentType.getString(commandContext, "name"),
+				                                                                                        FloatArgumentType.getFloat(commandContext, "scale"),
+				                                                                                        "",
+				                                                                                        new CompoundNBT() ))
+				                                         )
+				                                    .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                                          Vec3Argument.getVec3(commandContext, "position"),
+				                                                                          StringArgumentType.getString(commandContext, "name"),
+				                                                                          1.0F,
+				                                                                          "",
+				                                                                          new CompoundNBT() ))
+				                           )
+				             )
+				        .then(Commands.argument("name", StringArgumentType.string())
+				                      .then(Commands.argument("scale", FloatArgumentType.floatArg(0.001F, 10.0F))
+				                                    .then(Commands.argument("texture", StringArgumentType.string())
+				                                                  .then(Commands.argument("nbt", NBTCompoundTagArgument.nbt())
+				                                                                .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                                                                      commandContext.getSource().getPos(),
+				                                                                                                      StringArgumentType.getString(commandContext, "name"),
+				                                                                                                      FloatArgumentType.getFloat(commandContext, "scale"),
+				                                                                                                      StringArgumentType.getString(commandContext, "texture"),
+				                                                                                                      NBTCompoundTagArgument.getNbt(commandContext, "nbt") ))
+				                                                       )
+				                                                  .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                                                        commandContext.getSource().getPos(),
+				                                                                                        StringArgumentType.getString(commandContext, "name"),
+				                                                                                        FloatArgumentType.getFloat(commandContext, "scale"),
+				                                                                                        StringArgumentType.getString(commandContext, "texture"),
+				                                                                                        new CompoundNBT() ))
+				                                         )
+				                                    .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                                          commandContext.getSource().getPos(),
+				                                                                          StringArgumentType.getString(commandContext, "name"),
+				                                                                          FloatArgumentType.getFloat(commandContext, "scale"),
+				                                                                          "",
+				                                                                          new CompoundNBT() ))
+				                           )
+				                      .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                            commandContext.getSource().getPos(),
+				                                                            StringArgumentType.getString(commandContext, "name"),
+				                                                            1.0F,
+				                                                            "",
+				                                                            new CompoundNBT() ))
+				             )
+				        
+				        .then(Commands.literal("help")
+				                      .executes((commandContext) -> help(commandContext.getSource(),
+				                                                         commandContext.getRootNode().getName() ))
+				             )
+				        .executes((commandContext) -> help(commandContext.getSource(),
+				                                           commandContext.getRootNode().getName() )
+				                 )
+		                   );
 	}
 	
-	@Override
-	public int getRequiredPermissionLevel() {
-		return 2;
+	private static int help(@Nonnull final CommandSource commandSource, @Nonnull final String name) {
+		commandSource.sendFeedback(new StringTextComponent( "/" + name + " <name> (<scale>) (<texture>) ({<nbt>})"
+		                                                  + "\nName may contain space using _ character" ), false);
+		return 0;
 	}
 	
-	@Nonnull
-	@Override
-	public String getUsage(@Nonnull final ICommandSource commandSource) {
-		return String.format("/%s <name> (<scale>) (<texture>) ({<nbt>})\nName may contain space using _ character",
-		                     getName() );
-	}
-	
-	@Override
-	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSource commandSource, @Nonnull final String[] args) {
-		final World world = commandSource.getEntityWorld();
-		final BlockPos blockPos = commandSource.getPosition();
-		
-		//noinspection ConstantConditions
-		if (world == null || blockPos == null) {
-			Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("warpdrive.command.invalid_location").setStyle(Commons.getStyleWarning())));
-			return;
-		}
-		
-		if (args.length < 1 || args.length > 4) {
-			Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
-			return;
-		}
-		
-		if (EffectiveSide.get() != LogicalSide.SERVER) {
-			return;
-		}
-		
-		// get default parameter values
-		final String name = args[0].replace("_", " ");
-		float scale = 1.0F;
-		String texturePath = "";
-		String stringNBT = "";
-		int indexArg = 1;
-		
-		// parse arguments
-		if (args.length > indexArg) {
-			try {
-				scale = Commons.toFloat(args[indexArg]);
-				indexArg++;
-			} catch (final NumberFormatException exception) {
-				// skip to next argument
-			}
-		}
-		
-		if (args.length > indexArg) {
-			texturePath = args[indexArg];
-			indexArg++;
-		}
-		
-		if (args.length > indexArg) {
-			stringNBT = args[indexArg];
-			indexArg++;
-		}
-		
-		if (args.length > indexArg) {
-			Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
-			return;
-		}
+	private static int execute(@Nonnull final CommandSource commandSource,
+	                           @Nonnull final Vec3d vec3d,
+	                           @Nonnull final String name,
+	                           final float scale,
+	                           @Nonnull final String texturePath,
+	                           @Nonnull final CompoundNBT compoundNBT) {
+		final World world = commandSource.getWorld();
 		
 		// spawn the entity
-		final EntityNPC entityNPC = new EntityNPC(world);
-		entityNPC.setPosition(blockPos.getX() + 0.5D, blockPos.getY() + 0.1D, blockPos.getZ() + 0.5D);
-		entityNPC.setCustomName(name);
+		final EntityNPC entityNPC = new EntityNPC(EntityNPC.TYPE, world);
+		entityNPC.setPosition(vec3d.x, vec3d.y, vec3d.z);
+		entityNPC.setCustomName(new StringTextComponent(name.replace("_", " ")));
 		entityNPC.setSizeScale(scale);
 		entityNPC.setTextureString(texturePath);
-		if (!stringNBT.isEmpty()) {
-			final CompoundNBT tagCompound;
-			try {
-				tagCompound = JsonToNBT.getTagFromJson(stringNBT);
-			} catch (final CommandSyntaxException exception) {
-				WarpDrive.logger.error(exception.getMessage());
-				Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
-				return;
-			}
-			entityNPC.deserializeNBT(tagCompound);
+		if (!compoundNBT.isEmpty()) {
+			entityNPC.deserializeNBT(compoundNBT);
 		}
 		world.addEntity(entityNPC);
-		Commons.addChatMessage(commandSource, getPrefix().appendSibling(new TranslationTextComponent("Added NPC %1$s",
-		                                                                                             entityNPC )));
+		commandSource.sendFeedback(new TranslationTextComponent("Added NPC %1$s",
+		                                                        entityNPC ), true);
+		
+		return 1;
 	}
 	
 }

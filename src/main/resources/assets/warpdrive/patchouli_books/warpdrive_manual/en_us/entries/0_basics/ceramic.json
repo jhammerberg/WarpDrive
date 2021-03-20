@@ -5,7 +5,7 @@
 	"pages": [
 		{
 			"type": "text",
-			"text": "$(item)Ceramic$() is a solid material praised for its extreme heat resistance.$(br2)This is a vital component to survive atmospheric re-entry in a $(l:0_basics/warp_armor)Space suits$() or $(l:5_combat/hull)ship$()."
+			"text": "$(item)Ceramic$() is a solid material praised for its extreme heat resistance.$(br2)This is a vital component to survive atmospheric re-entry in a $(l:0_basics/armor)Space suits$() or $(l:5_combat/hull)ship$()."
 		},
 		{
 			"type": "crafting",

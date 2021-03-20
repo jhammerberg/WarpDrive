@@ -1,57 +1,61 @@
 package cr0s.warpdrive.command;
 
-import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.Commons;
 
 import javax.annotation.Nonnull;
-import java.util.List;
+import java.util.Collection;
+import java.util.Collections;
 
-import net.minecraft.command.ICommandSender;
-import net.minecraft.command.ICommandSource;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.command.Commands;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.arguments.EntityArgument;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.text.StringTextComponent;
 
-public class CommandInvisible extends AbstractCommand {
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.tree.CommandNode;
+
+public class CommandInvisible {
 	
-	@Nonnull
-	@Override
-	public String getName() {
-		return "invisible";
+	public static void register(@Nonnull final CommandDispatcher<CommandSource> dispatcher) {
+		final CommandNode<CommandSource> commandNode = dispatcher.register(
+				Commands.literal("invisible")
+				        .requires(commandSource -> commandSource.hasPermissionLevel(4))
+				        .then(Commands.argument("players", EntityArgument.players())
+				                      .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                            EntityArgument.getPlayers(commandContext, "players") ))
+				             )
+				
+				        .then(Commands.literal("help")
+				                      .executes((commandContext) -> help(commandContext.getSource(),
+				                                                         commandContext.getRootNode().getName() ))
+				             )
+				        .executes((commandContext) -> execute(commandContext.getSource(),
+				                                              Collections.singleton(commandContext.getSource().asPlayer()) ))
+		                                                                  );
+		dispatcher.register(Commands.literal("bed").redirect(commandNode));
 	}
 	
-	@Override
-	public int getRequiredPermissionLevel() {
-		return 4;
+	private static int help(@Nonnull final CommandSource commandSource, @Nonnull final String name) {
+		commandSource.sendFeedback(new StringTextComponent("/" + name + " (<playerName>)\n"
+		                                                   + "playerName: name of the players to toggle invisibility from."), false);
+		return 0;
 	}
 	
-	@Nonnull
-	@Override
-	public String getUsage(@Nonnull final ICommandSource commandSource) {
-		return "/invisible [player]";
-	}
-	
-	@Override
-	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSource commandSource, @Nonnull final String[] args) {
-		PlayerEntity player = commandSource instanceof PlayerEntity ? (PlayerEntity) commandSource : null;
-		
-		if (args.length >= 1) {
-			WarpDrive.logger.info(String.format("/invisible: setting invisible to %s", args[0]));
-			
-			// get an online player by name
-			final List<ServerPlayerEntity> entityPlayers = server.getPlayerList().getPlayers();
-			for (final ServerPlayerEntity entityPlayer : entityPlayers) {
-				if ( entityPlayer.getName().getUnformattedComponentText().equalsIgnoreCase(args[0])
-				  || entityPlayer.getDisplayName().getUnformattedComponentText().equalsIgnoreCase(args[0]) ) {
-					player = entityPlayer;
-				}
+	private static int execute(@Nonnull final CommandSource commandSource,
+	                           @Nonnull final Collection<ServerPlayerEntity> serverPlayerEntities) {
+		for (final ServerPlayerEntity serverPlayerEntity : serverPlayerEntities) {
+			commandSource.sendFeedback(new StringTextComponent(String.format("Toggling invisibility for %s",
+			                                                                 serverPlayerEntity.getDisplayName().getFormattedText() )), true);
+			final boolean wasInvisible = serverPlayerEntity.isInvisible();
+			serverPlayerEntity.setInvisible(!wasInvisible);
+			final boolean isInvisible = serverPlayerEntity.isInvisible();
+			if (isInvisible) {
+				Commons.addChatMessage(serverPlayerEntity, new StringTextComponent("You're now invisible"));
+			} else {
+				Commons.addChatMessage(serverPlayerEntity, new StringTextComponent("You're now visible"));
 			}
 		}
-		
-		if (player == null) {
-			return;
-		}
-		
-		// Toggle invisibility
-		player.setInvisible(!player.isInvisible());
+		return serverPlayerEntities.size();
 	}
 }

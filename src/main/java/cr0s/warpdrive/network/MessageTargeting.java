@@ -1,7 +1,7 @@
 package cr0s.warpdrive.network;
 
 import cr0s.warpdrive.WarpDrive;
-import cr0s.warpdrive.block.TileEntityLaser;
+import cr0s.warpdrive.block.weapon.TileEntityLaser;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.network.PacketHandler.IMessage;
 
@@ -36,7 +36,7 @@ public class MessageTargeting implements IMessage {
 	}
 
 	@Override
-	public void encode(@Nonnull final PacketBuffer buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		x = buffer.readInt();
 		y = buffer.readInt();
 		z = buffer.readInt();
@@ -45,7 +45,7 @@ public class MessageTargeting implements IMessage {
 	}
 
 	@Override
-	public void decode(@Nonnull final PacketBuffer buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		buffer.writeInt(x);
 		buffer.writeInt(y);
 		buffer.writeInt(z);

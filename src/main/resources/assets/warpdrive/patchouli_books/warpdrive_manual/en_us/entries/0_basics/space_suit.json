@@ -1,6 +1,6 @@
 {
 	"name": "Space suit",
-	"icon": "warpdrive:warp_armor.advanced.chestplate",
+	"icon": "warpdrive:armor.advanced.chestplate",
 	"category": "0_basics",
 	"pages": [
 		{
@@ -13,43 +13,43 @@
 		},
 		{
 			"type": "crafting",
-			"recipe": "warpdrive:warp_armor.basic.helmet@0",
-			"recipe2": "warpdrive:warp_armor.basic.chestplate@0",
+			"recipe": "warpdrive:armor.basic.helmet@0",
+			"recipe2": "warpdrive:armor.basic.chestplate@0",
 			"title": "Emergency armor",
 			"text": ""
 		},
 		{
 			"type": "crafting",
-			"recipe": "warpdrive:warp_armor.basic.leggings@0",
-			"recipe2": "warpdrive:warp_armor.basic.boots@0",
+			"recipe": "warpdrive:armor.basic.leggings@0",
+			"recipe2": "warpdrive:armor.basic.boots@0",
 			"title": " ",
 			"text": ""
 		},
 		{
 			"type": "crafting",
-			"recipe": "warpdrive:warp_armor.advanced.helmet@0",
-			"recipe2": "warpdrive:warp_armor.advanced.chestplate@0",
+			"recipe": "warpdrive:armor.advanced.helmet@0",
+			"recipe2": "warpdrive:armor.advanced.chestplate@0",
 			"title": "Re-entry armor",
 			"text": ""
 		},
 		{
 			"type": "crafting",
-			"recipe": "warpdrive:warp_armor.advanced.leggings@0",
-			"recipe2": "warpdrive:warp_armor.advanced.boots@0",
+			"recipe": "warpdrive:armor.advanced.leggings@0",
+			"recipe2": "warpdrive:armor.advanced.boots@0",
 			"title": " ",
 			"text": ""
 		},
 		{
 			"type": "crafting",
-			"recipe": "warpdrive:warp_armor.superior.helmet@0",
-			"recipe2": "warpdrive:warp_armor.superior.chestplate@0",
+			"recipe": "warpdrive:armor.superior.helmet@0",
+			"recipe2": "warpdrive:armor.superior.chestplate@0",
 			"title": "Warp armor",
 			"text": ""
 		},
 		{
 			"type": "crafting",
-			"recipe": "warpdrive:warp_armor.superior.leggings@0",
-			"recipe2": "warpdrive:warp_armor.superior.boots@0",
+			"recipe": "warpdrive:armor.superior.leggings@0",
+			"recipe2": "warpdrive:armor.superior.boots@0",
 			"title": " ",
 			"text": ""
 		},

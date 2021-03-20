@@ -27,13 +27,11 @@ public class ItemAirTank extends ItemAbstractBase implements IAirContainerItem {
 	public ItemAirTank(@Nonnull final String registryName, @Nonnull final EnumAirTankTier enumAirTankTier) {
 		super(new Item.Properties()
 				      .group(WarpDrive.itemGroupMain)
-				      .maxDamage(WarpDriveConfig.BREATHING_AIR_TANK_CAPACITY_BY_TIER[enumAirTankTier.getIndex()])
-				      .maxStackSize(1),
+				      .maxDamage(WarpDriveConfig.BREATHING_AIR_TANK_CAPACITY_BY_TIER[enumAirTankTier.getIndex()]),
 		      registryName,
 		      enumAirTankTier.getTier() );
 		
 		this.enumAirTankTier = enumAirTankTier;
-		setTranslationKey("warpdrive.breathing.air_tank." + enumAirTankTier.getName());
 	}
 	
 	@Override

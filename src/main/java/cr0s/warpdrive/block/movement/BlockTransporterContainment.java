@@ -24,8 +24,8 @@ public class BlockTransporterContainment extends BlockAbstractBase {
 	@SuppressWarnings("deprecation")
 	@Nonnull
 	@Override
-	public VoxelShape getCollisionShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
-	                                    @Nonnull final ISelectionContext selectionContext) {
+	public VoxelShape getShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
+	                           @Nonnull final ISelectionContext selectionContext) {
 		return VS_HALF_DOWN;
 	}
 }

@@ -1,0 +1,71 @@
+{
+	"multipart": [
+		{ "when": { "facing": "up"    }, "apply": { "model": "warpdrive:block/force_field/projector.advanced.half", "x": 270 } },
+		{ "when": { "facing": "down"  }, "apply": { "model": "warpdrive:block/force_field/projector.advanced.half", "x":  90 } },
+		{ "when": { "facing": "north" }, "apply": { "model": "warpdrive:block/force_field/projector.advanced.half"           } },
+		{ "when": { "facing": "south" }, "apply": { "model": "warpdrive:block/force_field/projector.advanced.half", "y": 180 } },
+		{ "when": { "facing": "west"  }, "apply": { "model": "warpdrive:block/force_field/projector.advanced.half", "y": 270 } },
+		{ "when": { "facing": "east"  }, "apply": { "model": "warpdrive:block/force_field/projector.advanced.half", "y":  90 } },
+		
+		
+		
+		{ "when": { "facing": "up|down"    , "active": "false" }, "apply": { "model": "warpdrive:block/force_field/projector_coil-off", "x": 270 } },
+		{ "when": { "facing": "north|south", "active": "false" }, "apply": { "model": "warpdrive:block/force_field/projector_coil-off"           } },
+		{ "when": { "facing": "west|east"  , "active": "false" }, "apply": { "model": "warpdrive:block/force_field/projector_coil-off", "y": 270 } },
+		
+		{ "when": { "facing": "up|down"    , "active": "true"  }, "apply": { "model": "warpdrive:block/force_field/projector_coil-on" , "x": 270 } },
+		{ "when": { "facing": "north|south", "active": "true"  }, "apply": { "model": "warpdrive:block/force_field/projector_coil-on"            } },
+		{ "when": { "facing": "west|east"  , "active": "true"  }, "apply": { "model": "warpdrive:block/force_field/projector_coil-on" , "y": 270 } },
+		
+		
+		
+		{ "when": { "facing": "up"   , "shape": "cube"       }, "apply": { "model": "warpdrive:block/force_field/shape-cube", "x": 270 } },
+		{ "when": { "facing": "down" , "shape": "cube"       }, "apply": { "model": "warpdrive:block/force_field/shape-cube", "x":  90 } },
+		{ "when": { "facing": "north", "shape": "cube"       }, "apply": { "model": "warpdrive:block/force_field/shape-cube"           } },
+		{ "when": { "facing": "south", "shape": "cube"       }, "apply": { "model": "warpdrive:block/force_field/shape-cube", "y": 180 } },
+		{ "when": { "facing": "west" , "shape": "cube"       }, "apply": { "model": "warpdrive:block/force_field/shape-cube", "y": 270 } },
+		{ "when": { "facing": "east" , "shape": "cube"       }, "apply": { "model": "warpdrive:block/force_field/shape-cube", "y":  90 } },
+		
+		{ "when": { "facing": "up"   , "shape": "cylinder_h" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_h", "x": 270 } },
+		{ "when": { "facing": "down" , "shape": "cylinder_h" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_h", "x":  90 } },
+		{ "when": { "facing": "north", "shape": "cylinder_h" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_h"           } },
+		{ "when": { "facing": "south", "shape": "cylinder_h" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_h", "y": 180 } },
+		{ "when": { "facing": "west" , "shape": "cylinder_h" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_h", "y": 270 } },
+		{ "when": { "facing": "east" , "shape": "cylinder_h" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_h", "y":  90 } },
+		
+		{ "when": { "facing": "up"   , "shape": "cylinder_v" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_v", "x": 270 } },
+		{ "when": { "facing": "down" , "shape": "cylinder_v" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_v", "x":  90 } },
+		{ "when": { "facing": "north", "shape": "cylinder_v" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_v"           } },
+		{ "when": { "facing": "south", "shape": "cylinder_v" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_v", "y": 180 } },
+		{ "when": { "facing": "west" , "shape": "cylinder_v" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_v", "y": 270 } },
+		{ "when": { "facing": "east" , "shape": "cylinder_v" }, "apply": { "model": "warpdrive:block/force_field/shape-cylinder_v", "y":  90 } },
+		
+		{ "when": { "facing": "up"   , "shape": "plane"      }, "apply": { "model": "warpdrive:block/force_field/shape-plane", "x": 270 } },
+		{ "when": { "facing": "down" , "shape": "plane"      }, "apply": { "model": "warpdrive:block/force_field/shape-plane", "x":  90 } },
+		{ "when": { "facing": "north", "shape": "plane"      }, "apply": { "model": "warpdrive:block/force_field/shape-plane"           } },
+		{ "when": { "facing": "south", "shape": "plane"      }, "apply": { "model": "warpdrive:block/force_field/shape-plane", "y": 180 } },
+		{ "when": { "facing": "west" , "shape": "plane"      }, "apply": { "model": "warpdrive:block/force_field/shape-plane", "y": 270 } },
+		{ "when": { "facing": "east" , "shape": "plane"      }, "apply": { "model": "warpdrive:block/force_field/shape-plane", "y":  90 } },
+		
+		{ "when": { "facing": "up"   , "shape": "sphere"     }, "apply": { "model": "warpdrive:block/force_field/shape-sphere", "x": 270 } },
+		{ "when": { "facing": "down" , "shape": "sphere"     }, "apply": { "model": "warpdrive:block/force_field/shape-sphere", "x":  90 } },
+		{ "when": { "facing": "north", "shape": "sphere"     }, "apply": { "model": "warpdrive:block/force_field/shape-sphere"           } },
+		{ "when": { "facing": "south", "shape": "sphere"     }, "apply": { "model": "warpdrive:block/force_field/shape-sphere", "y": 180 } },
+		{ "when": { "facing": "west" , "shape": "sphere"     }, "apply": { "model": "warpdrive:block/force_field/shape-sphere", "y": 270 } },
+		{ "when": { "facing": "east" , "shape": "sphere"     }, "apply": { "model": "warpdrive:block/force_field/shape-sphere", "y":  90 } },
+		
+		{ "when": { "facing": "up"   , "shape": "tube"       }, "apply": { "model": "warpdrive:block/force_field/shape-tube", "x": 270 } },
+		{ "when": { "facing": "down" , "shape": "tube"       }, "apply": { "model": "warpdrive:block/force_field/shape-tube", "x":  90 } },
+		{ "when": { "facing": "north", "shape": "tube"       }, "apply": { "model": "warpdrive:block/force_field/shape-tube"           } },
+		{ "when": { "facing": "south", "shape": "tube"       }, "apply": { "model": "warpdrive:block/force_field/shape-tube", "y": 180 } },
+		{ "when": { "facing": "west" , "shape": "tube"       }, "apply": { "model": "warpdrive:block/force_field/shape-tube", "y": 270 } },
+		{ "when": { "facing": "east" , "shape": "tube"       }, "apply": { "model": "warpdrive:block/force_field/shape-tube", "y":  90 } },
+		
+		{ "when": { "facing": "up"   , "shape": "tunnel"     }, "apply": { "model": "warpdrive:block/force_field/shape-tunnel", "x": 270 } },
+		{ "when": { "facing": "down" , "shape": "tunnel"     }, "apply": { "model": "warpdrive:block/force_field/shape-tunnel", "x":  90 } },
+		{ "when": { "facing": "north", "shape": "tunnel"     }, "apply": { "model": "warpdrive:block/force_field/shape-tunnel"           } },
+		{ "when": { "facing": "south", "shape": "tunnel"     }, "apply": { "model": "warpdrive:block/force_field/shape-tunnel", "y": 180 } },
+		{ "when": { "facing": "west" , "shape": "tunnel"     }, "apply": { "model": "warpdrive:block/force_field/shape-tunnel", "y": 270 } },
+		{ "when": { "facing": "east" , "shape": "tunnel"     }, "apply": { "model": "warpdrive:block/force_field/shape-tunnel", "y":  90 } }
+	]
+}

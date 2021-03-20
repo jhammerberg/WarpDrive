@@ -18,12 +18,12 @@ public class MessageClientUnseating implements IMessage {
 	}
 	
 	@Override
-	public void encode(@Nonnull final PacketBuffer buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		// no operation
 	}
 	
 	@Override
-	public void decode(@Nonnull final PacketBuffer buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		// no operation
 	}
 	

@@ -45,13 +45,13 @@ public class ParticleRegistry {
 	
 	public static boolean registerParticle(@Nonnull final Particle particle) {
 		if (particles.containsKey(particle.getRegistryName())) {
-			LogManager.getLogger().error(String.format("Mod %s FAILED to register particle %s: it is already registered!",
+			LogManager.getLogger("WarpDriveParticleRegistry").error(String.format("Mod %s FAILED to register particle %s: it is already registered!",
 			                                           getActiveModId(), particle.getRegistryName() ));
 			return false;
 		}
 		particles.put(particle.getRegistryName(), particle);
 		
-		LogManager.getLogger().info(String.format("Mod %s has registered particle %s",
+		LogManager.getLogger("WarpDriveParticleRegistry").info(String.format("Mod %s has registered particle %s",
 		                                          getActiveModId(), particle.getRegistryName() ));
 		MinecraftForge.EVENT_BUS.post(new ParticleRegisterEvent(particle.getRegistryName()));
 		return true;

@@ -1,6 +1,7 @@
 package cr0s.warpdrive.block.detection;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.block.TileEntityAbstractMachine;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -21,14 +22,11 @@ import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 
 public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
-	
-	public static TileEntityType<TileEntityBiometricScanner> TYPE;
 	
 	// persistent properties
 	private UUID uuidLastPlayer = null;
@@ -39,8 +37,8 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 	private AxisAlignedBB aabbRange = null;
 	private int tickScanning = -1; // < 0 when IDLE, >= 0 when SCANNING
 	
-	public TileEntityBiometricScanner() {
-		super(TYPE);
+	public TileEntityBiometricScanner(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveBiometricScanner";
 		addMethods(new String[] {
@@ -148,7 +146,7 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 		}
 		
 		uuidLastPlayer = entityPlayer.getUniqueID();
-		nameLastPlayer = entityPlayer.getName().getUnformattedComponentText();
+		nameLastPlayer = entityPlayer.getName().getString();
 		tickScanning = WarpDriveConfig.BIOMETRIC_SCANNER_DURATION_TICKS;
 		textReason.append(Commons.getStyleCorrect(), "warpdrive.biometric_scanner.start_scanning.started");
 		return true;
@@ -204,7 +202,7 @@ public class TileEntityBiometricScanner extends TileEntityAbstractMachine {
 	@Override
 	public WarpDriveText getStatus() {
 		final WarpDriveText textScanStatus = getScanStatus();
-		if (textScanStatus.getUnformattedComponentText().isEmpty()) {
+		if (textScanStatus.isEmpty()) {
 			return super.getStatus();
 		} else {
 			return super.getStatus()

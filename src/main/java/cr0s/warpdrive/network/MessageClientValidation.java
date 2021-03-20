@@ -25,14 +25,14 @@ public class MessageClientValidation implements IMessage {
 	}
 	
 	@Override
-	public void encode(@Nonnull final PacketBuffer buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		final int size = buffer.readInt();
 		mapClass = buffer.toString(buffer.readerIndex(), size, StandardCharsets.UTF_8);
 		buffer.readerIndex(buffer.readerIndex() + size);
 	}
 	
 	@Override
-	public void decode(@Nonnull final PacketBuffer buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		final String mapClassFull = ClassTransformer.getClientValidation();
 		final String mapClassTruncated = mapClassFull.substring(0, Math.min(32700, mapClassFull.length()));
 		final byte[] bytesString = mapClassTruncated.getBytes(StandardCharsets.UTF_8);
@@ -66,10 +66,10 @@ public class MessageClientValidation implements IMessage {
 		assert context.getSender() != null;
 		if (WarpDrive.isDev) {
 			WarpDrive.logger.info(String.format("Received client validation packet from %s",
-			                                    context.getSender().getName()));
+			                                    context.getSender().getName().getString() ));
 		}
 		
-		handle(context.getSender().getName().getUnformattedComponentText());
+		handle(context.getSender().getName().getString());
         
 		return null;	// no response
 	}

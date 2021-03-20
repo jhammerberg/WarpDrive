@@ -39,9 +39,6 @@ import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ConcurrentModificationException;
@@ -88,14 +85,7 @@ public abstract class BlockAbstractContainer extends ContainerBlock implements I
 	@Nullable
 	@Override
 	public TileEntity createNewTileEntity(@Nonnull final IBlockReader blockReader) {
-		assert false;
-		return null;
-	}
-	
-	@OnlyIn(Dist.CLIENT)
-	@Override
-	public void modelInitialisation() {
-		// no operation
+		return TileEntityAbstractBase.createNewTileEntity(this);
 	}
 	
 	@SuppressWarnings("deprecation")

@@ -36,12 +36,12 @@ public class MessageClientSync implements IMessage {
 	}
 	
 	@Override
-	public void encode(@Nonnull final PacketBuffer buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		tagCompound = buffer.readCompoundTag();
 	}
 	
 	@Override
-	public void decode(@Nonnull final PacketBuffer buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		buffer.writeCompoundTag(tagCompound);
 	}
 	

@@ -15,6 +15,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BlockModelShapes;
 import net.minecraft.client.renderer.model.BakedQuad;
 import net.minecraft.client.renderer.model.IBakedModel;
+import net.minecraft.client.renderer.model.ItemOverrideList;
 import net.minecraft.util.Direction;
 
 import net.minecraftforge.client.model.data.IModelData;
@@ -22,6 +23,12 @@ import net.minecraftforge.client.model.data.IModelData;
 public class BakedModelCamouflage extends BakedModelAbstractBase {
 	
 	public BakedModelCamouflage() {
+	}
+	
+	@Nonnull
+	@Override
+	public ItemOverrideList getOverrides() {
+		return itemBlockOverrideList;
 	}
 	
 	@Nonnull

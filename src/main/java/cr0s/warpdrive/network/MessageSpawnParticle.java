@@ -56,7 +56,7 @@ public class MessageSpawnParticle implements IMessage {
 	}
 	
 	@Override
-	public void encode(@Nonnull final PacketBuffer buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		final int typeSize = buffer.readByte();
 		type = buffer.toString(buffer.readerIndex(), typeSize, StandardCharsets.US_ASCII);
 		buffer.skipBytes(typeSize);
@@ -82,7 +82,7 @@ public class MessageSpawnParticle implements IMessage {
 	}
 	
 	@Override
-	public void decode(@Nonnull final PacketBuffer buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		buffer.writeByte(type.length());
 		buffer.writeBytes(type.getBytes(StandardCharsets.US_ASCII), 0, type.length());
 		buffer.writeByte(quantity);

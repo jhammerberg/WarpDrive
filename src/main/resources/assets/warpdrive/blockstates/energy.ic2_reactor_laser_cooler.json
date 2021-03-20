@@ -1,0 +1,125 @@
+{
+	"forge_marker": 1,
+	"variants": {
+		"normal": [{}],
+		"inventory": { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-valid",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid"
+			} },
+		
+		"active=false,facing=down" : { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-valid",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid"
+			} },
+		"active=false,facing=up"   : { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-valid",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid"
+			} },
+		"active=false,facing=north": { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-valid",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid"
+			} },
+		"active=false,facing=south": { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-valid",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid"
+			} },
+		"active=false,facing=west" : { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-valid",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid"
+			} },
+		"active=false,facing=east" : { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-valid",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-valid"
+			} },
+			
+		"active=true,facing=down" : { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-powered",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered"
+			} },
+		"active=true,facing=up"   : { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-powered",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered"
+			} },
+		"active=true,facing=north": { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-powered",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered"
+			} },
+		"active=true,facing=south": { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-powered",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered"
+			} },
+		"active=true,facing=west" : { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-powered",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered"
+			} },
+		"active=true,facing=east" : { "model": "minecraft:block/cube", "textures": {
+				"particle": "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"down"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"up"      : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"north"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"south"   : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"west"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-side-powered",
+				"east"    : "warpdrive:block/energy/ic2_reactor_laser_cooler-head-powered"
+			} }
+	}
+}

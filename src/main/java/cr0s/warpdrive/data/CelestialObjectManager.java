@@ -203,7 +203,7 @@ public class CelestialObjectManager extends XmlFileManager {
 	
 	// *** server side only ***
 	
-	public static void onFMLInitialization() {
+	public static void onModConstruction() {
 		// only create dimensions if we own them
 		for (final CelestialObject celestialObject : SERVER.celestialObjects) {
 			if (!celestialObject.isVirtual()) {

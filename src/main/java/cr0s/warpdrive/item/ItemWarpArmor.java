@@ -48,7 +48,7 @@ public class ItemWarpArmor extends ArmorItem implements IItemBase, IBreathingHel
 	@Nonnull
 	@Override
 	public String getArmorTexture(@Nonnull final ItemStack itemStack, final Entity entity, final EquipmentSlotType slot, @Nullable final String renderingType) {
-		return "warpdrive:textures/armor/warp_armor_" + (slot == EquipmentSlotType.LEGS ? 2 : 1) + ".png";
+		return "warpdrive:textures/armor/armor_" + (slot == EquipmentSlotType.LEGS ? 2 : 1) + ".png";
 	}
 	
 	@Nonnull
@@ -65,19 +65,6 @@ public class ItemWarpArmor extends ArmorItem implements IItemBase, IBreathingHel
 	
 	@Override
 	public void onEntityExpireEvent(final ItemEntity entityItem, final ItemStack itemStack) {
-	}
-	
-	@OnlyIn(Dist.CLIENT)
-	@Override
-	public void modelInitialisation() {
-		ClientProxy.modelInitialisation(this);
-	}
-	
-	@Nonnull
-	@OnlyIn(Dist.CLIENT)
-	@Override
-	public ModelResourceLocation getModelResourceLocation(final ItemStack itemStack) {
-		return ClientProxy.getModelResourceLocation(itemStack);
 	}
 	
 	@Override

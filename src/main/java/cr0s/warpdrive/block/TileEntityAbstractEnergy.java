@@ -2,6 +2,7 @@ package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.EnergyWrapper;
@@ -13,7 +14,6 @@ import javax.annotation.Nullable;
 
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 
@@ -64,8 +64,8 @@ public abstract class TileEntityAbstractEnergy extends TileEntityAbstractEnergyB
 	
 	private final IEnergyStorage[]                  FE_energyReceivers = new IEnergyStorage[Direction.values().length + 1];
 	
-	public TileEntityAbstractEnergy(@Nonnull TileEntityType<? extends TileEntityAbstractEnergy> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityAbstractEnergy(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		// at base construction, we disable all input/output and allow infinite storage
 		// we need to know the tier before setting things up, so we do the actual setup in onConstructed()

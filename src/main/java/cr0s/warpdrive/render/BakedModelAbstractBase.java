@@ -5,6 +5,7 @@ import cr0s.warpdrive.api.IMyBakedModel;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -27,6 +28,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.Direction;
 import net.minecraft.world.World;
 
+import net.minecraftforge.client.model.data.IModelData;
 import net.minecraftforge.client.model.pipeline.BakedQuadBuilder;
 
 import com.google.common.collect.ImmutableList;
@@ -34,12 +36,13 @@ import com.mojang.blaze3d.matrix.MatrixStack;
 
 public abstract class BakedModelAbstractBase implements IMyBakedModel {
 	
+	protected static final List<BakedQuad> EMPTY = new ArrayList<>(0);
+	
 	protected ModelResourceLocation modelResourceLocation;
 	protected IBakedModel bakedModelOriginal;
 	
-	protected TextureAtlasSprite spriteParticle;
-	protected TextureAtlasSprite spriteBlock;
-	protected int tintIndex = -1;
+	protected TextureAtlasSprite spriteOriginal;
+	protected int tintIndexOriginal = -1;
 	protected VertexFormat format = DefaultVertexFormats.POSITION_COLOR_TEX;
 	
 	protected BlockState blockStateDefault;
@@ -53,19 +56,28 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 		this.modelResourceLocation = modelResourceLocation;
 	}
 	
+	private boolean saveOriginalValues(@Nonnull final List<BakedQuad> bakedQuads) {
+		if (!bakedQuads.isEmpty()) {
+			final BakedQuad bakedQuad = bakedQuads.get(0);
+			spriteOriginal = bakedQuad.func_187508_a();
+			if (bakedQuad.hasTintIndex()) {
+				tintIndexOriginal = bakedQuad.getTintIndex();
+			}
+			return true;
+		}
+		return false;
+	}
+	
 	@Override
 	public void setOriginalBakedModel(@Nonnull final IBakedModel bakedModel) {
 		this.bakedModelOriginal = bakedModel;
-		spriteParticle = bakedModel.getParticleTexture(null);
+		format = DefaultVertexFormats.POSITION_COLOR_TEX;
 		try {
+			if (saveOriginalValues(bakedModel.getQuads(null, null, null))) {
+				return;
+			}
 			for (final Direction enumFacing : Direction.values()) {
-				final List<BakedQuad> bakedQuads = bakedModel.getQuads(null, enumFacing, null);
-				if (!bakedQuads.isEmpty()) {
-					final BakedQuad bakedQuad = bakedQuads.get(0);
-					spriteBlock = bakedQuad.func_187508_a();
-					if (bakedQuad.hasTintIndex()) {
-						tintIndex = bakedQuad.getTintIndex();
-					}
+				if (saveOriginalValues(bakedModel.getQuads(null, enumFacing, null))) {
 					break;
 				}
 			}
@@ -73,7 +85,6 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 			exception.printStackTrace(WarpDrive.printStreamError);
 			WarpDrive.logger.error(String.format("Exception trying to retrieve format for %s original baked model %s, defaulting to forge",
 			                                     modelResourceLocation, bakedModelOriginal));
-			format = DefaultVertexFormats.POSITION_COLOR_TEX;
 		}
 	}
 	
@@ -196,30 +207,39 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 		return bakedModelOriginal.isBuiltInRenderer();
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Nonnull
 	@Override
 	public TextureAtlasSprite getParticleTexture() {
+		return bakedModelOriginal.getParticleTexture();
+	}
+	
+	@Nonnull
+	@Override
+	public TextureAtlasSprite getParticleTexture(@Nonnull final IModelData modelData) {
 		// Minecraft.getInstance().getTextureMapBlocks().getAtlasSprite("warpdrive:someTexture")
-		return spriteParticle;
+		return bakedModelOriginal.getParticleTexture(modelData);
 	}
 	
 	@Nonnull
 	@Override
 	public ItemOverrideList getOverrides() {
-		// return bakedModelOriginal.getOverrides();
-		return itemOverrideList;
+		return bakedModelOriginal.getOverrides();
 	}
 	
-	protected ItemOverrideList itemOverrideList = new ItemOverrideList() {
-		@Nonnull
+	protected ItemOverrideList itemBlockOverrideList = new ItemOverrideList() {
 		@Override
-		public IBakedModel getModelWithOverrides(@Nonnull final IBakedModel model, @Nonnull final ItemStack itemStack,
+		public IBakedModel getModelWithOverrides(@Nonnull final IBakedModel bakedModel, @Nonnull final ItemStack itemStack,
 		                                         final World world, final LivingEntity entity) {
-			final Block block = ((BlockItem) itemStack.getItem()).getBlock();
-			final BlockState blockState = block.getDefaultState();
-			final IBakedModel bakedModelNew = Minecraft.getInstance().getBlockRendererDispatcher().getModelForState(blockState);
-			blockStateDefault = blockState;
-			return bakedModelNew;
+			if (itemStack.getItem() instanceof BlockItem) {
+				final Block block = ((BlockItem) itemStack.getItem()).getBlock();
+				final BlockState blockState = block.getDefaultState();
+				final IBakedModel bakedModelNew = Minecraft.getInstance().getBlockRendererDispatcher().getModelForState(blockState);
+				blockStateDefault = blockState;
+				return bakedModelNew;
+			} else {
+				return bakedModelOriginal.getOverrides().getModelWithOverrides(bakedModel, itemStack, world, entity);
+			}
 		}
 	};
 	
@@ -230,5 +250,12 @@ public abstract class BakedModelAbstractBase implements IMyBakedModel {
 			return net.minecraftforge.client.ForgeHooksClient.handlePerspective(this, cameraTransformType, matrixStack);
 		}
 		return bakedModelOriginal.handlePerspective(cameraTransformType, matrixStack);
+	}
+	
+	protected String formatDetails() {
+		return String.format("modelResourceLocation %s\nbakedModelOriginal %s\nblockStateDefault %s]",
+		                     modelResourceLocation,
+		                     bakedModelOriginal,
+		                     blockStateDefault );
 	}
 }

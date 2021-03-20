@@ -13,10 +13,12 @@ import javax.annotation.Nullable;
 
 import java.util.List;
 
+import net.minecraft.block.Block;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.state.StateContainer.Builder;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Direction;
@@ -34,16 +36,17 @@ public class BlockShipCore extends BlockAbstractContainer {
 	public BlockShipCore(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(getDefaultProperties(null), registryName, enumTier);
 		
-		setDefaultState(getDefaultState()
+		setDefaultState(getStateContainer().getBaseState()
 				                .with(BlockProperties.ACTIVE, false)
 				                .with(BlockProperties.FACING_HORIZONTAL, Direction.NORTH)
 		               );
 	}
 	
-	@Nonnull
 	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityShipCore();
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(BlockProperties.ACTIVE);
+		builder.add(BlockProperties.FACING_HORIZONTAL);
 	}
 	
 	/* TODO MC1.15 ship core dismounting exploit fix

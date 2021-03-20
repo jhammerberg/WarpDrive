@@ -111,7 +111,7 @@ public class CommonProxy {
 		return placeEvent.isCanceled();
 	}
 	
-	public void onForgePreInitialisation() {
+	public void onModConstruction() {
 	
 	}
 	
@@ -119,11 +119,6 @@ public class CommonProxy {
 	
 	}
 	
-	public void onForgeInitialisation() {
-		// event handlers
-		MinecraftForge.EVENT_BUS.register(new ItemHandler());
-		MinecraftForge.EVENT_BUS.register(new LivingHandler());
-		MinecraftForge.EVENT_BUS.register(new PlayerHandler());
-		MinecraftForge.EVENT_BUS.register(EMPReceiver.class);
+	public void onFMLCommonSetup() {
 	}
 }

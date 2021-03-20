@@ -4,6 +4,7 @@ import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IDamageReceiver;
 import cr0s.warpdrive.config.WarpDriveConfig;
+import cr0s.warpdrive.data.EnumHullPlainType;
 import cr0s.warpdrive.data.EnumTier;
 import cr0s.warpdrive.data.Vector3;
 
@@ -15,25 +16,23 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.StairsBlock;
 import net.minecraft.block.material.PushReaction;
 import net.minecraft.item.BlockItem;
-import net.minecraft.item.DyeColor;
 import net.minecraft.item.Rarity;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-
 public class BlockHullStairs extends StairsBlock implements IBlockBase, IDamageReceiver {
 	
 	protected final EnumTier enumTier;
+	final EnumHullPlainType  hullPlainType;
 	private final int        indexColor;
 	
-	public BlockHullStairs(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final DyeColor enumDyeColor, @Nonnull final BlockState blockStateHull) {
+	public BlockHullStairs(@Nonnull final String registryName, @Nonnull final BlockState blockStateHull) {
 		super(() -> blockStateHull, Block.Properties.from(blockStateHull.getBlock()));
 		
-		this.enumTier = enumTier;
-		this.indexColor = enumDyeColor.getId();
+		this.enumTier      = ((BlockHullPlain) blockStateHull.getBlock()).getTier();
+		this.hullPlainType = ((BlockHullPlain) blockStateHull.getBlock()).hullPlainType;
+		this.indexColor    = ((BlockHullPlain) blockStateHull.getBlock()).indexColor;
 		setRegistryName(registryName);
 		WarpDrive.register(this, new ItemBlockHull(this));
 	}
@@ -63,12 +62,6 @@ public class BlockHullStairs extends StairsBlock implements IBlockBase, IDamageR
 		return new ItemBlockHull(this);
 	}
 	
-	@OnlyIn(Dist.CLIENT)
-	@Override
-	public void modelInitialisation() {
-		// no operation
-	}
-	
 	@Override
 	public float getBlockHardness(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,
 	                              @Nonnull final DamageSource damageSource, final int damageParameter, @Nonnull final Vector3 damageDirection, final int damageLevel) {
@@ -85,7 +78,7 @@ public class BlockHullStairs extends StairsBlock implements IBlockBase, IDamageR
 		if (enumTier == EnumTier.BASIC) {
 			world.removeBlock(blockPos, false);
 		} else {
-			world.setBlockState(blockPos, WarpDrive.blockHulls_stairs[enumTier.getIndex() - 1][indexColor]
+			world.setBlockState(blockPos, WarpDrive.blockHulls_stairs[enumTier.getIndex() - 1][hullPlainType.ordinal()][indexColor]
 			                              .getDefaultState()
 			                              .with(FACING, blockState.get(FACING)), 2);
 		}

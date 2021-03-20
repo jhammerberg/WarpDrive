@@ -1,7 +1,7 @@
 package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.data.EnumTier;
-import cr0s.warpdrive.event.ModelBakeEventHandler;
+import cr0s.warpdrive.event.ModelHandler;
 import cr0s.warpdrive.render.BakedModelOmnipanel;
 
 import javax.annotation.Nonnull;
@@ -14,12 +14,14 @@ import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.entity.Entity;
 import net.minecraft.state.BooleanProperty;
 import net.minecraft.state.IProperty;
+import net.minecraft.state.StateContainer.Builder;
 import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.world.IBlockReader;
 import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
@@ -32,51 +34,51 @@ public abstract class BlockAbstractOmnipanel extends BlockAbstractBase {
 	public static final float CENTER_MIN = 7.0F / 16.0F;
 	public static final float CENTER_MAX = 9.0F / 16.0F;
 	
-	protected static VoxelShape AABB_XN_YN = makeCuboidShape(0.0F, 0.0F, CENTER_MIN, CENTER_MAX, CENTER_MAX, CENTER_MAX);
-	protected static VoxelShape AABB_XP_YN = makeCuboidShape(CENTER_MIN, 0.0F, CENTER_MIN, 1.0F, CENTER_MAX, CENTER_MAX);
-	protected static VoxelShape AABB_XN_YP = makeCuboidShape(0.0F, CENTER_MIN, CENTER_MIN, CENTER_MAX, 1.0F, CENTER_MAX);
-	protected static VoxelShape AABB_XP_YP = makeCuboidShape(CENTER_MIN, CENTER_MIN, CENTER_MIN, 1.0F, 1.0F, CENTER_MAX);
+	protected static VoxelShape AABB_XN_YN = VoxelShapes.create(0.0F, 0.0F, CENTER_MIN, CENTER_MAX, CENTER_MAX, CENTER_MAX);
+	protected static VoxelShape AABB_XP_YN = VoxelShapes.create(CENTER_MIN, 0.0F, CENTER_MIN, 1.0F, CENTER_MAX, CENTER_MAX);
+	protected static VoxelShape AABB_XN_YP = VoxelShapes.create(0.0F, CENTER_MIN, CENTER_MIN, CENTER_MAX, 1.0F, CENTER_MAX);
+	protected static VoxelShape AABB_XP_YP = VoxelShapes.create(CENTER_MIN, CENTER_MIN, CENTER_MIN, 1.0F, 1.0F, CENTER_MAX);
 	
-	protected static VoxelShape AABB_ZN_YN = makeCuboidShape(CENTER_MIN, 0.0F, 0.0F, CENTER_MAX, CENTER_MAX, CENTER_MAX);
-	protected static VoxelShape AABB_ZP_YN = makeCuboidShape(CENTER_MIN, 0.0F, CENTER_MIN, CENTER_MAX, CENTER_MAX, 1.0F);
-	protected static VoxelShape AABB_ZN_YP = makeCuboidShape(CENTER_MIN, CENTER_MIN, 0.0F, CENTER_MAX, 1.0F, CENTER_MAX);
-	protected static VoxelShape AABB_ZP_YP = makeCuboidShape(CENTER_MIN, CENTER_MIN, CENTER_MIN, CENTER_MAX, 1.0F, 1.0F);
+	protected static VoxelShape AABB_ZN_YN = VoxelShapes.create(CENTER_MIN, 0.0F, 0.0F, CENTER_MAX, CENTER_MAX, CENTER_MAX);
+	protected static VoxelShape AABB_ZP_YN = VoxelShapes.create(CENTER_MIN, 0.0F, CENTER_MIN, CENTER_MAX, CENTER_MAX, 1.0F);
+	protected static VoxelShape AABB_ZN_YP = VoxelShapes.create(CENTER_MIN, CENTER_MIN, 0.0F, CENTER_MAX, 1.0F, CENTER_MAX);
+	protected static VoxelShape AABB_ZP_YP = VoxelShapes.create(CENTER_MIN, CENTER_MIN, CENTER_MIN, CENTER_MAX, 1.0F, 1.0F);
 	
-	protected static VoxelShape AABB_XN_ZN = makeCuboidShape(0.0F, CENTER_MIN, 0.0F, CENTER_MAX, CENTER_MAX, CENTER_MAX);
-	protected static VoxelShape AABB_XP_ZN = makeCuboidShape(CENTER_MIN, CENTER_MIN, 0.0F, 1.0F, CENTER_MAX, CENTER_MAX);
-	protected static VoxelShape AABB_XN_ZP = makeCuboidShape(0.0F, CENTER_MIN, CENTER_MIN, CENTER_MAX, CENTER_MAX, 1.0F);
-	protected static VoxelShape AABB_XP_ZP = makeCuboidShape(CENTER_MIN, CENTER_MIN, CENTER_MIN, 1.0F, CENTER_MAX, 1.0F);
+	protected static VoxelShape AABB_XN_ZN = VoxelShapes.create(0.0F, CENTER_MIN, 0.0F, CENTER_MAX, CENTER_MAX, CENTER_MAX);
+	protected static VoxelShape AABB_XP_ZN = VoxelShapes.create(CENTER_MIN, CENTER_MIN, 0.0F, 1.0F, CENTER_MAX, CENTER_MAX);
+	protected static VoxelShape AABB_XN_ZP = VoxelShapes.create(0.0F, CENTER_MIN, CENTER_MIN, CENTER_MAX, CENTER_MAX, 1.0F);
+	protected static VoxelShape AABB_XP_ZP = VoxelShapes.create(CENTER_MIN, CENTER_MIN, CENTER_MIN, 1.0F, CENTER_MAX, 1.0F);
 	
-	protected static VoxelShape AABB_YN = makeCuboidShape(CENTER_MIN, 0.0F, CENTER_MIN, CENTER_MAX, CENTER_MAX, CENTER_MAX);
-	protected static VoxelShape AABB_YP = makeCuboidShape(CENTER_MIN, CENTER_MIN, CENTER_MIN, CENTER_MAX, 1.0F, CENTER_MAX);
-	protected static VoxelShape AABB_ZN = makeCuboidShape(CENTER_MIN, CENTER_MIN, 0.0F, CENTER_MAX, CENTER_MAX, CENTER_MAX);
-	protected static VoxelShape AABB_ZP = makeCuboidShape(CENTER_MIN, CENTER_MIN, CENTER_MIN, CENTER_MAX, CENTER_MAX, 1.0F);
-	protected static VoxelShape AABB_XN = makeCuboidShape(0.0F, CENTER_MIN, CENTER_MIN, CENTER_MAX, CENTER_MAX, CENTER_MAX);
-	protected static VoxelShape AABB_XP = makeCuboidShape(CENTER_MIN, CENTER_MIN, CENTER_MIN, 1.0F, CENTER_MAX, CENTER_MAX);
+	protected static VoxelShape AABB_YN = VoxelShapes.create(CENTER_MIN, 0.0F, CENTER_MIN, CENTER_MAX, CENTER_MAX, CENTER_MAX);
+	protected static VoxelShape AABB_YP = VoxelShapes.create(CENTER_MIN, CENTER_MIN, CENTER_MIN, CENTER_MAX, 1.0F, CENTER_MAX);
+	protected static VoxelShape AABB_ZN = VoxelShapes.create(CENTER_MIN, CENTER_MIN, 0.0F, CENTER_MAX, CENTER_MAX, CENTER_MAX);
+	protected static VoxelShape AABB_ZP = VoxelShapes.create(CENTER_MIN, CENTER_MIN, CENTER_MIN, CENTER_MAX, CENTER_MAX, 1.0F);
+	protected static VoxelShape AABB_XN = VoxelShapes.create(0.0F, CENTER_MIN, CENTER_MIN, CENTER_MAX, CENTER_MAX, CENTER_MAX);
+	protected static VoxelShape AABB_XP = VoxelShapes.create(CENTER_MIN, CENTER_MIN, CENTER_MIN, 1.0F, CENTER_MAX, CENTER_MAX);
 	
-	public static final IProperty<Boolean> CAN_CONNECT_Y_NEG  = BooleanProperty.create("canConnectY_neg");
-	public static final IProperty<Boolean> CAN_CONNECT_Y_POS  = BooleanProperty.create("canConnectY_pos");
-	public static final IProperty<Boolean> CAN_CONNECT_Z_NEG  = BooleanProperty.create("canConnectZ_neg");
-	public static final IProperty<Boolean> CAN_CONNECT_Z_POS  = BooleanProperty.create("canConnectZ_pos");
-	public static final IProperty<Boolean> CAN_CONNECT_X_NEG  = BooleanProperty.create("canConnectX_neg");
-	public static final IProperty<Boolean> CAN_CONNECT_X_POS  = BooleanProperty.create("canConnectX_pos");
+	public static final IProperty<Boolean> CAN_CONNECT_Y_NEG  = BooleanProperty.create("can_connect_y_neg");
+	public static final IProperty<Boolean> CAN_CONNECT_Y_POS  = BooleanProperty.create("can_connect_y_pos");
+	public static final IProperty<Boolean> CAN_CONNECT_Z_NEG  = BooleanProperty.create("can_connect_z_neg");
+	public static final IProperty<Boolean> CAN_CONNECT_Z_POS  = BooleanProperty.create("can_connect_z_pos");
+	public static final IProperty<Boolean> CAN_CONNECT_X_NEG  = BooleanProperty.create("can_connect_x_neg");
+	public static final IProperty<Boolean> CAN_CONNECT_X_POS  = BooleanProperty.create("can_connect_x_pos");
 	
-	public static final IProperty<Boolean> HAS_XN_YN  = BooleanProperty.create("hasXnYn");
-	public static final IProperty<Boolean> HAS_XP_YN  = BooleanProperty.create("hasXpYn");
-	public static final IProperty<Boolean> HAS_XN_YP  = BooleanProperty.create("hasXnYp");
-	public static final IProperty<Boolean> HAS_XP_YP  = BooleanProperty.create("hasXpYp");
-	public static final IProperty<Boolean> HAS_XN_ZN  = BooleanProperty.create("hasXnZn");
-	public static final IProperty<Boolean> HAS_XP_ZN  = BooleanProperty.create("hasXpZn");
-	public static final IProperty<Boolean> HAS_XN_ZP  = BooleanProperty.create("hasXnZp");
-	public static final IProperty<Boolean> HAS_XP_ZP  = BooleanProperty.create("hasXpZp");
-	public static final IProperty<Boolean> HAS_ZN_YN  = BooleanProperty.create("hasZnYn");
-	public static final IProperty<Boolean> HAS_ZP_YN  = BooleanProperty.create("hasZpYn");
-	public static final IProperty<Boolean> HAS_ZN_YP  = BooleanProperty.create("hasZnYp");
-	public static final IProperty<Boolean> HAS_ZP_YP  = BooleanProperty.create("hasZpYp");
+	public static final IProperty<Boolean> HAS_XN_YN  = BooleanProperty.create("hasxnyn");
+	public static final IProperty<Boolean> HAS_XP_YN  = BooleanProperty.create("hasxpyn");
+	public static final IProperty<Boolean> HAS_XN_YP  = BooleanProperty.create("hasxnyp");
+	public static final IProperty<Boolean> HAS_XP_YP  = BooleanProperty.create("hasxpyp");
+	public static final IProperty<Boolean> HAS_XN_ZN  = BooleanProperty.create("hasxnzn");
+	public static final IProperty<Boolean> HAS_XP_ZN  = BooleanProperty.create("hasxpzn");
+	public static final IProperty<Boolean> HAS_XN_ZP  = BooleanProperty.create("hasxnzp");
+	public static final IProperty<Boolean> HAS_XP_ZP  = BooleanProperty.create("hasxpzp");
+	public static final IProperty<Boolean> HAS_ZN_YN  = BooleanProperty.create("hasznyn");
+	public static final IProperty<Boolean> HAS_ZP_YN  = BooleanProperty.create("haszpyn");
+	public static final IProperty<Boolean> HAS_ZN_YP  = BooleanProperty.create("hasznyp");
+	public static final IProperty<Boolean> HAS_ZP_YP  = BooleanProperty.create("haszpyp");
 	
 	public BlockAbstractOmnipanel(@Nonnull final Block.Properties blockProperties, @Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(blockProperties, registryName, enumTier);
-		setDefaultState(getDefaultState()
+		setDefaultState(getStateContainer().getBaseState()
 				.with(CAN_CONNECT_Y_NEG, false)
 				.with(CAN_CONNECT_Y_POS, false)
 				.with(CAN_CONNECT_Z_NEG, false)
@@ -97,18 +99,41 @@ public abstract class BlockAbstractOmnipanel extends BlockAbstractBase {
 				.with(HAS_ZP_YP, false) );
 	}
 	
+	@Override
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(CAN_CONNECT_Y_NEG);
+		builder.add(CAN_CONNECT_Y_POS);
+		builder.add(CAN_CONNECT_Z_NEG);
+		builder.add(CAN_CONNECT_Z_POS);
+		builder.add(CAN_CONNECT_X_NEG);
+		builder.add(CAN_CONNECT_X_POS);
+		builder.add(HAS_XN_YN);
+		builder.add(HAS_XP_YN);
+		builder.add(HAS_XN_YP);
+		builder.add(HAS_XP_YP);
+		builder.add(HAS_XN_ZN);
+		builder.add(HAS_XP_ZN);
+		builder.add(HAS_XN_ZP);
+		builder.add(HAS_XP_ZP);
+		builder.add(HAS_ZN_YN);
+		builder.add(HAS_ZP_YN);
+		builder.add(HAS_ZN_YP);
+		builder.add(HAS_ZP_YP);
+	}
+	
 	@Nonnull
-	// TODO MC1.15 Omnipanel rendering
-	public BlockState getExtendedState(@Nonnull final BlockState blockState, final IWorldReader worldReader, final BlockPos blockPos) {
+	@Override
+	public BlockState getExtendedState(@Nonnull final BlockState blockState, final IBlockReader blockReader, final BlockPos blockPos) {
 		final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(blockPos);
 		
 		// get direct connections
-		final int maskConnectY_neg = getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() - 1, blockPos.getZ()    ), Direction.DOWN);
-		final int maskConnectY_pos = getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() + 1, blockPos.getZ()    ), Direction.UP);
-		final int maskConnectZ_neg = getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY()    , blockPos.getZ() - 1), Direction.NORTH);
-		final int maskConnectZ_pos = getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY()    , blockPos.getZ() + 1), Direction.SOUTH);
-		final int maskConnectX_neg = getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX() - 1, blockPos.getY()    , blockPos.getZ()    ), Direction.WEST);
-		final int maskConnectX_pos = getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX() + 1, blockPos.getY()    , blockPos.getZ()    ), Direction.EAST);
+		final int maskConnectY_neg = getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() - 1, blockPos.getZ()    ), Direction.DOWN);
+		final int maskConnectY_pos = getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() + 1, blockPos.getZ()    ), Direction.UP);
+		final int maskConnectZ_neg = getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY()    , blockPos.getZ() - 1), Direction.NORTH);
+		final int maskConnectZ_pos = getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY()    , blockPos.getZ() + 1), Direction.SOUTH);
+		final int maskConnectX_neg = getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX() - 1, blockPos.getY()    , blockPos.getZ()    ), Direction.WEST);
+		final int maskConnectX_pos = getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX() + 1, blockPos.getY()    , blockPos.getZ()    ), Direction.EAST);
 		
 		final boolean canConnectY_neg = maskConnectY_neg > 0;
 		final boolean canConnectY_pos = maskConnectY_pos > 0;
@@ -119,19 +144,19 @@ public abstract class BlockAbstractOmnipanel extends BlockAbstractBase {
 		final boolean canConnectNone = !canConnectY_neg && !canConnectY_pos && !canConnectZ_neg && !canConnectZ_pos && !canConnectX_neg && !canConnectX_pos;
 		
 		// get diagonal connections
-		final boolean canConnectXn_Y_neg = (maskConnectX_neg > 1 && maskConnectY_neg > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX() - 1, blockPos.getY() - 1, blockPos.getZ()    ), Direction.DOWN) > 0;
-		final boolean canConnectXn_Y_pos = (maskConnectX_neg > 1 && maskConnectY_pos > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX() - 1, blockPos.getY() + 1, blockPos.getZ()    ), Direction.UP) > 0;
-		final boolean canConnectXn_Z_neg = (maskConnectX_neg > 1 && maskConnectZ_neg > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX() - 1, blockPos.getY()    , blockPos.getZ() - 1), Direction.NORTH) > 0;
-		final boolean canConnectXn_Z_pos = (maskConnectX_neg > 1 && maskConnectZ_pos > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX() - 1, blockPos.getY()    , blockPos.getZ() + 1), Direction.SOUTH) > 0;
-		final boolean canConnectZn_Y_neg = (maskConnectZ_neg > 1 && maskConnectY_neg > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() - 1, blockPos.getZ() - 1), Direction.DOWN) > 0;
-		final boolean canConnectZn_Y_pos = (maskConnectZ_neg > 1 && maskConnectY_pos > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() + 1, blockPos.getZ() - 1), Direction.UP) > 0;
+		final boolean canConnectXn_Y_neg = (maskConnectX_neg > 1 && maskConnectY_neg > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX() - 1, blockPos.getY() - 1, blockPos.getZ()    ), Direction.DOWN) > 0;
+		final boolean canConnectXn_Y_pos = (maskConnectX_neg > 1 && maskConnectY_pos > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX() - 1, blockPos.getY() + 1, blockPos.getZ()    ), Direction.UP) > 0;
+		final boolean canConnectXn_Z_neg = (maskConnectX_neg > 1 && maskConnectZ_neg > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX() - 1, blockPos.getY()    , blockPos.getZ() - 1), Direction.NORTH) > 0;
+		final boolean canConnectXn_Z_pos = (maskConnectX_neg > 1 && maskConnectZ_pos > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX() - 1, blockPos.getY()    , blockPos.getZ() + 1), Direction.SOUTH) > 0;
+		final boolean canConnectZn_Y_neg = (maskConnectZ_neg > 1 && maskConnectY_neg > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() - 1, blockPos.getZ() - 1), Direction.DOWN) > 0;
+		final boolean canConnectZn_Y_pos = (maskConnectZ_neg > 1 && maskConnectY_pos > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() + 1, blockPos.getZ() - 1), Direction.UP) > 0;
 		
-		final boolean canConnectXp_Y_neg = (maskConnectX_pos > 1 && maskConnectY_neg > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX() + 1, blockPos.getY() - 1, blockPos.getZ()    ), Direction.DOWN) > 0;
-		final boolean canConnectXp_Y_pos = (maskConnectX_pos > 1 && maskConnectY_pos > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX() + 1, blockPos.getY() + 1, blockPos.getZ()    ), Direction.UP) > 0;
-		final boolean canConnectXp_Z_neg = (maskConnectX_pos > 1 && maskConnectZ_neg > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX() + 1, blockPos.getY()    , blockPos.getZ() - 1), Direction.NORTH) > 0;
-		final boolean canConnectXp_Z_pos = (maskConnectX_pos > 1 && maskConnectZ_pos > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX() + 1, blockPos.getY()    , blockPos.getZ() + 1), Direction.SOUTH) > 0;
-		final boolean canConnectZp_Y_neg = (maskConnectZ_pos > 1 && maskConnectY_neg > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() - 1, blockPos.getZ() + 1), Direction.DOWN) > 0;
-		final boolean canConnectZp_Y_pos = (maskConnectZ_pos > 1 && maskConnectY_pos > 1) || getConnectionMask(worldReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() + 1, blockPos.getZ() + 1), Direction.UP) > 0;
+		final boolean canConnectXp_Y_neg = (maskConnectX_pos > 1 && maskConnectY_neg > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX() + 1, blockPos.getY() - 1, blockPos.getZ()    ), Direction.DOWN) > 0;
+		final boolean canConnectXp_Y_pos = (maskConnectX_pos > 1 && maskConnectY_pos > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX() + 1, blockPos.getY() + 1, blockPos.getZ()    ), Direction.UP) > 0;
+		final boolean canConnectXp_Z_neg = (maskConnectX_pos > 1 && maskConnectZ_neg > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX() + 1, blockPos.getY()    , blockPos.getZ() - 1), Direction.NORTH) > 0;
+		final boolean canConnectXp_Z_pos = (maskConnectX_pos > 1 && maskConnectZ_pos > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX() + 1, blockPos.getY()    , blockPos.getZ() + 1), Direction.SOUTH) > 0;
+		final boolean canConnectZp_Y_neg = (maskConnectZ_pos > 1 && maskConnectY_neg > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() - 1, blockPos.getZ() + 1), Direction.DOWN) > 0;
+		final boolean canConnectZp_Y_pos = (maskConnectZ_pos > 1 && maskConnectY_pos > 1) || getConnectionMask(blockReader, mutableBlockPos.setPos(blockPos.getX()    , blockPos.getY() + 1, blockPos.getZ() + 1), Direction.UP) > 0;
 		
 		// get panels
 		final boolean hasXnYn = canConnectNone || (canConnectX_neg && canConnectY_neg && canConnectXn_Y_neg);
@@ -179,15 +204,15 @@ public abstract class BlockAbstractOmnipanel extends BlockAbstractBase {
 		// register (smart) baked model
 		final ResourceLocation registryName = getRegistryName();
 		assert registryName != null;
-		ModelBakeEventHandler.registerBakedModel(new ModelResourceLocation(registryName.toString()), BakedModelOmnipanel.class);
+		ModelHandler.registerBakedModel(new ModelResourceLocation(registryName.toString()), BakedModelOmnipanel.class);
 	}
 	
 	@SuppressWarnings("deprecation")
 	@Nonnull
 	@Override
-	public VoxelShape getCollisionShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
-	                                    @Nonnull final ISelectionContext selectionContext) {
-		return super.getCollisionShape(blockState, blockReader, blockPos, selectionContext);
+	public VoxelShape getShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
+	                           @Nonnull final ISelectionContext selectionContext) {
+		return super.getShape(blockState, blockReader, blockPos, selectionContext);
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -361,16 +386,16 @@ public abstract class BlockAbstractOmnipanel extends BlockAbstractBase {
 		return new AxisAlignedBB(xMin, yMin, zMin, xMax, yMax, zMax);
 	}
 	
-	public int getConnectionMask(final IWorldReader worldReader, final BlockPos blockPos, final Direction facing) {
-		final BlockState blockState = worldReader.getBlockState(blockPos);
+	public int getConnectionMask(final IBlockReader blockReader, final BlockPos blockPos, final Direction facing) {
+		final BlockState blockState = blockReader.getBlockState(blockPos);
 		return 3;
-		// TODO MC1.15 Omnipanel collision 
-		/*
+		
+		/* TODO MC1.15 Omnipanel collision
 		return ( false blockState.isFullCube()
 		      || blockState.getBlock() instanceof BlockAbstractOmnipanel
 		      || blockState.getMaterial() == Material.GLASS
 		      || blockState.getBlock() instanceof PaneBlock ? 1 : 0 )
-		     + (blockState.isSideSolid(worldReader, blockPos, facing.getOpposite()) ? 2 : 0);
+		     + (blockState.isSideSolid(blockReader, blockPos, facing.getOpposite()) ? 2 : 0);
 		     
 		 */
 	}

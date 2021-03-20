@@ -5,7 +5,7 @@ import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.LocalProfiler;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.WarpDriveText;
-import cr0s.warpdrive.block.forcefield.BlockForceField;
+import cr0s.warpdrive.block.force_field.BlockForceField;
 import cr0s.warpdrive.data.CelestialObjectManager;
 import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;

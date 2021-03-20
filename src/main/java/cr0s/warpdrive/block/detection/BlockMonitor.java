@@ -20,7 +20,6 @@ import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
 public class BlockMonitor extends BlockAbstractRotatingContainer {
@@ -29,12 +28,6 @@ public class BlockMonitor extends BlockAbstractRotatingContainer {
 		super(getDefaultProperties(null), registryName, enumTier);
 	}
 
-	@Nonnull
-	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityMonitor();
-	}
-	
 	@Nonnull
 	@Override
 	public ActionResultType onBlockActivated(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,

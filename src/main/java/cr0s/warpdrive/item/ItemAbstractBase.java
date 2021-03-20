@@ -3,10 +3,8 @@ package cr0s.warpdrive.item;
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IItemBase;
-import cr0s.warpdrive.client.ClientProxy;
 import cr0s.warpdrive.data.EnumTier;
 
-import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.item.ItemEntity;
@@ -28,7 +26,6 @@ import java.util.List;
 public class ItemAbstractBase extends Item implements IItemBase {
 	
 	protected final EnumTier enumTier;
-	protected String translationKey;
 	
 	public ItemAbstractBase(@Nonnull final Item.Properties itemProperties, @Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(itemProperties
@@ -39,31 +36,8 @@ public class ItemAbstractBase extends Item implements IItemBase {
 		WarpDrive.register(this);
 	}
 	
-	@Nonnull
-	@Override
-	public String getTranslationKey() {
-		return translationKey == null ? super.getTranslationKey() : translationKey;
-	}
-	
-	public void setTranslationKey(@Nonnull final String translationKey) {
-		this.translationKey = translationKey;
-	}
-	
 	@Override
 	public void onEntityExpireEvent(final ItemEntity entityItem, final ItemStack itemStack) {
-	}
-	
-	@OnlyIn(Dist.CLIENT)
-	@Override
-	public void modelInitialisation() {
-		ClientProxy.modelInitialisation(this);
-	}
-	
-	@Nonnull
-	@OnlyIn(Dist.CLIENT)
-	@Override
-	public ModelResourceLocation getModelResourceLocation(final ItemStack itemStack) {
-		return ClientProxy.getModelResourceLocation(itemStack);
 	}
 	
 	@Nonnull

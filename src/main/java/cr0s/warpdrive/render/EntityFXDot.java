@@ -4,6 +4,8 @@ import cr0s.warpdrive.data.Vector3;
 
 import javax.annotation.Nonnull;
 
+import net.minecraft.block.Blocks;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.IParticleRenderType;
 import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.Quaternion;
@@ -38,7 +40,8 @@ public class EntityFXDot extends AbstractEntityFX {
 		this.maxAge = age;
 		
 		// defaults to vanilla water drip
-		// setSprite(113);
+		// new ResourceLocation("minecraft:particle / drip_hang");
+		setSprite(Minecraft.getInstance().getBlockRendererDispatcher().getBlockModelShapes().getTexture(Blocks.WATER.getDefaultState()));
 		
 		// refresh bounding box
 		setPosition(v3Position.x, v3Position.y, v3Position.z);
@@ -116,9 +119,9 @@ public class EntityFXDot extends AbstractEntityFX {
 		final Vector3f vector3f1 = new Vector3f(-1.0F, -1.0F, 0.0F);
 		vector3f1.transform(quaternion);
 		final Vector3f[] matrix = new Vector3f[] { new Vector3f(-1.0F, -1.0F, 0.0F),
-		                                              new Vector3f(-1.0F,  1.0F, 0.0F),
-		                                              new Vector3f( 1.0F,  1.0F, 0.0F),
-		                                              new Vector3f( 1.0F, -1.0F, 0.0F) };
+		                                           new Vector3f(-1.0F,  1.0F, 0.0F),
+		                                           new Vector3f( 1.0F,  1.0F, 0.0F),
+		                                           new Vector3f( 1.0F, -1.0F, 0.0F) };
 		
 		for(int i = 0; i < 4; ++i) {
 			Vector3f vector3f = matrix[i];

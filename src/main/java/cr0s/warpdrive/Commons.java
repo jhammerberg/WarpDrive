@@ -204,12 +204,12 @@ public class Commons {
 	
 	@Nonnull
 	public static WarpDriveText getChatPrefix(@Nonnull final Block block) {
-		return getChatPrefix(block.getTranslationKey() + ".name");
+		return getChatPrefix(block.getTranslationKey());
 	}
 	
 	@Nonnull
 	public static WarpDriveText getChatPrefix(@Nonnull final ItemStack itemStack) {
-		return getChatPrefix(itemStack.getTranslationKey() + ".name");
+		return getChatPrefix(itemStack.getTranslationKey());
 	}
 	
 	@Nonnull
@@ -252,7 +252,7 @@ public class Commons {
 		addChatMessage(commandSource, message);
 	}
 	
-	public static void addChatMessage(final ICommandSource commandSource, @Nonnull final String message) {
+	private static void addChatMessage(final ICommandSource commandSource, @Nonnull final String message) {
 		if (commandSource == null) {
 			WarpDrive.logger.error(String.format("Unable to send message to NULL sender: %s",
 			                                     message));
@@ -457,11 +457,47 @@ public class Commons {
 	}
 	
 	@Nonnull
+	public static String format(final DimensionType dimensionType) {
+		if (dimensionType == null) {
+			return "~NULL~";
+		}
+		
+		String saveFolder;
+		try {
+			saveFolder = dimensionType.directory;
+		} catch (final Exception exception) {
+			exception.printStackTrace(WarpDrive.printStreamError);
+			saveFolder = "<Exception " + dimensionType.getRegistryName() + ">";
+		}
+		if (saveFolder == null || saveFolder.isEmpty()) {
+			final ResourceLocation dimension = dimensionType.getRegistryName();
+			if ( dimension == null
+			  || dimension.toString().equals("minecraft:overworld") ) {
+				assert false;
+				return String.format("~invalid dimension %s with id %d~", dimensionType, dimensionType.getId());
+			}
+			return dimension.toString();
+		}
+		return saveFolder;
+	}
+	
+	public static String format(final DimensionType dimensionType, @Nonnull final BlockPos blockPos) {
+		return format(dimensionType, blockPos.getX(), blockPos.getY(), blockPos.getZ());
+	}
+	
+	public static String format(final DimensionType dimensionType, final int x, final int y, final int z) {
+		return String.format("@ %s (%d %d %d)",
+		                     format(dimensionType),
+		                     x, y, z );
+	}
+	
+	@Nonnull
 	public static String format(final IWorld world) {
 		if (world == null) {
 			return "~NULL~";
 		}
 		
+		// TODO MC1.15 format world only through the DimensionType?
 		// world.getProviderName() is MultiplayerChunkCache on client, ServerChunkCache on local server, (undefined method) on dedicated server
 		
 		// world.provider.getSaveFolder() is null for the Overworld, other dimensions shall define it
@@ -473,11 +509,10 @@ public class Commons {
 			saveFolder = "<Exception " + world.getDimension().getType().getRegistryName() + ">";
 		}
 		if (saveFolder == null || saveFolder.isEmpty()) {
-			final ResourceLocation dimension = world.getDimension().getType().getRegistryName();
-			if ( dimension == null
-			  || dimension.toString().equals("minecraft:overworld") ) {
+			final ResourceLocation registryName = world.getDimension().getType().getRegistryName();
+			if (registryName == null) {
 				assert false;
-				return String.format("~invalid dimension %d~", dimension);
+				return String.format("~invalid dimension %s~", registryName);
 			}
 			
 			// world.getWorldInfo().getWorldName() is MpServer on client side, or the server.properties' world name on server side
@@ -562,10 +597,10 @@ public class Commons {
 		final Block block = blockState.getBlock();
 		try {
 			final ItemStack itemStack = block.getPickBlock(blockState, null, world, blockPos, null);
-			return new WarpDriveText(null, itemStack.getTranslationKey() + ".name").getFormattedText();
+			return new WarpDriveText(null, itemStack.getTranslationKey()).getFormattedText();
 		} catch (final Exception exception1) {
 			try {
-				return new WarpDriveText(null, block.getTranslationKey() + ".name").getFormattedText();
+				return new WarpDriveText(null, block.getTranslationKey()).getFormattedText();
 			} catch (final Exception exception2) {
 				return blockState.toString();
 			}
@@ -923,7 +958,7 @@ public class Commons {
 	
 	public static boolean isSafeThread() {
 		final String name = Thread.currentThread().getName();
-		return name.equals("Server thread") || name.equals("Client thread");
+		return name.equals("Server thread") || name.equals("Client thread") || name.equals("Render thread");
 	}
 	
 	public static boolean isClientThread() {
@@ -1065,30 +1100,6 @@ public class Commons {
 	@Nonnull
 	public static String writeBlockStateToString(@Nonnull final BlockState blockState) {
 		return BlockState.serialize(JsonOps.INSTANCE, blockState).getValue().toString();
-	}
-	
-	@Nonnull
-	public static ServerPlayerEntity[] getOnlinePlayerByNameOrSelector(@Nonnull final CommandSource commandSource, final String playerNameOrSelector) {
-		final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
-		assert server != null;
-		final List<ServerPlayerEntity> onlinePlayers = server.getPlayerList().getPlayers();
-		for (final ServerPlayerEntity onlinePlayer : onlinePlayers) {
-			if (onlinePlayer.getName().getUnformattedComponentText().equalsIgnoreCase(playerNameOrSelector)) {
-				return new ServerPlayerEntity[] { onlinePlayer };
-			}
-		}
-		
-		try {
-			final List<ServerPlayerEntity> entityPlayerMPs_found = null; // TODO 1.15 commands EntitySelector.selectPlayers(commandSource, playerNameOrSelector, ServerPlayerEntity.class);
-			if (!entityPlayerMPs_found.isEmpty()) {
-				return entityPlayerMPs_found.toArray(new ServerPlayerEntity[0]);
-			}
-		} catch (final CommandException exception) {
-			WarpDrive.logger.error(String.format("Exception from %s with selector %s",
-			                                     commandSource, playerNameOrSelector));
-		}
-		
-		return null;
 	}
 	
 	@Nullable

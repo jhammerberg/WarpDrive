@@ -347,7 +347,7 @@ public class JumpBlock {
 				
 				TileEntity newTileEntity = null;
 				boolean isForgeMultipart = false;
-				/* MC1.15 compatibility classes
+				/* TODO MC1.15 compatibility classes
 				if ( WarpDriveConfig.isForgeMultipartLoaded
 				  && nbtToDeploy.contains("id")
 				  && nbtToDeploy.getString("id").equals("savedMultipart") ) {
@@ -372,7 +372,7 @@ public class JumpBlock {
 				
 				if (newTileEntity != null) {
 					worldTarget.setTileEntity(target, newTileEntity);
-					/* MC1.15 compatibility classes
+					/* TODO MC1.15 compatibility classes
 					if (isForgeMultipart) {
 						CompatForgeMultipart.methodTileMultipart_onChunkLoad.invoke(newTileEntity);
 						CompatForgeMultipart.methodMultipartHelper_sendDescPacket.invoke(null, worldTarget, newTileEntity);

@@ -1,0 +1,6 @@
+{
+    "parent": "warpdrive:block/force_field/projector_full",
+    "textures": {
+		"side": "warpdrive:block/force_field/projector.basic-side"
+    }
+}

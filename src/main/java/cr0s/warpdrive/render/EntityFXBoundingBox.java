@@ -120,42 +120,37 @@ public class EntityFXBoundingBox extends Particle {
 		bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX_LIGHTMAP);
 		
 		// x planes
-		vertexBuffer.pos(xMin, yMin, zMin).tex(uv_yMin, uv_zMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMin, yMin, zMax).tex(uv_yMin, uv_zMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMin, yMax, zMax).tex(uv_yMax, uv_zMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMin, yMax, zMin).tex(uv_yMax, uv_zMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		tessellator.draw();
+		vertexBuffer.pos(xMin, yMin, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_yMin, uv_zMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMin, yMin, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_yMin, uv_zMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMin, yMax, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_yMax, uv_zMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMin, yMax, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_yMax, uv_zMin).lightmap(brightnessHigh, brightnessLow).endVertex();
 		
-		vertexBuffer.pos(xMax, yMin, zMin).tex( uv_yMin, uv_zMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMin, zMax).tex( uv_yMin, uv_zMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMax, zMax).tex( uv_yMax, uv_zMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMax, zMin).tex( uv_yMax, uv_zMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		tessellator.draw();
+		vertexBuffer.pos(xMax, yMin, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_yMin, uv_zMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMin, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_yMin, uv_zMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMax, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_yMax, uv_zMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMax, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_yMax, uv_zMin).lightmap(brightnessHigh, brightnessLow).endVertex();
 		
 		// y planes
-		vertexBuffer.pos(xMin, yMin, zMin).tex(uv_xMin, uv_zMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMin, yMin, zMax).tex(uv_xMin, uv_zMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMin, zMax).tex(uv_xMax, uv_zMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMin, zMin).tex(uv_xMax, uv_zMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		tessellator.draw();
+		vertexBuffer.pos(xMin, yMin, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMin, uv_zMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMin, yMin, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMin, uv_zMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMin, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMax, uv_zMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMin, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMax, uv_zMin).lightmap(brightnessHigh, brightnessLow).endVertex();
 		
-		vertexBuffer.pos(xMin, yMax, zMin).tex(uv_xMin, uv_zMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMin, yMax, zMax).tex(uv_xMin, uv_zMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMax, zMax).tex(uv_xMax, uv_zMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMax, zMin).tex(uv_xMax, uv_zMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		tessellator.draw();
+		vertexBuffer.pos(xMin, yMax, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMin, uv_zMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMin, yMax, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMin, uv_zMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMax, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMax, uv_zMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMax, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMax, uv_zMin).lightmap(brightnessHigh, brightnessLow).endVertex();
 		
 		// z planes
-		vertexBuffer.pos(xMin, yMin, zMin).tex(uv_xMin, uv_yMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMin, yMax, zMin).tex(uv_xMin, uv_yMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMax, zMin).tex(uv_xMax, uv_yMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMin, zMin).tex(uv_xMax, uv_yMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		tessellator.draw();
+		vertexBuffer.pos(xMin, yMin, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMin, uv_yMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMin, yMax, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMin, uv_yMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMax, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMax, uv_yMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMin, zMin).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMax, uv_yMin).lightmap(brightnessHigh, brightnessLow).endVertex();
 		
-		vertexBuffer.pos(xMin, yMin, zMax).tex(uv_xMin, uv_yMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMin, yMax, zMax).tex(uv_xMin, uv_yMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMax, zMax).tex(uv_xMax, uv_yMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-		vertexBuffer.pos(xMax, yMin, zMax).tex(uv_xMax, uv_yMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMin, yMin, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMin, uv_yMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMin, yMax, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMin, uv_yMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMax, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMax, uv_yMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+		vertexBuffer.pos(xMax, yMin, zMax).color(particleRed, particleGreen, particleBlue, alpha).tex(uv_xMax, uv_yMin).lightmap(brightnessHigh, brightnessLow).endVertex();
 		tessellator.draw();
 		
 		RenderSystem.depthMask(true);

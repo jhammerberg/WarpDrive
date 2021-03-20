@@ -15,7 +15,6 @@ import java.util.List;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.shapes.ISelectionContext;
@@ -29,25 +28,25 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class BlockSiren extends BlockAbstractHorizontalSpinningContainer {
 	
-	private static final VoxelShape SHAPE_INDUSTRIAL_DOWN_NORTH  = makeCuboidShape(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_DOWN_SOUTH  = makeCuboidShape(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_DOWN_WEST   = makeCuboidShape(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_DOWN_EAST   = makeCuboidShape(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_UP_NORTH    = makeCuboidShape(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_UP_SOUTH    = makeCuboidShape(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_UP_WEST     = makeCuboidShape(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_UP_EAST     = makeCuboidShape(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_NORTH       = makeCuboidShape(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_SOUTH       = makeCuboidShape(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_WEST        = makeCuboidShape(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
-	private static final VoxelShape SHAPE_INDUSTRIAL_EAST        = makeCuboidShape(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_DOWN_NORTH  = VoxelShapes.create(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_DOWN_SOUTH  = VoxelShapes.create(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_DOWN_WEST   = VoxelShapes.create(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_DOWN_EAST   = VoxelShapes.create(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_UP_NORTH    = VoxelShapes.create(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_UP_SOUTH    = VoxelShapes.create(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_UP_WEST     = VoxelShapes.create(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_UP_EAST     = VoxelShapes.create(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_NORTH       = VoxelShapes.create(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_SOUTH       = VoxelShapes.create(0.0000D, 0.1875D, 0.1875D, 1.0000D, 0.8125D, 0.8125D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_WEST        = VoxelShapes.create(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
+	private static final VoxelShape SHAPE_INDUSTRIAL_EAST        = VoxelShapes.create(0.1875D, 0.1875D, 0.0000D, 0.8125D, 0.8125D, 1.0000D);
 	
-	private static final VoxelShape SHAPE_MILITARY_DOWN    = makeCuboidShape(0.0000D, 0.3125D, 0.0000D, 1.0000D, 0.6875D, 1.0000D);
-	private static final VoxelShape SHAPE_MILITARY_UP      = makeCuboidShape(0.0000D, 0.3125D, 0.0000D, 1.0000D, 0.6875D, 1.0000D);
-	private static final VoxelShape SHAPE_MILITARY_NORTH   = makeCuboidShape(0.0000D, 0.3125D, 0.4375D, 1.0000D, 0.6875D, 0.8125D);
-	private static final VoxelShape SHAPE_MILITARY_SOUTH   = makeCuboidShape(0.0000D, 0.3125D, 0.1875D, 1.0000D, 0.6875D, 0.5625D);
-	private static final VoxelShape SHAPE_MILITARY_WEST    = makeCuboidShape(0.4375D, 0.3125D, 0.0000D, 0.8125D, 0.6875D, 1.0000D);
-	private static final VoxelShape SHAPE_MILITARY_EAST    = makeCuboidShape(0.1875D, 0.3125D, 0.0000D, 0.5625D, 0.6875D, 1.0000D);
+	private static final VoxelShape SHAPE_MILITARY_DOWN    = VoxelShapes.create(0.0000D, 0.3125D, 0.0000D, 1.0000D, 0.6875D, 1.0000D);
+	private static final VoxelShape SHAPE_MILITARY_UP      = VoxelShapes.create(0.0000D, 0.3125D, 0.0000D, 1.0000D, 0.6875D, 1.0000D);
+	private static final VoxelShape SHAPE_MILITARY_NORTH   = VoxelShapes.create(0.0000D, 0.3125D, 0.4375D, 1.0000D, 0.6875D, 0.8125D);
+	private static final VoxelShape SHAPE_MILITARY_SOUTH   = VoxelShapes.create(0.0000D, 0.3125D, 0.1875D, 1.0000D, 0.6875D, 0.5625D);
+	private static final VoxelShape SHAPE_MILITARY_WEST    = VoxelShapes.create(0.4375D, 0.3125D, 0.0000D, 0.8125D, 0.6875D, 1.0000D);
+	private static final VoxelShape SHAPE_MILITARY_EAST    = VoxelShapes.create(0.1875D, 0.3125D, 0.0000D, 0.5625D, 0.6875D, 1.0000D);
 	private static final VoxelShape SHAPE_FULL             = VoxelShapes.fullCube();
 	
 	private final boolean isIndustrial;
@@ -58,12 +57,6 @@ public class BlockSiren extends BlockAbstractHorizontalSpinningContainer {
 		this.isIndustrial = isIndustrial;
 	}
 	
-	@Nonnull
-	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntitySiren();
-	}
-	
 	public boolean getIsIndustrial() {
 		return isIndustrial;
 	}
@@ -71,8 +64,8 @@ public class BlockSiren extends BlockAbstractHorizontalSpinningContainer {
 	@SuppressWarnings("deprecation")
 	@Nonnull
 	@Override
-	public VoxelShape getCollisionShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
-	                                    @Nonnull final ISelectionContext selectionContext) {
+	public VoxelShape getShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
+	                           @Nonnull final ISelectionContext selectionContext) {
 		if (isIndustrial) {
 			switch (blockState.get(BlockProperties.HORIZONTAL_SPINNING)) {
 			case DOWN_NORTH : return SHAPE_INDUSTRIAL_DOWN_NORTH;

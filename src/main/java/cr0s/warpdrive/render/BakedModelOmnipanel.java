@@ -12,16 +12,21 @@ import java.util.Random;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.model.BakedQuad;
+import net.minecraft.client.renderer.model.ItemOverrideList;
 import net.minecraft.util.Direction;
 
 import net.minecraftforge.client.model.data.IModelData;
 
 public class BakedModelOmnipanel extends BakedModelAbstractBase {
 	
-	private static final List<BakedQuad> EMPTY = new ArrayList<>(0);
-	
 	public BakedModelOmnipanel() {
 		super();
+	}
+	
+	@Nonnull
+	@Override
+	public ItemOverrideList getOverrides() {
+		return itemBlockOverrideList;
 	}
 	
 	@Nonnull
@@ -67,7 +72,7 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 		}
 		
 		// get color
-		final int color = Minecraft.getInstance().getBlockColors().getColor(blockStateActual, null, null, tintIndex);
+		final int color = Minecraft.getInstance().getBlockColors().getColor(blockStateActual, null, null, tintIndexOriginal);
 		
 		// pre-compute coordinates
 		final float dX_min = 0.0F;
@@ -83,15 +88,15 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 		final float dZ_neg = BlockAbstractOmnipanel.CENTER_MIN;
 		final float dZ_pos = BlockAbstractOmnipanel.CENTER_MAX;
 		
-		final float dU_min = spriteBlock.getMinU();
-		final float dU_neg = spriteBlock.getInterpolatedU(7.0F);
-		final float dU_pos = spriteBlock.getInterpolatedU(9.0F);
-		final float dU_max = spriteBlock.getMaxU();
+		final float dU_min = spriteOriginal.getMinU();
+		final float dU_neg = spriteOriginal.getInterpolatedU(7.0F);
+		final float dU_pos = spriteOriginal.getInterpolatedU(9.0F);
+		final float dU_max = spriteOriginal.getMaxU();
 		
-		final float dV_min = spriteBlock.getMinV();
-		final float dV_neg = spriteBlock.getInterpolatedV(7.0F);
-		final float dV_pos = spriteBlock.getInterpolatedV(9.0F);
-		final float dV_max = spriteBlock.getMaxV();
+		final float dV_min = spriteOriginal.getMinV();
+		final float dV_neg = spriteOriginal.getInterpolatedV(7.0F);
+		final float dV_pos = spriteOriginal.getInterpolatedV(9.0F);
+		final float dV_max = spriteOriginal.getMaxV();
 		
 		// get direct connections
 		final boolean canConnectY_neg = blockStateActual.get(BlockAbstractOmnipanel.CAN_CONNECT_Y_NEG);
@@ -122,27 +127,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 		
 		{// z plane
 			if (hasXnYn) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_neg, dZ_neg, dU_neg, dV_pos,
 				             dX_neg, dY_min, dZ_neg, dU_neg, dV_max,
 				             dX_min, dY_min, dZ_neg, dU_min, dV_max,
 				             dX_min, dY_neg, dZ_neg, dU_min, dV_pos);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_min, dY_neg, dZ_pos, dU_min, dV_pos,
 				             dX_min, dY_min, dZ_pos, dU_min, dV_max,
 				             dX_neg, dY_min, dZ_pos, dU_neg, dV_max,
 				             dX_neg, dY_neg, dZ_pos, dU_neg, dV_pos);
 			} else {
 				if (canConnectX_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_neg, dZ_neg, dU_neg, dV_pos,
 					             dX_neg, dY_neg, dZ_pos, dU_neg, dV_neg,
 					             dX_min, dY_neg, dZ_pos, dU_min, dV_neg,
 					             dX_min, dY_neg, dZ_neg, dU_min, dV_pos);
 				}
 				if (canConnectY_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_neg, dZ_neg, dU_neg, dV_pos,
 					             dX_neg, dY_min, dZ_neg, dU_neg, dV_max,
 					             dX_neg, dY_min, dZ_pos, dU_pos, dV_max,
@@ -151,27 +156,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 			}
 			
 			if (hasXpYn) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_max, dY_neg, dZ_neg, dU_max, dV_pos,
 				             dX_max, dY_min, dZ_neg, dU_max, dV_max,
 				             dX_pos, dY_min, dZ_neg, dU_pos, dV_max,
 				             dX_pos, dY_neg, dZ_neg, dU_pos, dV_pos);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_pos, dY_neg, dZ_pos, dU_pos, dV_pos,
 				             dX_pos, dY_min, dZ_pos, dU_pos, dV_max,
 				             dX_max, dY_min, dZ_pos, dU_max, dV_max,
 				             dX_max, dY_neg, dZ_pos, dU_max, dV_pos);
 			} else {
 				if (canConnectX_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_max, dY_neg, dZ_neg, dU_max, dV_pos,
 					             dX_max, dY_neg, dZ_pos, dU_max, dV_neg,
 					             dX_pos, dY_neg, dZ_pos, dU_pos, dV_neg,
 					             dX_pos, dY_neg, dZ_neg, dU_pos, dV_pos);
 				}
 				if (canConnectY_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_pos, dY_neg, dZ_pos, dU_pos, dV_pos,
 					             dX_pos, dY_min, dZ_pos, dU_pos, dV_max,
 					             dX_pos, dY_min, dZ_neg, dU_neg, dV_max,
@@ -180,27 +185,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 			}
 			
 			if (hasXnYp) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_max, dZ_neg, dU_neg, dV_min,
 				             dX_neg, dY_pos, dZ_neg, dU_neg, dV_neg,
 				             dX_min, dY_pos, dZ_neg, dU_min, dV_neg,
 				             dX_min, dY_max, dZ_neg, dU_min, dV_min);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_min, dY_max, dZ_pos, dU_min, dV_min,
 				             dX_min, dY_pos, dZ_pos, dU_min, dV_neg,
 				             dX_neg, dY_pos, dZ_pos, dU_neg, dV_neg,
 				             dX_neg, dY_max, dZ_pos, dU_neg, dV_min);
 			} else {
 				if (canConnectX_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_pos, dZ_pos, dU_neg, dV_neg,
 					             dX_neg, dY_pos, dZ_neg, dU_neg, dV_pos,
 					             dX_min, dY_pos, dZ_neg, dU_min, dV_pos,
 					             dX_min, dY_pos, dZ_pos, dU_min, dV_neg);
 				}
 				if (canConnectY_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_pos, dZ_pos, dU_pos, dV_neg,
 					             dX_neg, dY_max, dZ_pos, dU_pos, dV_min,
 					             dX_neg, dY_max, dZ_neg, dU_neg, dV_min,
@@ -209,27 +214,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 			}
 			
 			if (hasXpYp) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_max, dY_max, dZ_neg, dU_max, dV_min,
 				             dX_max, dY_pos, dZ_neg, dU_max, dV_neg,
 				             dX_pos, dY_pos, dZ_neg, dU_pos, dV_neg,
 				             dX_pos, dY_max, dZ_neg, dU_pos, dV_min);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_pos, dY_max, dZ_pos, dU_pos, dV_min,
 				             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 				             dX_max, dY_pos, dZ_pos, dU_max, dV_neg,
 				             dX_max, dY_max, dZ_pos, dU_max, dV_min);
 			} else {
 				if (canConnectX_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_pos, dY_pos, dZ_neg, dU_pos, dV_pos,
 					             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 					             dX_max, dY_pos, dZ_pos, dU_max, dV_neg,
 					             dX_max, dY_pos, dZ_neg, dU_max, dV_pos);
 				}
 				if (canConnectY_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_pos, dY_pos, dZ_neg, dU_neg, dV_neg,
 					             dX_pos, dY_max, dZ_neg, dU_neg, dV_min,
 					             dX_pos, dY_max, dZ_pos, dU_pos, dV_min,
@@ -240,27 +245,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 		
 		{// x plane
 			if (hasZnYn) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_neg, dZ_min, dU_min, dV_pos,
 				             dX_neg, dY_min, dZ_min, dU_min, dV_max,
 				             dX_neg, dY_min, dZ_neg, dU_neg, dV_max,
 				             dX_neg, dY_neg, dZ_neg, dU_neg, dV_pos);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_pos, dY_neg, dZ_neg, dU_neg, dV_pos,
 				             dX_pos, dY_min, dZ_neg, dU_neg, dV_max,
 				             dX_pos, dY_min, dZ_min, dU_min, dV_max,
 				             dX_pos, dY_neg, dZ_min, dU_min, dV_pos);
 			} else {
 				if (canConnectZ_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_neg, dZ_min, dU_neg, dV_max,
 					             dX_pos, dY_neg, dZ_min, dU_pos, dV_max,
 					             dX_pos, dY_neg, dZ_neg, dU_pos, dV_pos,
 					             dX_neg, dY_neg, dZ_neg, dU_neg, dV_pos);
 				}
 				if (canConnectY_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_pos, dY_neg, dZ_neg, dU_pos, dV_pos,
 					             dX_pos, dY_min, dZ_neg, dU_pos, dV_max,
 					             dX_neg, dY_min, dZ_neg, dU_neg, dV_max,
@@ -269,27 +274,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 			}
 			
 			if (hasZpYn) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_neg, dZ_pos, dU_pos, dV_pos,
 				             dX_neg, dY_min, dZ_pos, dU_pos, dV_max,
 				             dX_neg, dY_min, dZ_max, dU_max, dV_max,
 				             dX_neg, dY_neg, dZ_max, dU_max, dV_pos);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_pos, dY_neg, dZ_max, dU_max, dV_pos,
 				             dX_pos, dY_min, dZ_max, dU_max, dV_max,
 				             dX_pos, dY_min, dZ_pos, dU_pos, dV_max,
 				             dX_pos, dY_neg, dZ_pos, dU_pos, dV_pos);
 			} else {
 				if (canConnectZ_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_neg, dZ_pos, dU_neg, dV_neg,
 					             dX_pos, dY_neg, dZ_pos, dU_pos, dV_neg,
 					             dX_pos, dY_neg, dZ_max, dU_pos, dV_min,
 					             dX_neg, dY_neg, dZ_max, dU_neg, dV_min);
 				}
 				if (canConnectY_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_neg, dZ_pos, dU_neg, dV_pos,
 					             dX_neg, dY_min, dZ_pos, dU_neg, dV_max,
 					             dX_pos, dY_min, dZ_pos, dU_pos, dV_max,
@@ -298,27 +303,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 			}
 			
 			if (hasZnYp) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_max, dZ_min, dU_min, dV_min,
 				             dX_neg, dY_pos, dZ_min, dU_min, dV_neg,
 				             dX_neg, dY_pos, dZ_neg, dU_neg, dV_neg,
 				             dX_neg, dY_max, dZ_neg, dU_neg, dV_min);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_pos, dY_max, dZ_neg, dU_neg, dV_min,
 				             dX_pos, dY_pos, dZ_neg, dU_neg, dV_neg,
 				             dX_pos, dY_pos, dZ_min, dU_min, dV_neg,
 				             dX_pos, dY_max, dZ_min, dU_min, dV_min);
 			} else {
 				if (canConnectZ_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_pos, dY_pos, dZ_min, dU_pos, dV_max,
 					             dX_neg, dY_pos, dZ_min, dU_neg, dV_max,
 					             dX_neg, dY_pos, dZ_neg, dU_neg, dV_pos,
 					             dX_pos, dY_pos, dZ_neg, dU_pos, dV_pos);
 				}
 				if (canConnectY_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_pos, dZ_neg, dU_neg, dV_neg,
 					             dX_neg, dY_max, dZ_neg, dU_neg, dV_min,
 					             dX_pos, dY_max, dZ_neg, dU_pos, dV_min,
@@ -327,27 +332,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 			}
 			
 			if (hasZpYp) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_max, dZ_pos, dU_pos, dV_min,
 				             dX_neg, dY_pos, dZ_pos, dU_pos, dV_neg,
 				             dX_neg, dY_pos, dZ_max, dU_max, dV_neg,
 				             dX_neg, dY_max, dZ_max, dU_max, dV_min);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_pos, dY_max, dZ_max, dU_max, dV_min,
 				             dX_pos, dY_pos, dZ_max, dU_max, dV_neg,
 				             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 				             dX_pos, dY_max, dZ_pos, dU_pos, dV_min);
 			} else {
 				if (canConnectZ_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_pos, dZ_max, dU_neg, dV_min,
 					             dX_pos, dY_pos, dZ_max, dU_pos, dV_min,
 					             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 					             dX_neg, dY_pos, dZ_pos, dU_neg, dV_neg);
 				}
 				if (canConnectY_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 					             dX_pos, dY_max, dZ_pos, dU_pos, dV_min,
 					             dX_neg, dY_max, dZ_pos, dU_neg, dV_min,
@@ -358,27 +363,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 		
 		{// z plane
 			if (hasXnZn) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_min, dY_neg, dZ_neg, dU_min, dV_pos,
 				             dX_min, dY_neg, dZ_min, dU_min, dV_max,
 				             dX_neg, dY_neg, dZ_min, dU_neg, dV_max,
 				             dX_neg, dY_neg, dZ_neg, dU_neg, dV_pos);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_pos, dZ_neg, dU_neg, dV_pos,
 				             dX_neg, dY_pos, dZ_min, dU_neg, dV_max,
 				             dX_min, dY_pos, dZ_min, dU_min, dV_max,
 				             dX_min, dY_pos, dZ_neg, dU_min, dV_pos);
 			} else {
 				if (canConnectX_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_min, dY_neg, dZ_neg, dU_min, dV_pos,
 					             dX_min, dY_pos, dZ_neg, dU_min, dV_neg,
 					             dX_neg, dY_pos, dZ_neg, dU_neg, dV_neg,
 					             dX_neg, dY_neg, dZ_neg, dU_neg, dV_pos);
 				}
 				if (canConnectZ_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_pos, dZ_neg, dU_neg, dV_neg,
 					             dX_neg, dY_pos, dZ_min, dU_min, dV_neg,
 					             dX_neg, dY_neg, dZ_min, dU_min, dV_pos,
@@ -387,27 +392,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 			}
 			
 			if (hasXpZn) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_pos, dY_neg, dZ_neg, dU_pos, dV_pos,
 				             dX_pos, dY_neg, dZ_min, dU_pos, dV_max,
 				             dX_max, dY_neg, dZ_min, dU_max, dV_max,
 				             dX_max, dY_neg, dZ_neg, dU_max, dV_pos);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_max, dY_pos, dZ_neg, dU_max, dV_pos,
 				             dX_max, dY_pos, dZ_min, dU_max, dV_max,
 				             dX_pos, dY_pos, dZ_min, dU_pos, dV_max,
 				             dX_pos, dY_pos, dZ_neg, dU_pos, dV_pos);
 			} else {
 				if (canConnectX_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_pos, dY_neg, dZ_neg, dU_pos, dV_pos,
 					             dX_pos, dY_pos, dZ_neg, dU_pos, dV_neg,
 					             dX_max, dY_pos, dZ_neg, dU_max, dV_neg,
 					             dX_max, dY_neg, dZ_neg, dU_max, dV_pos);
 				}
 				if (canConnectZ_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_pos, dY_neg, dZ_neg, dU_neg, dV_pos,
 					             dX_pos, dY_neg, dZ_min, dU_min, dV_pos,
 					             dX_pos, dY_pos, dZ_min, dU_min, dV_neg,
@@ -416,27 +421,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 			}
 			
 			if (hasXnZp) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_min, dY_neg, dZ_max, dU_min, dV_min,
 				             dX_min, dY_neg, dZ_pos, dU_min, dV_neg,
 				             dX_neg, dY_neg, dZ_pos, dU_neg, dV_neg,
 				             dX_neg, dY_neg, dZ_max, dU_neg, dV_min);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_pos, dZ_max, dU_neg, dV_min,
 				             dX_neg, dY_pos, dZ_pos, dU_neg, dV_neg,
 				             dX_min, dY_pos, dZ_pos, dU_min, dV_neg,
 				             dX_min, dY_pos, dZ_max, dU_min, dV_min);
 			} else {
 				if (canConnectX_neg) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_min, dY_pos, dZ_pos, dU_min, dV_neg,
 					             dX_min, dY_neg, dZ_pos, dU_min, dV_pos,
 					             dX_neg, dY_neg, dZ_pos, dU_neg, dV_pos,
 					             dX_neg, dY_pos, dZ_pos, dU_neg, dV_neg);
 				}
 				if (canConnectZ_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_neg, dY_neg, dZ_pos, dU_pos, dV_pos,
 					             dX_neg, dY_neg, dZ_max, dU_max, dV_pos,
 					             dX_neg, dY_pos, dZ_max, dU_max, dV_neg,
@@ -445,27 +450,27 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 			}
 			
 			if (hasXpZp) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_pos, dY_neg, dZ_max, dU_pos, dV_min,
 				             dX_pos, dY_neg, dZ_pos, dU_pos, dV_neg,
 				             dX_max, dY_neg, dZ_pos, dU_max, dV_neg,
 				             dX_max, dY_neg, dZ_max, dU_max, dV_min);
 				
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_max, dY_pos, dZ_max, dU_max, dV_min,
 				             dX_max, dY_pos, dZ_pos, dU_max, dV_neg,
 				             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 				             dX_pos, dY_pos, dZ_max, dU_pos, dV_min);
 			} else {
 				if (canConnectX_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_max, dY_neg, dZ_pos, dU_max, dV_pos,
 					             dX_max, dY_pos, dZ_pos, dU_max, dV_neg,
 					             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 					             dX_pos, dY_neg, dZ_pos, dU_pos, dV_pos);
 				}
 				if (canConnectZ_pos) {
-					addBakedQuad(quads, spriteBlock, color,
+					addBakedQuad(quads, spriteOriginal, color,
 					             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 					             dX_pos, dY_pos, dZ_max, dU_max, dV_neg,
 					             dX_pos, dY_neg, dZ_max, dU_max, dV_pos,
@@ -476,114 +481,114 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 		
 		if (canConnectNone) {
 			// x min
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_min, dY_max, dZ_neg, dU_neg, dV_min,
 			             dX_min, dY_min, dZ_neg, dU_neg, dV_max,
 			             dX_min, dY_min, dZ_pos, dU_pos, dV_max,
 			             dX_min, dY_max, dZ_pos, dU_pos, dV_min);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_min, dY_pos, dZ_max, dU_max, dV_neg,
 			             dX_min, dY_pos, dZ_pos, dU_pos, dV_neg,
 			             dX_min, dY_neg, dZ_pos, dU_pos, dV_pos,
 			             dX_min, dY_neg, dZ_max, dU_max, dV_pos);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_min, dY_pos, dZ_neg, dU_neg, dV_neg,
 			             dX_min, dY_pos, dZ_min, dU_min, dV_neg,
 			             dX_min, dY_neg, dZ_min, dU_min, dV_pos,
 			             dX_min, dY_neg, dZ_neg, dU_neg, dV_pos);
 			
 			// x max
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_max, dY_max, dZ_pos, dU_pos, dV_min,
 			             dX_max, dY_min, dZ_pos, dU_pos, dV_max,
 			             dX_max, dY_min, dZ_neg, dU_neg, dV_max,
 			             dX_max, dY_max, dZ_neg, dU_neg, dV_min);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_max, dY_neg, dZ_max, dU_max, dV_pos,
 			             dX_max, dY_neg, dZ_pos, dU_pos, dV_pos,
 			             dX_max, dY_pos, dZ_pos, dU_pos, dV_neg,
 			             dX_max, dY_pos, dZ_max, dU_max, dV_neg);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_max, dY_neg, dZ_neg, dU_neg, dV_pos,
 			             dX_max, dY_neg, dZ_min, dU_min, dV_pos,
 			             dX_max, dY_pos, dZ_min, dU_min, dV_neg,
 			             dX_max, dY_pos, dZ_neg, dU_neg, dV_neg);
 			
 			// z min
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_pos, dY_max, dZ_min, dU_pos, dV_min,
 			             dX_pos, dY_min, dZ_min, dU_pos, dV_max,
 			             dX_neg, dY_min, dZ_min, dU_neg, dV_max,
 			             dX_neg, dY_max, dZ_min, dU_neg, dV_min);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_neg, dY_pos, dZ_min, dU_neg, dV_neg,
 			             dX_neg, dY_neg, dZ_min, dU_neg, dV_pos,
 			             dX_min, dY_neg, dZ_min, dU_min, dV_pos,
 			             dX_min, dY_pos, dZ_min, dU_min, dV_neg);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_max, dY_pos, dZ_min, dU_max, dV_neg,
 			             dX_max, dY_neg, dZ_min, dU_max, dV_pos,
 			             dX_pos, dY_neg, dZ_min, dU_pos, dV_pos,
 			             dX_pos, dY_pos, dZ_min, dU_pos, dV_neg);
 			
 			// z max
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_neg, dY_max, dZ_max, dU_neg, dV_min,
 			             dX_neg, dY_min, dZ_max, dU_neg, dV_max,
 			             dX_pos, dY_min, dZ_max, dU_pos, dV_max,
 			             dX_pos, dY_max, dZ_max, dU_pos, dV_min);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_min, dY_pos, dZ_max, dU_min, dV_neg,
 			             dX_min, dY_neg, dZ_max, dU_min, dV_pos,
 			             dX_neg, dY_neg, dZ_max, dU_neg, dV_pos,
 			             dX_neg, dY_pos, dZ_max, dU_neg, dV_neg);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_pos, dY_pos, dZ_max, dU_pos, dV_neg,
 			             dX_pos, dY_neg, dZ_max, dU_pos, dV_pos,
 			             dX_max, dY_neg, dZ_max, dU_max, dV_pos,
 			             dX_max, dY_pos, dZ_max, dU_max, dV_neg);
 			
 			// y min
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_neg, dY_min, dZ_max, dU_neg, dV_min,
 			             dX_neg, dY_min, dZ_min, dU_neg, dV_max,
 			             dX_pos, dY_min, dZ_min, dU_pos, dV_max,
 			             dX_pos, dY_min, dZ_max, dU_pos, dV_min);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_min, dY_min, dZ_pos, dU_min, dV_neg,
 			             dX_min, dY_min, dZ_neg, dU_min, dV_pos,
 			             dX_neg, dY_min, dZ_neg, dU_neg, dV_pos,
 			             dX_neg, dY_min, dZ_pos, dU_neg, dV_neg);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_pos, dY_min, dZ_pos, dU_pos, dV_neg,
 			             dX_pos, dY_min, dZ_neg, dU_pos, dV_pos,
 			             dX_max, dY_min, dZ_neg, dU_max, dV_pos,
 			             dX_max, dY_min, dZ_pos, dU_max, dV_neg);
 			
 			// y max
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_pos, dY_max, dZ_max, dU_pos, dV_min,
 			             dX_pos, dY_max, dZ_min, dU_pos, dV_max,
 			             dX_neg, dY_max, dZ_min, dU_neg, dV_max,
 			             dX_neg, dY_max, dZ_max, dU_neg, dV_min);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_neg, dY_max, dZ_pos, dU_neg, dV_neg,
 			             dX_neg, dY_max, dZ_neg, dU_neg, dV_pos,
 			             dX_min, dY_max, dZ_neg, dU_min, dV_pos,
 			             dX_min, dY_max, dZ_pos, dU_min, dV_neg);
 			
-			addBakedQuad(quads, spriteBlock, color,
+			addBakedQuad(quads, spriteOriginal, color,
 			             dX_max, dY_max, dZ_pos, dU_max, dV_neg,
 			             dX_max, dY_max, dZ_neg, dU_max, dV_pos,
 			             dX_pos, dY_max, dZ_neg, dU_pos, dV_pos,
@@ -592,42 +597,42 @@ public class BakedModelOmnipanel extends BakedModelAbstractBase {
 			
 			// center cube
 			if (!canConnectY_neg) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_neg, dZ_neg, dU_neg, dV_pos,
 				             dX_pos, dY_neg, dZ_neg, dU_neg, dV_neg,
 				             dX_pos, dY_neg, dZ_pos, dU_pos, dV_neg,
 				             dX_neg, dY_neg, dZ_pos, dU_pos, dV_pos);
 			}
 			if (!canConnectY_pos) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_pos, dZ_pos, dU_pos, dV_pos,
 				             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 				             dX_pos, dY_pos, dZ_neg, dU_neg, dV_neg,
 				             dX_neg, dY_pos, dZ_neg, dU_neg, dV_pos);
 			}
 			if (!canConnectZ_neg) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_neg, dZ_neg, dU_neg, dV_pos,
 				             dX_neg, dY_pos, dZ_neg, dU_neg, dV_neg,
 				             dX_pos, dY_pos, dZ_neg, dU_pos, dV_neg,
 				             dX_pos, dY_neg, dZ_neg, dU_pos, dV_pos);
 			}
 			if (!canConnectZ_pos) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_pos, dY_neg, dZ_pos, dU_pos, dV_pos,
 				             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 				             dX_neg, dY_pos, dZ_pos, dU_neg, dV_neg,
 				             dX_neg, dY_neg, dZ_pos, dU_neg, dV_pos);
 			}
 			if (!canConnectX_neg) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_neg, dY_neg, dZ_neg, dU_neg, dV_pos,
 				             dX_neg, dY_neg, dZ_pos, dU_neg, dV_neg,
 				             dX_neg, dY_pos, dZ_pos, dU_pos, dV_neg,
 				             dX_neg, dY_pos, dZ_neg, dU_pos, dV_pos);
 			}
 			if (!canConnectX_pos) {
-				addBakedQuad(quads, spriteBlock, color,
+				addBakedQuad(quads, spriteOriginal, color,
 				             dX_pos, dY_pos, dZ_neg, dU_pos, dV_pos,
 				             dX_pos, dY_pos, dZ_pos, dU_pos, dV_neg,
 				             dX_pos, dY_neg, dZ_pos, dU_neg, dV_neg,

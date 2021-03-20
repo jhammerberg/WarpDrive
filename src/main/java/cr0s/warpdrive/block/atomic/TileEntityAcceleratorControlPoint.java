@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.atomic;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IControlChannel;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.block.TileEntityAbstractMachine;
@@ -13,13 +14,10 @@ import li.cil.oc.api.machine.Callback;
 import li.cil.oc.api.machine.Context;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 
 import javax.annotation.Nonnull;
 
 public class TileEntityAcceleratorControlPoint extends TileEntityAbstractMachine implements IControlChannel {
-	
-	public static TileEntityType<TileEntityAcceleratorControlPoint> TYPE;
 	
 	// persistent properties
 	private int controlChannel = -1;
@@ -28,11 +26,8 @@ public class TileEntityAcceleratorControlPoint extends TileEntityAbstractMachine
 	private static final int UPDATE_INTERVAL_TICKS = 20;
 	private int updateTicks;
 	
-	public TileEntityAcceleratorControlPoint() {
-		this(TYPE);
-	}
-	public TileEntityAcceleratorControlPoint(@Nonnull final TileEntityType<? extends TileEntityAcceleratorControlPoint> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityAcceleratorControlPoint(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveAcceleratorControlPoint";
 		addMethods(new String[] {

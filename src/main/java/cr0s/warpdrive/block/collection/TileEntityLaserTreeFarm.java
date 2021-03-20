@@ -3,6 +3,7 @@ package cr0s.warpdrive.block.collection;
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.ExceptionChunkNotLoaded;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -38,7 +39,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.Hand;
 import net.minecraft.util.SoundCategory;
@@ -51,8 +51,6 @@ import net.minecraft.world.IWorldReader;
 import net.minecraftforge.common.IPlantable;
 
 public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
-	
-	public static TileEntityType<TileEntityLaserTreeFarm> TYPE;
 	
 	// persistent properties
 	private int radiusX_requested = WarpDriveConfig.TREE_FARM_totalMaxRadius;
@@ -91,8 +89,8 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 	private ArrayList<BlockStatePos> blockPosValuables = new ArrayList<>(0);
 	private int indexValuable = 0;
 	
-	public TileEntityLaserTreeFarm() {
-		super(TYPE);
+	public TileEntityLaserTreeFarm(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		laserOutputSide = Direction.UP;
 		peripheralName = "warpdriveLaserTreeFarm";

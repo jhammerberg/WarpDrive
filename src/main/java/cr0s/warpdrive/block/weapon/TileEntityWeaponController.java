@@ -1,19 +1,17 @@
 package cr0s.warpdrive.block.weapon;
 
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.block.TileEntityAbstractInterfaced;
 
 import javax.annotation.Nonnull;
 import java.util.Collections;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 
 public class TileEntityWeaponController extends TileEntityAbstractInterfaced {
 	
-	public static TileEntityType<TileEntityWeaponController> TYPE;
-	
-	public TileEntityWeaponController() {
-		super(TYPE);
+	public TileEntityWeaponController(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveWeaponController";
 		CC_scripts = Collections.singletonList("startup");

@@ -4,8 +4,10 @@ import cr0s.warpdrive.WarpDrive;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.Optional;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -13,8 +15,6 @@ import net.minecraft.state.IProperty;
 import net.minecraft.util.ResourceLocation;
 
 import net.minecraftforge.registries.ForgeRegistries;
-
-import com.google.common.base.Optional;
 
 // note: this is a crude workaround until Forge data fixer gets a proper documentation
 public class WarpDriveDataFixer {
@@ -35,8 +35,8 @@ public class WarpDriveDataFixer {
 	// public static HashMap<String, Item> ITEMS = null;
 	// public static HashMap<String, ItemStack> ITEMSTACKS = null;
 	
-	public static void loadConfig(final Configuration config) {
-		
+	public static void loadConfig(final File config) {
+		/* TODO MC1.15 DataFixers
 		// Block data fixer
 		{
 			config.addCustomCategoryComment("blocks", "Use this section to convert registry name for blocks.");
@@ -197,10 +197,10 @@ public class WarpDriveDataFixer {
 			config.get("blocks", "warpdrive:hull.superior.stairs_yellow"        , "WarpDrive:blockHull3_stairs_yellow").getString();
 			config.get("blocks", "warpdrive:hull.superior.tiled"                , "WarpDrive:blockHull3_tiled").getString();
 			config.get("blocks", "warpdrive:ic2_reactor_laser_cooler"           , "WarpDrive:blockIC2reactorLaserMonitor WarpDrive:reactorMonitor").getString();
-			config.get("blocks", "warpdrive:iridium_block"                      , "WarpDrive:blockIridium WarpDrive:iridiumBlock").getString();
-			config.get("blocks", "warpdrive:lamp_bubble"                        , "").getString();
-			config.get("blocks", "warpdrive:lamp_flat"                          , "").getString();
-			config.get("blocks", "warpdrive:lamp_long"                          , "").getString();
+			config.get("blocks", "warpdrive:hull.iridium_block"                 , "WarpDrive:blockIridium WarpDrive:iridiumBlock").getString();
+			config.get("blocks", "warpdrive:decoration.lamp_bubble"             , "").getString();
+			config.get("blocks", "warpdrive:decoration.lamp_flat"               , "").getString();
+			config.get("blocks", "warpdrive:decoration.lamp_long"               , "").getString();
 			config.get("blocks", "warpdrive:laser"                              , "WarpDrive:blockLaser WarpDrive:laserBlock").getString();
 			config.get("blocks", "warpdrive:laser_camera"                       , "WarpDrive:blockLaserCamera WarpDrive:laserCamBlock").getString();
 			config.get("blocks", "warpdrive:laser_medium.advanced"              , "").getString();
@@ -353,7 +353,7 @@ public class WarpDriveDataFixer {
 			}
 			
 			// then check if the block exists in the game
-			blockEntry = ForgeRegistries.BLOCKS.getValue(nameBlock);
+			blockEntry = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(nameBlock));
 			if (blockEntry == null) {
 				WarpDrive.logger.info(String.format("Ignoring missing in-game block %s in %s",
 				                                    nameBlock, nameFull ));
@@ -361,13 +361,7 @@ public class WarpDriveDataFixer {
 			}
 			
 			// finally build the blockstate itself
-			try {
-				blockStateEntry = blockEntry.getStateFromMeta(intMetadata);
-			} catch (final Exception exception) {
-				WarpDrive.logger.info(String.format("Using default state due to exception when fixing block %s in %s",
-				                                    nameBlock, nameFull ));
-				blockStateEntry = blockEntry.getDefaultState();
-			}
+			blockStateEntry = blockEntry.getDefaultState();
 			
 		} else if (indexBracket > 0) {
 			// check closing bracket
@@ -393,7 +387,7 @@ public class WarpDriveDataFixer {
 			}
 			
 			// then check if the block exists in the game
-			blockEntry = ForgeRegistries.BLOCKS.getValue(nameBlock);
+			blockEntry = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(nameBlock));
 			if (blockEntry == null) {
 				WarpDrive.logger.info(String.format("Ignoring missing in-game block %s in %s",
 				                                    nameBlock, nameFull ));
@@ -413,8 +407,8 @@ public class WarpDriveDataFixer {
 					throw new RuntimeException(String.format("Invalid value %s for property %s in %s",
 					                                         stringValue, property, nameFull ));
 				}
-				while (!blockStateEntry.getValue(property).toString().equals(stringValue)) {
-					blockStateEntry = blockStateEntry.cycleProperty(property);
+				while (!blockStateEntry.get(property).toString().equals(stringValue)) {
+					blockStateEntry = blockStateEntry.cycle(property);
 				}
 			}
 			if (!propertyValues.isEmpty()) {
@@ -469,23 +463,13 @@ public class WarpDriveDataFixer {
 		
 		// then try a generic match
 		final String nameBlock = nameFull.substring(0, indexAt);
-		final String stringMetadata = nameFull.substring(indexAt + 1);
-		final int intMetadata;
-		try {
-			intMetadata = Integer.parseInt(stringMetadata);
-		} catch (final NumberFormatException exception) {
-			WarpDrive.logger.error(String.format("Ignoring block with invalid metadata format: expecting integer, got %s in %s",
-			                                     stringMetadata, nameFull));
-			return null;
-		}
-		
 		blockState = BLOCKSTATES.get(nameBlock);
 		if (blockState != null) {
 			return blockState;
 		}
 		block = BLOCKS.get(nameBlock);
 		if (block != null) {
-			return block.getStateFromMeta(intMetadata);
+			return block.getDefaultState();
 		}
 		// otherwise, go blank
 		return null;

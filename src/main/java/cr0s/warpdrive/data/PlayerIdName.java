@@ -14,7 +14,7 @@ public class PlayerIdName {
 	
 	public PlayerIdName(@Nonnull final PlayerEntity entityPlayer) {
 		this.uuid = entityPlayer.getUniqueID();
-		this.name = entityPlayer.getName().getUnformattedComponentText();
+		this.name = entityPlayer.getName().getString();
 	}
 	
 	private PlayerIdName(@Nonnull final UUID uuid, @Nonnull final String name) {

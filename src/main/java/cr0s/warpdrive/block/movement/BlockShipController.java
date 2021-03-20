@@ -7,11 +7,11 @@ import cr0s.warpdrive.data.EnumTier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.item.BlockItem;
 import net.minecraft.state.EnumProperty;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.state.StateContainer.Builder;
 
 public class BlockShipController extends BlockAbstractContainer {
 	
@@ -20,15 +20,15 @@ public class BlockShipController extends BlockAbstractContainer {
 	public BlockShipController(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(getDefaultProperties(null), registryName, enumTier);
 		
-		setDefaultState(getDefaultState()
+		setDefaultState(getStateContainer().getBaseState()
 				                .with(COMMAND, EnumShipCommand.OFFLINE)
 		               );
 	}
 	
-	@Nonnull
 	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityShipController();
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(COMMAND);
 	}
 	
 	@Nullable

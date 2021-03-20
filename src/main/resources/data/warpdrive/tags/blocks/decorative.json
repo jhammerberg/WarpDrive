@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "warpdrive:decoration.decorative.plain",
+    "warpdrive:decoration.decorative.grated",
+    "warpdrive:decoration.decorative.glass",
+    "warpdrive:decoration.decorative.stripes_black_down",
+    "warpdrive:decoration.decorative.stripes_black_up",
+    "warpdrive:decoration.decorative.stripes_yellow_down",
+    "warpdrive:decoration.decorative.stripes_yellow_up"
+  ]
+}

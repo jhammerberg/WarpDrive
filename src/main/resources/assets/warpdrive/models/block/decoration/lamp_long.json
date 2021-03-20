@@ -1,0 +1,6 @@
+{
+	"parent": "block/cube_all",
+    "ambientocclusion": false,
+	"loader": "forge:obj",
+	"model": "warpdrive:models/block/decoration/lamp_long.obj"
+}

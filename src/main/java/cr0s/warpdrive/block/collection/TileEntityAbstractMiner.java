@@ -3,6 +3,7 @@ package cr0s.warpdrive.block.collection;
 import cr0s.warpdrive.CommonProxy;
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.block.TileEntityAbstractLaser;
 import cr0s.warpdrive.data.FluidWrapper;
 import cr0s.warpdrive.data.InventoryWrapper;
@@ -21,7 +22,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.SoundCategory;
@@ -43,8 +43,8 @@ public abstract class TileEntityAbstractMiner extends TileEntityAbstractLaser {
 	// pre-computation
 	protected Vector3        laserOutput = null;
 	
-	public TileEntityAbstractMiner(@Nonnull TileEntityType<? extends TileEntityAbstractMiner> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityAbstractMiner(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 	}
 	
 	@Override

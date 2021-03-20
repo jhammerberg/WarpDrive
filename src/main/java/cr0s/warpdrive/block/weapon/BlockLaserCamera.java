@@ -6,7 +6,6 @@ import cr0s.warpdrive.data.EnumTier;
 import javax.annotation.Nonnull;
 
 import net.minecraft.block.BlockState;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockReader;
 
@@ -16,12 +15,6 @@ public class BlockLaserCamera extends BlockAbstractContainer {
 		super(getDefaultProperties(null)
 				      .hardnessAndResistance(50.0F, 20.0F),
 		      registryName, enumTier);
-	}
-	
-	@Nonnull
-	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityLaserCamera();
 	}
 	
 	@SuppressWarnings("deprecation")

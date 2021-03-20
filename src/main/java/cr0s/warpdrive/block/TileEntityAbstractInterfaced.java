@@ -4,6 +4,7 @@ import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.FunctionGet;
 import cr0s.warpdrive.api.FunctionSetVector;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.config.WarpDriveConfig.EnumLUAscripts;
 import cr0s.warpdrive.data.EnumComponentType;
@@ -35,7 +36,6 @@ import li.cil.oc.api.network.Visibility;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +45,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 
 import net.minecraftforge.common.capabilities.Capability;
@@ -57,6 +56,10 @@ import net.minecraftforge.fml.common.thread.EffectiveSide;
 // OpenComputers API: https://github.com/MightyPirates/OpenComputers/tree/master-MC1.7.10/src/main/java/li/cil/oc/api
 
 public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBase implements Environment, cr0s.warpdrive.api.computer.IInterfaced {
+	
+	// global constants
+	private static final String CC_folderRootDataPack = "lua.computercraft";
+	private static final String OC_folderRootDataPack = "lua.opencomputers";
 	
 	// global storage
 	private static final ConcurrentHashMap<String, Object> CC_mountGlobals = new ConcurrentHashMap<>(32);
@@ -79,6 +82,8 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 	// pre-loaded scripts support
 	private volatile ManagedEnvironment OC_fileSystem = null;
 	private volatile boolean CC_hasResource = false;
+	private volatile String CC_folderPeripheralDataPack = null;
+	private volatile String CC_folderPeripheralLUA      = null;
 	private volatile boolean OC_hasResource = false;
 	protected volatile List<String> CC_scripts = null;
 	
@@ -87,12 +92,12 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 	private boolean  OC_addedToNetwork = false;
 	
 	// ComputerCraft specific properties
-	@CapabilityInject(IDynamicPeripheral.class)
-	private static Capability<IDynamicPeripheral> CC_CAPABILITY_PERIPHERAL = null;
+	@CapabilityInject(IPeripheral.class)
+	private static Capability<IPeripheral> CC_CAPABILITY_PERIPHERAL = null;
 	private final ConcurrentHashMap<IComputerAccess, CopyOnWriteArraySet<String>> CC_connectedComputers = new ConcurrentHashMap<>();
 	
-	public TileEntityAbstractInterfaced(@Nonnull TileEntityType<? extends TileEntityAbstractInterfaced> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityAbstractInterfaced(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		addMethods(new String[] {
 				"isInterfaced",
@@ -177,7 +182,9 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 	@Override
 	public void validate() {
 		if (WarpDriveConfig.isComputerCraftLoaded) {
-			final String CC_path = "/assets/" + WarpDrive.MODID.toLowerCase() + "/lua.ComputerCraft/" + peripheralName;
+			CC_folderPeripheralDataPack = CC_folderRootDataPack + "/" + peripheralName.replace(WarpDrive.MODID, "").toLowerCase();
+			CC_folderPeripheralLUA      = peripheralName.replace(WarpDrive.MODID, WarpDrive.MODID + "/");
+			final String CC_path = "/data/" + WarpDrive.MODID + "/" + CC_folderPeripheralDataPack;
 			CC_hasResource = assetExist(CC_path);
 		}
 		
@@ -208,7 +215,8 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 	@Override
 	public <T> LazyOptional<T> getCapability(@Nonnull final Capability<T> capability, @Nullable final Direction side) {
 		if ( WarpDriveConfig.isComputerCraftLoaded
-		  && isInterfaceEnabled() ) {
+		  && isInterfaceEnabled()
+		  && capability == CC_CAPABILITY_PERIPHERAL ) {
 			LazyOptional<T> result = CC_getCapability(capability);
 			if (result.isPresent()) {
 				return result;
@@ -221,7 +229,7 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 	
 	@Nonnull
 	public <T> LazyOptional<T> CC_getCapability(@Nonnull final Capability<T> capability) {
-		if (capability != CC_CAPABILITY_PERIPHERAL) {
+		if (capability == CC_CAPABILITY_PERIPHERAL) {
 			if (CC_peripheralCapability == null) {
 				CC_peripheralCapability = LazyOptional.of(() -> new IDynamicPeripheral() {
 					
@@ -402,7 +410,7 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 	
 	@Override
 	public Object[] getUpgrades() {
-		return new Object[] { isUpgradeable(), Commons.removeFormatting( getUpgradeStatus(false).getUnformattedComponentText() ) };
+		return new Object[] { isUpgradeable(), Commons.removeFormatting( getUpgradeStatus(false).getString() ) };
 	}
 	
 	@Override
@@ -587,14 +595,13 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 	private void CC_mount(@Nonnull final IComputerAccess computerAccess, @Nonnull final CopyOnWriteArraySet<String> mountedLocations) {
 		if (CC_hasResource && WarpDriveConfig.G_LUA_SCRIPTS != EnumLUAscripts.NONE) {
 			try {
-				CC_mount(computerAccess, mountedLocations, "lua.ComputerCraft/common", "/" + WarpDrive.MODID);
+				CC_mount(computerAccess, mountedLocations, CC_folderRootDataPack + "/common", "/" + WarpDrive.MODID);
 				
-				final String folderPeripheral = peripheralName.replace(WarpDrive.MODID, WarpDrive.MODID + "/");
-				CC_mount(computerAccess, mountedLocations, "lua.ComputerCraft/" + peripheralName, "/" + folderPeripheral);
+				CC_mount(computerAccess, mountedLocations, CC_folderPeripheralDataPack, "/" + CC_folderPeripheralLUA);
 				
 				if (WarpDriveConfig.G_LUA_SCRIPTS == EnumLUAscripts.ALL) {
 					for (final String script : CC_scripts) {
-						CC_mount(computerAccess, mountedLocations, "lua.ComputerCraft/" + peripheralName + "/" + script, "/" + script);
+						CC_mount(computerAccess, mountedLocations, CC_folderPeripheralDataPack + "/" + script, "/" + script);
 					}
 				}
 			} catch (final Exception exception) {
@@ -740,11 +747,12 @@ public abstract class TileEntityAbstractInterfaced extends TileEntityAbstractBas
 	
 	private void OC_constructor() {
 		assert OC_node == null;
-		final String OC_path = "/assets/" + WarpDrive.MODID.toLowerCase() + "/lua.OpenComputers/" + peripheralName;
+		String folderPeripheralDataPack = OC_folderRootDataPack + "/" + peripheralName.replace(WarpDrive.MODID, "").toLowerCase();
+		final String OC_path = "/data/" + WarpDrive.MODID + "/" + folderPeripheralDataPack;
 		OC_hasResource = assetExist(OC_path);
 		OC_node = Network.newNode(this, Visibility.Network).withComponent(peripheralName).create();
 		if (OC_node != null && OC_hasResource && WarpDriveConfig.G_LUA_SCRIPTS != EnumLUAscripts.NONE) {
-			OC_fileSystem = FileSystem.asManagedEnvironment(FileSystem.fromClass(getClass(), WarpDrive.MODID.toLowerCase(), "lua.OpenComputers/" + peripheralName), peripheralName);
+			OC_fileSystem = FileSystem.asManagedEnvironment(FileSystem.fromClass(getClass(), WarpDrive.MODID, folderPeripheralDataPack), peripheralName);
 			((Component) OC_fileSystem.node()).setVisibility(Visibility.Network);
 		}
 		// note: we can't join the network right away, it's postponed to next tick

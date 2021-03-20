@@ -1,0 +1,6 @@
+{
+    "parent": "warpdrive:block/force_field/upgrade",
+    "textures": {
+        "icon": "warpdrive:item/force_field/upgrade-heating"
+    }
+}

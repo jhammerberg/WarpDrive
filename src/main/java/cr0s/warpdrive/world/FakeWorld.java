@@ -35,30 +35,48 @@ import net.minecraft.world.storage.WorldInfo;
 public class FakeWorld extends World {
 	
 	private final FakeChunk fakeChunk;
+	private final FakeTickList<Block> fakeTickListBlock;
+	private final FakeTickList<Fluid> fakeTickListFluid;
+	private final Scoreboard scoreboard;
 	private BlockState blockState;
 	private TileEntity tileEntity;
 	
 	
 	public FakeWorld(final BlockState blockState, final boolean isRemote) {
-		super(new WorldInfo(new CompoundNBT(), null, 1, null), FakeDimensionType.INSTANCE, null, null, isRemote);
+		super(new WorldInfo(new CompoundNBT(), null, 1, null),
+		      FakeDimensionType.INSTANCE,
+		      (world, dimension) -> null,
+		      null,
+		      isRemote);
 		fakeChunk = new FakeChunk(this, new ChunkPos(0, 0));
+		fakeTickListBlock = new FakeTickList<>();
+		fakeTickListFluid = new FakeTickList<>();
+		scoreboard = new Scoreboard();
 		this.blockState = blockState;
 	}
 	
+	@Nonnull
 	@Override
 	public ITickList<Block> getPendingBlockTicks() {
-		return null;
+		return fakeTickListBlock;
 	}
 	
+	@Nonnull
 	@Override
 	public ITickList<Fluid> getPendingFluidTicks() {
-		return null;
+		return fakeTickListFluid;
 	}
 	
 	@Nullable
 	@Override
 	public AbstractChunkProvider getChunkProvider() {
 		return null;
+	}
+	
+	@Nonnull
+	@Override
+	public String getProviderName() {
+		return "-null-";
 	}
 	
 	@Nullable
@@ -82,9 +100,10 @@ public class FakeWorld extends World {
 		// no operation
 	}
 	
+	@Nonnull
 	@Override
 	public Scoreboard getScoreboard() {
-		return null;
+		return scoreboard;
 	}
 	
 	@Override

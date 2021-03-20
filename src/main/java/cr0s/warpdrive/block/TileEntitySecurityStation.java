@@ -2,6 +2,7 @@ package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.api.computer.ISecurityStation;
 import cr0s.warpdrive.data.PlayerIdName;
@@ -17,15 +18,13 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.DamageSource;
 
 import net.minecraftforge.common.util.Constants;
 
 public class TileEntitySecurityStation extends TileEntityAbstractMachine implements ISecurityStation {
 	
-	public static TileEntityType<TileEntitySecurityStation> TYPE;
-	public static final TileEntitySecurityStation DUMMY = new TileEntitySecurityStation(true);
+	public static final TileEntitySecurityStation DUMMY = new TileEntitySecurityStation(true, (BlockAbstractContainer) WarpDrive.blockSecurityStation);
 	
 	// persistent properties
 	private final CopyOnWriteArraySet<PlayerIdName> playerIdNames = new CopyOnWriteArraySet<>();
@@ -33,8 +32,8 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 	// computer properties
 	private final boolean isDummy;
 	
-	private TileEntitySecurityStation(final boolean isDummy) {
-		super(TYPE);
+	private TileEntitySecurityStation(final boolean isDummy, @Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		this.isDummy = isDummy;
 		peripheralName = "warpdriveSecurityStation";
@@ -45,8 +44,8 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 		});
 	}
 	
-	public TileEntitySecurityStation() {
-		this(false);
+	public TileEntitySecurityStation(@Nonnull final IBlockBase blockBase) {
+		this(false, blockBase);
 	}
 	
 	@Override
@@ -168,7 +167,7 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 		for (final PlayerIdName playerIdName : playerIdNames) {
 			final PlayerEntity entityPlayer = Commons.getOnlinePlayerByUUID(playerIdName.getUUID());
 			if (entityPlayer != null) {// crew member is online
-				playerIdName.setName(entityPlayer.getName().getUnformattedComponentText());
+				playerIdName.setName(entityPlayer.getName().getString());
 				return playerIdName.getName();
 			}
 		}

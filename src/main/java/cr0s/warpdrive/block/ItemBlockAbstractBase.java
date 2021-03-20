@@ -4,7 +4,6 @@ import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IItemBase;
-import cr0s.warpdrive.client.ClientProxy;
 import cr0s.warpdrive.data.EnumTier;
 
 import javax.annotation.Nonnull;
@@ -14,7 +13,6 @@ import java.util.List;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.item.ItemEntity;
@@ -85,19 +83,6 @@ public class ItemBlockAbstractBase extends BlockItem implements IItemBase {
 	
 	@Override
 	public void onEntityExpireEvent(final ItemEntity entityItem, final ItemStack itemStack) {
-	}
-	
-	@OnlyIn(Dist.CLIENT)
-	@Override
-	public void modelInitialisation() {
-		ClientProxy.modelInitialisation(this);
-	}
-	
-	@Nonnull
-	@OnlyIn(Dist.CLIENT)
-	@Override
-	public ModelResourceLocation getModelResourceLocation(final ItemStack itemStack) {
-		return ClientProxy.getModelResourceLocation(itemStack);
 	}
 	
 	@OnlyIn(Dist.CLIENT)

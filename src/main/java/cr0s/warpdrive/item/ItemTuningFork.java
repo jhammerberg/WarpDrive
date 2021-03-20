@@ -19,7 +19,6 @@ import java.util.List;
 import net.minecraft.block.Block;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.DyeColor;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUseContext;
@@ -44,35 +43,23 @@ public class ItemTuningFork extends ItemAbstractBase implements IWarpTool {
 				      .maxStackSize(1),
 		      registryName,
 		      enumTier );
-		
-		setTranslationKey("warpdrive.tool.tuning_fork");
 	}
 	
-	@Nonnull
-	@Override
-	public String getTranslationKey(final ItemStack itemStack) {
-		final int damage = itemStack.getDamage();
-		if (damage >= 0 && damage < 16) {
-			return getTranslationKey() + "." + DyeColor.byId(damage).getTranslationKey();
-		}
-		return getTranslationKey();
-	}
-	
-	public static int getVideoChannel(final ItemStack itemStack) {
+	public static int getVideoChannel(@Nonnull final ItemStack itemStack) {
 		if (!(itemStack.getItem() instanceof ItemTuningFork)) {
 			return -1;
 		}
 		return (itemStack.getDamage() % 16) + 100;
 	}
 	
-	public static int getBeamFrequency(final ItemStack itemStack) {
+	public static int getBeamFrequency(@Nonnull final ItemStack itemStack) {
 		if (!(itemStack.getItem() instanceof ItemTuningFork)) {
 			return -1;
 		}
 		return ((itemStack.getDamage() % 16) + 1) * 10;
 	}
 	
-	public static int getControlChannel(final ItemStack itemStack) {
+	public static int getControlChannel(@Nonnull final ItemStack itemStack) {
 		if (!(itemStack.getItem() instanceof ItemTuningFork)) {
 			return -1;
 		}

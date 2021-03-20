@@ -1,0 +1,7 @@
+{
+    "overrides": [
+        { "predicate": { "warpdrive:tuning_mode": 0.0 }, "model": "warpdrive:item/tool.tuning_driver-video_channel"   },
+        { "predicate": { "warpdrive:tuning_mode": 1.0 }, "model": "warpdrive:item/tool.tuning_driver-beam_frequency"  },
+        { "predicate": { "warpdrive:tuning_mode": 2.0 }, "model": "warpdrive:item/tool.tuning_driver-control_channel" }
+    ]
+}

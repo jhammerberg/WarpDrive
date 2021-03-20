@@ -41,7 +41,8 @@ public class WorldHandler {
 	// Server side
 	@SubscribeEvent
 	public void onEntityJoinWorld(@Nonnull final EntityJoinWorldEvent event){
-		if (event.getWorld().isRemote()) {
+		if ( event.getWorld().isRemote()
+		  || !(event.getEntity() instanceof PlayerEntity) ) {
 			return;
 		}
 		WarpDrive.logger.info(String.format("onEntityJoinWorld %s", event.getEntity()));

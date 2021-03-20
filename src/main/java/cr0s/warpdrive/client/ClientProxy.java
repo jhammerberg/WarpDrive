@@ -8,7 +8,7 @@ import cr0s.warpdrive.entity.EntityNPC;
 import cr0s.warpdrive.entity.EntityOfflineAvatar;
 import cr0s.warpdrive.entity.EntityParticleBunch;
 import cr0s.warpdrive.event.ClientHandler;
-import cr0s.warpdrive.event.ModelBakeEventHandler;
+import cr0s.warpdrive.event.ModelHandler;
 import cr0s.warpdrive.event.TooltipHandler;
 import cr0s.warpdrive.render.ClientCameraHandler;
 import cr0s.warpdrive.render.RenderEntityNPC;
@@ -20,25 +20,17 @@ import cr0s.warpdrive.render.RenderOverlayLocation;
 
 import javax.annotation.Nonnull;
 
-import java.util.Collection;
-
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.client.util.InputMappings;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.state.IProperty;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.model.ModelLoader;
+
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.client.registry.IRenderFactory;
 import net.minecraftforge.fml.client.registry.RenderingRegistry;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 public class ClientProxy extends CommonProxy {
 	
@@ -48,11 +40,12 @@ public class ClientProxy extends CommonProxy {
 	public static final KeyBinding keyBindingCameraZoomOut = new KeyBinding("key.camera.zoom_out.name", InputMappings.Type.MOUSE, 1, WarpDrive.MODID);
 	
 	@Override
-	public void onForgePreInitialisation() {
-		super.onForgePreInitialisation();
+	public void onModConstruction() {
+		super.onModConstruction();
 		
-		MinecraftForge.EVENT_BUS.register(ModelBakeEventHandler.INSTANCE);
-		MinecraftForge.EVENT_BUS.register(SpriteManager.INSTANCE);
+		// client events
+		FMLJavaModLoadingContext.get().getModEventBus().register(ModelHandler.INSTANCE);
+		FMLJavaModLoadingContext.get().getModEventBus().register(SpriteManager.INSTANCE);
 		
 		// entity rendering
 		RenderingRegistry.registerEntityRenderingHandler(EntityNPC.TYPE, new IRenderFactory<EntityNPC>() {
@@ -77,16 +70,13 @@ public class ClientProxy extends CommonProxy {
 			}
 		});
 		
-		// Key bindings
-		ClientRegistry.registerKeyBinding(keyBindingCameraCenter);
-		ClientRegistry.registerKeyBinding(keyBindingCameraShoot);
-		ClientRegistry.registerKeyBinding(keyBindingCameraZoomIn);
-		ClientRegistry.registerKeyBinding(keyBindingCameraZoomOut);
-	}
-	
-	@Override
-	public void onForgeInitialisation() {
-		super.onForgeInitialisation();
+		// Key bindings (skipped during data generation run)
+		if (Minecraft.getInstance() != null) {
+			ClientRegistry.registerKeyBinding(keyBindingCameraCenter);
+			ClientRegistry.registerKeyBinding(keyBindingCameraShoot);
+			ClientRegistry.registerKeyBinding(keyBindingCameraZoomIn);
+			ClientRegistry.registerKeyBinding(keyBindingCameraZoomOut);
+		}
 		
 		// event handlers
 		MinecraftForge.EVENT_BUS.register(new ClientHandler());
@@ -119,26 +109,5 @@ public class ClientProxy extends CommonProxy {
 			throw new RuntimeException(String.format("Unsupported object, expecting an IBlockBase or IItemBase instance: %s",
 			                                         object));
 		}
-	}
-	
-	@Nonnull
-	public static ModelResourceLocation getModelResourceLocation(@Nonnull final ItemStack itemStack) {
-		final Item item = itemStack.getItem();
-		ResourceLocation resourceLocation = item.getRegistryName();
-		assert resourceLocation != null;
-		
-		// defaults to inventory variant
-		return new ModelResourceLocation(resourceLocation, "inventory");
-	}
-	
-	public static void modelInitialisation(@Nonnull final Item item) {
-		if (!(item instanceof IItemBase)) {
-			throw new RuntimeException(String.format("Unable to initialize item's model, expecting an IItemBase instance: %s",
-			                                         item));
-		}
-		
-		final ModelResourceLocation modelResourceLocation = ((IItemBase) item).getModelResourceLocation(new ItemStack(item));
-		// TODO MC1.15 item rendering
-		// ModelLoader.setCustomModelResourceLocation(item, 0, modelResourceLocation);
 	}
 }

@@ -1,6 +1,7 @@
 package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.computer.IEnergyConsumer;
 
 import li.cil.oc.api.machine.Arguments;
@@ -8,8 +9,6 @@ import li.cil.oc.api.machine.Callback;
 import li.cil.oc.api.machine.Context;
 
 import javax.annotation.Nonnull;
-
-import net.minecraft.tileentity.TileEntityType;
 
 public abstract class TileEntityAbstractEnergyConsumer extends TileEntityAbstractEnergy implements IEnergyConsumer {
 	
@@ -19,8 +18,8 @@ public abstract class TileEntityAbstractEnergyConsumer extends TileEntityAbstrac
 	// computed properties
 	// (none)
 	
-	public TileEntityAbstractEnergyConsumer(@Nonnull TileEntityType<? extends TileEntityAbstractEnergyConsumer> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityAbstractEnergyConsumer(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		addMethods(new String[] {
 				"getEnergyRequired",

@@ -5,7 +5,7 @@
 	"pages": [
 		{
 			"type": "text",
-			"text": "$(item)Carbon fiber$() is a lightweigth, highly resistant and easily shaped material.$(br2)It's fairly complex to produce with staged crafting recipes, hence it's mostly used for superior $(l:0_basics/warp_armor)Space suits$() and machines."
+			"text": "$(item)Carbon fiber$() is a lightweigth, highly resistant and easily shaped material.$(br2)It's fairly complex to produce with staged crafting recipes, hence it's mostly used for superior $(l:0_basics/armor)Space suits$() and machines."
 		},
 		{
 			"type": "crafting",

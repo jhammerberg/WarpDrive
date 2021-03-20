@@ -11,10 +11,8 @@ import javax.annotation.Nullable;
 
 import java.util.List;
 
-import net.minecraft.block.BlockState;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -27,12 +25,6 @@ public class BlockSpeaker extends BlockAbstractRotatingContainer {
 	
 	public BlockSpeaker(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(getDefaultProperties(null), registryName, enumTier);
-	}
-	
-	@Nonnull
-	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntitySpeaker();
 	}
 	
 	@Override

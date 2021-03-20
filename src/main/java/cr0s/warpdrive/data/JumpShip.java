@@ -295,7 +295,7 @@ public class JumpShip {
 			saveEntities(reason);
 		}
 		
-		WarpDrive.logger.info(this + " messageToAllPlayersOnShip: " + textComponent.getUnformattedComponentText());
+		WarpDrive.logger.info(this + " messageToAllPlayersOnShip: " + textComponent.getString());
 		for (final MovingEntity movingEntity : entitiesOnShip) {
 			final Entity entity = movingEntity.getEntity();
 			if (entity instanceof PlayerEntity) {
@@ -604,7 +604,7 @@ public class JumpShip {
 			exception.printStackTrace(WarpDrive.printStreamError);
 			final WarpDriveText textComponent = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.save_exception",
 			                                                      Commons.format(world, blockPos));
-			WarpDrive.logger.error(textComponent.getUnformattedComponentText());
+			WarpDrive.logger.error(textComponent.getString());
 			reason.appendSibling(textComponent);
 			return false;
 		}

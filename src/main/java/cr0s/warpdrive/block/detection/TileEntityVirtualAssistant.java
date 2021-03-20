@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.detection;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IGlobalRegionProvider;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.block.TileEntityAbstractEnergyCoreOrController;
@@ -28,7 +29,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -36,7 +36,6 @@ import net.minecraft.util.math.BlockPos;
 public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrController implements IGlobalRegionProvider {
 	
 	// global properties
-	public static TileEntityType<TileEntityVirtualAssistant> TYPE;
 	private static final UpgradeSlot upgradeSlotSecurity = new UpgradeSlot("virtual_assistant.security",
 	                                                                       ItemComponent.getItemStackNoCache(EnumComponentType.DIAMOND_CRYSTAL, 1),
 	                                                                       1);
@@ -48,8 +47,8 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 	private AxisAlignedBB aabbArea = null;
 	private int tickUpdate;
 	
-	public TileEntityVirtualAssistant() {
-		super(TYPE);
+	public TileEntityVirtualAssistant(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveVirtualAssistant";
 		addMethods(new String[] {
@@ -191,7 +190,7 @@ public class TileEntityVirtualAssistant extends TileEntityAbstractEnergyCoreOrCo
 	@Override
 	public WarpDriveText getStatus() {
 		final WarpDriveText textCommandStatus = getCommandStatus();
-		if (textCommandStatus.getUnformattedComponentText().isEmpty()) {
+		if (textCommandStatus.isEmpty()) {
 			return super.getStatus();
 		} else {
 			return super.getStatus()

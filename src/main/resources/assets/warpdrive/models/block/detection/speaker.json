@@ -1,10 +1,10 @@
 {
 	"parent": "block/cube_all",
 	"textures": {
-		"front"   : "warpdrive:blocks/detection/speaker-front",
-		"side"    : "warpdrive:blocks/detection/speaker.basic-side",
-		"back"    : "warpdrive:blocks/detection/speaker-back",
-		"particle": "warpdrive:blocks/detection/speaker-front"
+		"front"   : "warpdrive:block/detection/speaker-front",
+		"side"    : "warpdrive:block/detection/speaker.basic-side",
+		"back"    : "warpdrive:block/detection/speaker-back",
+		"particle": "warpdrive:block/detection/speaker-front"
 	},
 	"elements": [
 		{

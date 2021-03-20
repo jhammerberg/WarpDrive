@@ -74,7 +74,7 @@ public class Particle {
 	@OnlyIn(Dist.CLIENT)
 	public String getLocalizedName() {
 		final String unlocalizedName = getTranslationKey();
-		return unlocalizedName == null ? "" : new TranslationTextComponent(unlocalizedName + ".name").getFormattedText();
+		return unlocalizedName == null ? "" : new TranslationTextComponent(unlocalizedName).getFormattedText();
 	}
 	
 	@OnlyIn(Dist.CLIENT)

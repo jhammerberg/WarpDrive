@@ -2,6 +2,7 @@ package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IGlobalRegionProvider;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.api.computer.ICoreSignature;
@@ -17,7 +18,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.math.AxisAlignedBB;
 
 public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterfaced implements IMachine {
@@ -44,8 +44,8 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	// parameters have changed, new computation is required
 	protected final AtomicBoolean isDirty = new AtomicBoolean(true);
 	
-	public TileEntityAbstractMachine(@Nonnull TileEntityType<? extends TileEntityAbstractMachine> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityAbstractMachine(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		addMethods(new String[] {
 				"name",
@@ -116,7 +116,7 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	
 	public void markDirtyAssembly() {
 		
-		if (WarpDrive.isDev) {
+		if (false && WarpDrive.isDev) {
 			WarpDrive.logger.info(String.format("%s markDirtyAssembly at %d", this, world.getGameTime()));
 			if (Commons.throttleMe("markDirtyAssembly")) {
 				new Exception().printStackTrace(WarpDrive.printStreamInfo);
@@ -306,7 +306,7 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 		if (isAssemblyValid && textValidityIssues.isEmpty()) {
 			return new Object[] { isAssemblyValid, "ok" };
 		}
-		return new Object[] { isAssemblyValid, Commons.removeFormatting( textValidityIssues.getUnformattedComponentText() ) };
+		return new Object[] { isAssemblyValid, Commons.removeFormatting( textValidityIssues.getString() ) };
 	}
 	
 	@Override

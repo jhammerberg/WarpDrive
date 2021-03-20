@@ -1,5 +1,6 @@
 package cr0s.warpdrive.block.energy;
 
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.computer.IEnanReactorController;
 import cr0s.warpdrive.block.TileEntityAbstractEnergyCoreOrController;
 
@@ -11,11 +12,7 @@ import javax.annotation.Nonnull;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 
-import net.minecraft.tileentity.TileEntityType;
-
 public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCoreOrController implements IEnanReactorController {
-	
-	public static TileEntityType<TileEntityEnanReactorController> TYPE;
 	
 	// persistent properties
 	// (none)
@@ -26,12 +23,8 @@ public class TileEntityEnanReactorController extends TileEntityAbstractEnergyCor
 	// @TODO implement reactor controller
 	private WeakReference<TileEntityEnanReactorCore> tileEntityEnanReactorCoreWeakReference = null;
 	
-	public TileEntityEnanReactorController() {
-		this(TYPE);
-	}
-	
-	public TileEntityEnanReactorController(@Nonnull final TileEntityType<? extends TileEntityEnanReactorController> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityEnanReactorController(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveEnanReactorController";
 		addMethods(new String[] {

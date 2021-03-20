@@ -8,6 +8,9 @@ import net.minecraft.item.Rarity;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+
 public interface IBlockBase {
 	
 	@Nonnull
@@ -18,6 +21,9 @@ public interface IBlockBase {
 	
     @Nullable
     BlockItem createItemBlock();
-    
-    void modelInitialisation();
+	
+	@OnlyIn(Dist.CLIENT)
+	default void modelInitialisation() {
+    	// no operation
+    }
 }

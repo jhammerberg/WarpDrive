@@ -1,9 +1,8 @@
 /*
  * This file is part of the public ComputerCraft API - http://www.computercraft.info
- * Copyright Daniel Ratcliffe, 2011-2017. This API may be redistributed unmodified and in full only.
+ * Copyright Daniel Ratcliffe, 2011-2021. This API may be redistributed unmodified and in full only.
  * For help using the API, and posting your mods, visit the forums at computercraft.info.
  */
-
 package dan200.computercraft.api.lua;
 
 import javax.annotation.Nullable;
@@ -14,22 +13,31 @@ import javax.annotation.Nullable;
 public class LuaException extends Exception
 {
     private static final long serialVersionUID = -6136063076818512651L;
-    private final int m_level;
-
-    public LuaException()
-    {
-        this( "error", 1 );
-    }
+    private final boolean hasLevel;
+    private final int level;
 
     public LuaException( @Nullable String message )
     {
-        this( message, 1 );
+        super( message );
+        this.hasLevel = false;
+        this.level = 1;
     }
 
     public LuaException( @Nullable String message, int level )
     {
         super( message );
-        m_level = level;
+        this.hasLevel = true;
+        this.level = level;
+    }
+
+    /**
+     * Whether a level was explicitly specified when constructing. This is used to determine
+     *
+     * @return Whether this has an explicit level.
+     */
+    public boolean hasLevel()
+    {
+        return hasLevel;
     }
 
     /**
@@ -40,6 +48,6 @@ public class LuaException extends Exception
      */
     public int getLevel()
     {
-        return m_level;
+        return level;
     }
 }

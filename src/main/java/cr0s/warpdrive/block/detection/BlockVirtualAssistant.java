@@ -11,10 +11,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.state.StateContainer.Builder;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -28,15 +29,15 @@ public class BlockVirtualAssistant extends BlockAbstractContainer {
 	public BlockVirtualAssistant(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(getDefaultProperties(null), registryName, enumTier);
 		
-		setDefaultState(getDefaultState()
+		setDefaultState(getStateContainer().getBaseState()
 				                .with(BlockProperties.ACTIVE, false)
 		               );
 	}
 	
-	@Nonnull
 	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityVirtualAssistant();
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(BlockProperties.ACTIVE);
 	}
 	
 	@Override

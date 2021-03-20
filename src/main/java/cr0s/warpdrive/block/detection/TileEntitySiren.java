@@ -1,20 +1,20 @@
 package cr0s.warpdrive.block.detection;
 
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.block.TileEntityAbstractMachine;
 import cr0s.warpdrive.client.SirenSound;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.SoundEvents;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.tileentity.TileEntityType;
 
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class TileEntitySiren extends TileEntityAbstractMachine {
-	
-	public static TileEntityType<TileEntitySiren> TYPE;
 	
 	public enum EnumSirenState {
 		STARTING, STARTED, STOPPING, STOPPED
@@ -32,8 +32,8 @@ public class TileEntitySiren extends TileEntityAbstractMachine {
 	@OnlyIn(Dist.CLIENT)
 	private SirenSound sound;
 	
-	public TileEntitySiren() {
-		super(TYPE);
+	public TileEntitySiren(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveSiren";
 		doRequireUpgradeToInterface();

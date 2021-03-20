@@ -1,0 +1,17 @@
+{
+	"variants": {
+		"active=true,facing=down"  : { "model": "warpdrive:block/decoration/lamp_flat", "x": 180 },
+		"active=true,facing=up"    : { "model": "warpdrive:block/decoration/lamp_flat"           },
+		"active=true,facing=north" : { "model": "warpdrive:block/decoration/lamp_flat", "x":  90 },
+		"active=true,facing=south" : { "model": "warpdrive:block/decoration/lamp_flat", "x": -90 },
+		"active=true,facing=west"  : { "model": "warpdrive:block/decoration/lamp_flat", "x":  90, "y": -90 },
+		"active=true,facing=east"  : { "model": "warpdrive:block/decoration/lamp_flat", "x":  90, "y":  90 },
+		
+		"active=false,facing=down" : { "model": "warpdrive:block/decoration/lamp_flat", "x": 180 },
+		"active=false,facing=up"   : { "model": "warpdrive:block/decoration/lamp_flat"           },
+		"active=false,facing=north": { "model": "warpdrive:block/decoration/lamp_flat", "x":  90 },
+		"active=false,facing=south": { "model": "warpdrive:block/decoration/lamp_flat", "x": -90 },
+		"active=false,facing=west" : { "model": "warpdrive:block/decoration/lamp_flat", "x":  90, "y": -90 },
+		"active=false,facing=east" : { "model": "warpdrive:block/decoration/lamp_flat", "x":  90, "y":  90 }
+	}
+}

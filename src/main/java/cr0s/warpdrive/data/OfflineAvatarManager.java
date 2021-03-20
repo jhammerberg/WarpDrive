@@ -202,7 +202,7 @@ public class OfflineAvatarManager {
 		entityOfflineAvatar.setPositionAndRotation(blockPos.getX() + 0.5D, blockPos.getY() + 0.1D, blockPos.getZ() + 0.5D,
 		                                           entityPlayer.rotationYaw, entityPlayer.rotationPitch );
 		entityOfflineAvatar.setCustomName(entityPlayer.getDisplayName());
-		entityOfflineAvatar.setPlayer(entityPlayer.getUniqueID(), entityPlayer.getName().getUnformattedComponentText());
+		entityOfflineAvatar.setPlayer(entityPlayer.getUniqueID(), entityPlayer.getName().getString());
 		entityOfflineAvatar.setInvisible(entityPlayer.isSpectator());
 		entityOfflineAvatar.setInvulnerable(entityPlayer.isCreative() || entityPlayer.isSpectator());
 		// copy equipment with a marker to remember those aren't 'legit' items

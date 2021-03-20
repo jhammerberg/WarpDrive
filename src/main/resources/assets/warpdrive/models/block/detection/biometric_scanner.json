@@ -1,9 +1,10 @@
 {
 	"credit": "Made with Blockbench",
+	"parent": "block/cube_all",
 	"textures": {
-		"particle": "warpdrive:blocks/detection/biometric_scanner-side",
-		"block": "warpdrive:blocks/detection/biometric_scanner-side",
-		"face": "warpdrive:blocks/detection/biometric_scanner-face"
+		"particle": "warpdrive:block/detection/biometric_scanner-side",
+		"block": "warpdrive:block/detection/biometric_scanner-side",
+		"face": "warpdrive:block/detection/biometric_scanner-face"
 	},
 	"elements": [
 		{

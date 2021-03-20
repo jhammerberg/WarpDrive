@@ -1,6 +1,7 @@
 package cr0s.warpdrive.block.energy;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.block.TileEntityAbstractLaser;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -19,15 +20,12 @@ import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 
 import net.minecraftforge.fluids.IFluidBlock;
 
 public class TileEntityIC2reactorLaserMonitor extends TileEntityAbstractLaser {
-	
-	public static TileEntityType<TileEntityIC2reactorLaserMonitor> TileEntityIC2reactorLaserMonitor;
 	
 	// persistent properties
 	private int ticks = WarpDriveConfig.IC2_REACTOR_COOLING_INTERVAL_TICKS;
@@ -36,8 +34,8 @@ public class TileEntityIC2reactorLaserMonitor extends TileEntityAbstractLaser {
 	public Direction facing = null;
 	private boolean isValid = false;
 	
-	public TileEntityIC2reactorLaserMonitor() {
-		super(TileEntityIC2reactorLaserMonitor);
+	public TileEntityIC2reactorLaserMonitor(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		laserMedium_maxCount = 1;
 		peripheralName = "warpdriveIC2reactorLaserCooler";

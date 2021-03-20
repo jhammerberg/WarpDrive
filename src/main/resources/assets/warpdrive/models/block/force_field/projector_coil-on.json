@@ -1,0 +1,6 @@
+{
+    "parent": "warpdrive:block/force_field/projector_coil",
+    "textures": {
+		"coil": "warpdrive:block/force_field/projector-coil_on"
+    }
+}

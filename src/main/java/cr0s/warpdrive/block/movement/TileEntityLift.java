@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.movement;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.computer.ILift;
 import cr0s.warpdrive.block.TileEntityAbstractEnergyConsumer;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -31,7 +32,6 @@ import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -41,7 +41,6 @@ import net.minecraft.util.math.shapes.ISelectionContext;
 public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements ILift {
 	
 	// global properties
-	public static TileEntityType<TileEntityLift> TYPE;
 	private static final double LIFT_GRAB_RADIUS = 0.4D;
 	private static final UpgradeSlot upgradeSlotSecurity = new UpgradeSlot("lift.security",
 	                                                                       ItemComponent.getItemStackNoCache(EnumComponentType.DIAMOND_CRYSTAL, 1),
@@ -57,8 +56,8 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 	private boolean isValid = false;
 	private int firstUncoveredY;
 	
-	public TileEntityLift() {
-		super(TYPE);
+	public TileEntityLift(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveLift";
 		addMethods(new String[] {

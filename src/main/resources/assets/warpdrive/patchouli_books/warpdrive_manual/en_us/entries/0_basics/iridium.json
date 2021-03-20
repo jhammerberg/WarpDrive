@@ -1,6 +1,6 @@
 {
 	"name": "Iridium",
-	"icon": "warpdrive:iridium_block",
+	"icon": "warpdrive:hull.iridium_block",
 	"category": "0_basics",
 	"pages": [
 		{
@@ -9,7 +9,7 @@
 		},
 		{
 			"type": "spotlight",
-			"item": "warpdrive:iridium_block",
+			"item": "warpdrive:hull.iridium_block",
 			"link_recipe": "true",
 			"text": "Iridium blocks can be found in large asteroids from the void.$(br2)Advanced technology can also be used to produce it."
 		}

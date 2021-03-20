@@ -1,6 +1,7 @@
 package cr0s.warpdrive.block.detection;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.block.TileEntityAbstractMachine;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -16,13 +17,10 @@ import java.util.List;
 import java.util.Queue;
 
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.text.ITextComponent;
 
 public class TileEntitySpeaker extends TileEntityAbstractMachine {
-	
-	public static TileEntityType<TileEntitySpeaker> TYPE;
 	
 	// persistent properties
 	// (none)
@@ -33,8 +31,8 @@ public class TileEntitySpeaker extends TileEntityAbstractMachine {
 	private float rateMessaging = 0.0F;
 	private final Queue<String> messagesToSpeak = new LinkedList<>();
 	
-	public TileEntitySpeaker() {
-		super(TYPE);
+	public TileEntitySpeaker(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveSpeaker";
 		addMethods(new String[] {

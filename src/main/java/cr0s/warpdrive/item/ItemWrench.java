@@ -30,8 +30,6 @@ public class ItemWrench extends ItemAbstractBase implements IWarpTool {
 				      .maxStackSize(1),
 		      registryName,
 		      enumTier );
-		
-		setTranslationKey("warpdrive.tool.wrench");
 	}
 	
 	@Nonnull

@@ -32,8 +32,6 @@ public class ItemShipToken extends ItemAbstractBase {
 		      registryName,
 		      enumTier );
 		
-		setTranslationKey("warpdrive.tool.ship_token" + tokenId);
-		
 		itemStackCache = new ItemStack[TOKEN_IDs.length];
 	}
 	
@@ -47,7 +45,7 @@ public class ItemShipToken extends ItemAbstractBase {
 		for (int index = 0; index < TOKEN_IDs.length; index++) {
 			if (tokenId == TOKEN_IDs[index]) {
 				if (itemStackCache[index] == null) {
-					itemStackCache[index] = new ItemStack(WarpDrive.itemShipTokens[index]);
+					itemStackCache[index] = new ItemStack(WarpDrive.mapItemShipTokens.get(index));
 				}
 				return itemStackCache[index];
 			}
@@ -59,7 +57,7 @@ public class ItemShipToken extends ItemAbstractBase {
 	public static ItemStack getItemStackNoCache(final int tokenId, final int amount) {
 		for (int index = 0; index < TOKEN_IDs.length; index++) {
 			if (tokenId == TOKEN_IDs[index]) {
-				return new ItemStack(WarpDrive.itemShipTokens[index], amount);
+				return new ItemStack(WarpDrive.mapItemShipTokens.get(index), amount);
 			}
 		}
 		return ItemStack.EMPTY;
@@ -90,7 +88,7 @@ public class ItemShipToken extends ItemAbstractBase {
 	                           @Nonnull final List<ITextComponent> list, @Nonnull final ITooltipFlag advancedItemTooltips) {
 		super.addInformation(itemStack, world, list, advancedItemTooltips);
 		
-		Commons.addTooltip(list, new TranslationTextComponent("item.warpdrive.tool.ship_token.tooltip.usage",
+		Commons.addTooltip(list, new TranslationTextComponent("item.warpdrive.building.ship_token.tooltip.usage",
 		                                                      getSchematicName(itemStack)).getFormattedText());
 	}
 }

@@ -25,12 +25,12 @@ public enum EnumForceFieldShape implements IStringSerializable, IForceFieldShape
 	
 	// cached values
 	public static final int length;
-	private static final HashMap<Integer, EnumForceFieldShape> ID_MAP = new HashMap<>();
+	private static final HashMap<String, EnumForceFieldShape> NAME_MAP = new HashMap<>();
 	
 	static {
 		length = EnumForceFieldShape.values().length;
 		for (final EnumForceFieldShape forceFieldShape : values()) {
-			ID_MAP.put(forceFieldShape.ordinal(), forceFieldShape);
+			NAME_MAP.put(forceFieldShape.name, forceFieldShape);
 		}
 	}
 	
@@ -38,8 +38,9 @@ public enum EnumForceFieldShape implements IStringSerializable, IForceFieldShape
 		this.name = name;
 	}
 	
-	public static EnumForceFieldShape get(final int damage) {
-		return ID_MAP.get(damage);
+	@Nonnull
+	public static EnumForceFieldShape get(final String name) {
+		return NAME_MAP.getOrDefault(name, NONE);
 	}
 	
 	@Nonnull

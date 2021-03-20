@@ -9,11 +9,13 @@ import cr0s.warpdrive.data.EnumTier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.state.BooleanProperty;
+import net.minecraft.state.StateContainer.Builder;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Hand;
@@ -21,6 +23,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.IBlockReader;
@@ -28,22 +31,30 @@ import net.minecraft.world.World;
 
 public class BlockTransporterBeacon extends BlockAbstractContainer {
 	
-	private static final double BOUNDING_RADIUS = 3.0D / 32.0D;
+	private static final double BOUNDING_RADIUS =  3.0D / 32.0D;
 	private static final double BOUNDING_HEIGHT = 21.0D / 32.0D;
-	private static final VoxelShape SHAPE_BEACON = makeCuboidShape(0.5D - BOUNDING_RADIUS, 0.0D, 0.5D - BOUNDING_RADIUS,
-	                                                                     0.5D + BOUNDING_RADIUS, BOUNDING_HEIGHT, 0.5D + BOUNDING_RADIUS );
+	private static final VoxelShape SHAPE_BEACON = VoxelShapes.create(0.5D - BOUNDING_RADIUS, 0.0D           , 0.5D - BOUNDING_RADIUS,
+	                                                                  0.5D + BOUNDING_RADIUS, BOUNDING_HEIGHT, 0.5D + BOUNDING_RADIUS );
 	
 	public static final BooleanProperty DEPLOYED = BooleanProperty.create("deployed");
 	
 	public BlockTransporterBeacon(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(getDefaultProperties(null)
-		      .hardnessAndResistance(0.5F),
+				.doesNotBlockMovement()
+				.hardnessAndResistance(0.5F),
 		      registryName, enumTier);
 		
-		setDefaultState(getDefaultState()
+		setDefaultState(getStateContainer().getBaseState()
 				                .with(BlockProperties.ACTIVE, false)
 				                .with(DEPLOYED, false)
 		               );
+	}
+	
+	@Override
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(BlockProperties.ACTIVE);
+		builder.add(DEPLOYED);
 	}
 	
 	@Nullable
@@ -55,8 +66,8 @@ public class BlockTransporterBeacon extends BlockAbstractContainer {
 	@SuppressWarnings("deprecation")
 	@Nonnull
 	@Override
-	public VoxelShape getCollisionShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
-	                                    @Nonnull final ISelectionContext selectionContext) {
+	public VoxelShape getShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
+	                           @Nonnull final ISelectionContext context) {
 		return SHAPE_BEACON;
 	}
 	
@@ -64,12 +75,6 @@ public class BlockTransporterBeacon extends BlockAbstractContainer {
 	public int getLightValue(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos) {
 		final boolean isActive = blockState.get(BlockProperties.ACTIVE);
 		return isActive ? 6 : 0;
-	}
-	
-	@Nonnull
-	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityTransporterBeacon();
 	}
 	
 	@Nonnull

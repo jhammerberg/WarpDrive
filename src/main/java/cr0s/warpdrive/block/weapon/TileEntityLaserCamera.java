@@ -2,8 +2,8 @@ package cr0s.warpdrive.block.weapon;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IVideoChannel;
-import cr0s.warpdrive.block.TileEntityLaser;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.EnumCameraType;
 import cr0s.warpdrive.network.PacketHandler;
@@ -15,11 +15,8 @@ import li.cil.oc.api.machine.Context;
 import javax.annotation.Nonnull;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 
 public class TileEntityLaserCamera extends TileEntityLaser implements IVideoChannel {
-	
-	public static TileEntityType<TileEntityLaserCamera> TYPE;
 	
 	private int videoChannel = -1;
 	
@@ -29,8 +26,8 @@ public class TileEntityLaserCamera extends TileEntityLaser implements IVideoChan
 	private int packetSendTicks = 10;
 	private int registryUpdateTicks = 20;
 	
-	public TileEntityLaserCamera() {
-		super(TYPE);
+	public TileEntityLaserCamera(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveLaserCamera";
 		addMethods(new String[] {

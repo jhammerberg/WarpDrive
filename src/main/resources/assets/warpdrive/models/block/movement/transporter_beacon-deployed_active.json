@@ -1,6 +1,8 @@
 {
+	"parent": "block/cube_all",
     "ambientocclusion": false,
     "textures": {
+		"beacon" : "warpdrive:block/movement/transporter_beacon-deployed_active",
         "particle": "#beacon"
     },
     "elements": [

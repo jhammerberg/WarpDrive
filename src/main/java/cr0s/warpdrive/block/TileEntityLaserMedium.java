@@ -1,17 +1,15 @@
 package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import javax.annotation.Nonnull;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 
 public class TileEntityLaserMedium extends TileEntityAbstractEnergy {
-	
-	public static TileEntityType<TileEntityLaserMedium> TYPE;
 	
 	private static final int BLOCKSTATE_REFRESH_PERIOD_TICKS = 20;
 	
@@ -21,8 +19,8 @@ public class TileEntityLaserMedium extends TileEntityAbstractEnergy {
 	// computed properties
 	private int ticks = BLOCKSTATE_REFRESH_PERIOD_TICKS;
 	
-	public TileEntityLaserMedium() {
-		super(TYPE);
+	public TileEntityLaserMedium(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveLaserMedium";
 		doRequireUpgradeToInterface();

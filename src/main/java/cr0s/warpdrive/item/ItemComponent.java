@@ -28,7 +28,12 @@ public class ItemComponent extends ItemAbstractBase implements IAirContainerItem
 		      enumTier );
 		
 		this.componentType = componentType;
-		setTranslationKey("warpdrive.component." + componentType.getName());
+	}
+	
+	@Nonnull
+	public static Item getItem(@Nonnull final EnumComponentType componentType) {
+		final int indexType = componentType.ordinal();
+		return WarpDrive.itemComponents[indexType];
 	}
 	
 	@Nonnull

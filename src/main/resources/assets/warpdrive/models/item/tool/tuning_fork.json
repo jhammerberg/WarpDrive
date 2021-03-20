@@ -1,9 +1,9 @@
 {
 	"credit": "Made with Blockbench",
 	"textures": {
-		"particle": "warpdrive:items/tool/tuning_fork",
-		"texture": "warpdrive:items/tool/tuning_fork",
-		"wool": "minecraft:blocks/wool_colored_red"
+		"particle": "warpdrive:item/tool/tuning_fork",
+		"texture": "warpdrive:item/tool/tuning_fork",
+		"wool": "minecraft:block/red_wool"
 	},
 	"elements": [
 		{

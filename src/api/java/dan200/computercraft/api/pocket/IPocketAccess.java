@@ -1,8 +1,13 @@
+/*
+ * This file is part of the public ComputerCraft API - http://www.computercraft.info
+ * Copyright Daniel Ratcliffe, 2011-2021. This API may be redistributed unmodified and in full only.
+ * For help using the API, and posting your mods, visit the forums at computercraft.info.
+ */
 package dan200.computercraft.api.pocket;
 
 import dan200.computercraft.api.peripheral.IPeripheral;
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ResourceLocation;
 
 import javax.annotation.Nonnull;
@@ -10,14 +15,16 @@ import javax.annotation.Nullable;
 import java.util.Map;
 
 /**
- * Wrapper class for pocket computers
+ * Wrapper class for pocket computers.
  */
 public interface IPocketAccess
 {
     /**
      * Gets the entity holding this item.
      *
-     * @return The holding entity. This may be {@code null}.
+     * This must be called on the server thread.
+     *
+     * @return The holding entity, or {@code null} if none exists.
      */
     @Nullable
     Entity getEntity();
@@ -67,7 +74,7 @@ public interface IPocketAccess
      * @see #updateUpgradeNBTData()
      */
     @Nonnull
-    NBTTagCompound getUpgradeNBTData();
+    CompoundNBT getUpgradeNBTData();
 
     /**
      * Mark the upgrade-specific NBT as dirty.

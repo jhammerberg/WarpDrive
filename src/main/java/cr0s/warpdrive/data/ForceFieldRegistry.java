@@ -3,7 +3,7 @@ package cr0s.warpdrive.data;
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IBeamFrequency;
-import cr0s.warpdrive.block.forcefield.TileEntityForceFieldRelay;
+import cr0s.warpdrive.block.force_field.TileEntityForceFieldRelay;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import javax.annotation.Nonnull;
@@ -19,6 +19,7 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.server.ServerWorld;
 
 import net.minecraftforge.common.util.Constants;
@@ -99,7 +100,7 @@ public class ForceFieldRegistry {
 		// sanity checks
 		if (world == null) {
 			WarpDrive.logger.warn(String.format("ForceFieldRegistry:getTileEntities called with no world for beam frequency %d %s",
-			                                    beamFrequency, Commons.format(null, blockPos) ));
+			                                    beamFrequency, Commons.format((IWorld) null, blockPos)));
 			return new CopyOnWriteArraySet<>();
 		}
 		

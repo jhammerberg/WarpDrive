@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "optional": [
+    "warpdrive:breathing.air_shield.white",
+    "warpdrive:breathing.air_shield.orange",
+    "warpdrive:breathing.air_shield.magenta",
+    "warpdrive:breathing.air_shield.light_blue",
+    "warpdrive:breathing.air_shield.yellow",
+    "warpdrive:breathing.air_shield.lime",
+    "warpdrive:breathing.air_shield.pink",
+    "warpdrive:breathing.air_shield.gray",
+    "warpdrive:breathing.air_shield.light_gray",
+    "warpdrive:breathing.air_shield.cyan",
+    "warpdrive:breathing.air_shield.purple",
+    "warpdrive:breathing.air_shield.blue",
+    "warpdrive:breathing.air_shield.brown",
+    "warpdrive:breathing.air_shield.green",
+    "warpdrive:breathing.air_shield.red",
+    "warpdrive:breathing.air_shield.black"
+  ]
+}

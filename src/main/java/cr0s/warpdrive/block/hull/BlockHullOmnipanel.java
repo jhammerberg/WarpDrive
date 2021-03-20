@@ -24,10 +24,10 @@ import net.minecraftforge.common.ToolType;
 
 public class BlockHullOmnipanel extends BlockAbstractOmnipanel implements IDamageReceiver {
 	
-	final int indexColor;
+	final int   indexColor;
 	
-	public BlockHullOmnipanel(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final DyeColor enumDyeColor) {
-		super(getDefaultProperties(Material.GLASS, enumDyeColor.getMapColor())
+	public BlockHullOmnipanel(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final DyeColor dyeColor) {
+		super(getDefaultProperties(Material.GLASS, dyeColor.getMapColor())
 				.hardnessAndResistance(WarpDriveConfig.HULL_HARDNESS[enumTier.getIndex()], WarpDriveConfig.HULL_BLAST_RESISTANCE[enumTier.getIndex()])
 				.harvestTool(ToolType.PICKAXE)
 				.harvestLevel(WarpDriveConfig.HULL_HARVEST_LEVEL[enumTier.getIndex()])
@@ -35,7 +35,7 @@ public class BlockHullOmnipanel extends BlockAbstractOmnipanel implements IDamag
 				.sound(SoundType.GLASS),
 		      registryName, enumTier);
 		
-		this.indexColor = enumDyeColor.getId();
+		this.indexColor = dyeColor.getId();
 	}
 	
 	@Nullable

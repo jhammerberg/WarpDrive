@@ -1,6 +1,6 @@
 {
 	"parent": "item/generated",
 	"textures": {
-		"layer0": "warpdrive:items/atomic/electromagnetic_cell-pink-60"
+		"layer0": "warpdrive:item/atomic/electromagnetic_cell-pink-60"
 	}
 }

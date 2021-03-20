@@ -1,18 +1,18 @@
 package cr0s.warpdrive.block.energy;
 
 import cr0s.warpdrive.Commons;
-import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IWarpTool;
 import cr0s.warpdrive.block.BlockAbstractContainer;
 import cr0s.warpdrive.data.EnumDisabledInputOutput;
 import cr0s.warpdrive.data.EnumTier;
-import cr0s.warpdrive.event.ModelBakeEventHandler;
+import cr0s.warpdrive.event.ModelHandler;
 import cr0s.warpdrive.render.BakedModelCapacitor;
 
 import ic2.api.energy.tile.IExplosionPowerOverride;
 
 import javax.annotation.Nonnull;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.entity.player.PlayerEntity;
@@ -21,6 +21,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.state.EnumProperty;
 import net.minecraft.state.IProperty;
+import net.minecraft.state.StateContainer.Builder;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Direction;
@@ -29,7 +30,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
 import net.minecraftforge.api.distmarker.Dist;
@@ -50,35 +50,15 @@ public class BlockCapacitor extends BlockAbstractContainer implements IExplosion
 	public BlockCapacitor(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(getDefaultProperties(null), registryName, enumTier);
 		
-		setDefaultState(getDefaultState()
+		setDefaultState(getStateContainer().getBaseState()
 				                .with(CONFIG, EnumDisabledInputOutput.DISABLED)
 		               );
 	}
 	
-	@Nonnull
 	@Override
-	// TODO MC1.15 Capacitor rendering
-	public BlockState getExtendedState(@Nonnull final BlockState blockState, final IBlockReader worldReader, final BlockPos blockPos) {
-		final TileEntity tileEntity = worldReader.getTileEntity(blockPos);
-		if (!(tileEntity instanceof TileEntityCapacitor)) {
-			WarpDrive.logger.error(String.format("%s Invalid TileEntityCapacitor instance for %s %s: %s",
-			                                     this, blockState, Commons.format(worldReader, blockPos), tileEntity));
-			return blockState;
-		}
-		final TileEntityCapacitor tileEntityCapacitor = (TileEntityCapacitor) tileEntity;
-		return blockState
-				       .with(DOWN , tileEntityCapacitor.getMode(Direction.DOWN))
-				       .with(UP   , tileEntityCapacitor.getMode(Direction.UP))
-				       .with(NORTH, tileEntityCapacitor.getMode(Direction.NORTH))
-				       .with(SOUTH, tileEntityCapacitor.getMode(Direction.SOUTH))
-				       .with(WEST , tileEntityCapacitor.getMode(Direction.WEST))
-				       .with(EAST , tileEntityCapacitor.getMode(Direction.EAST));
-	}
-	
-	@Nonnull
-	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityCapacitor();
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(CONFIG);
 	}
 	
 	@OnlyIn(Dist.CLIENT)
@@ -92,7 +72,7 @@ public class BlockCapacitor extends BlockAbstractContainer implements IExplosion
 		for (final EnumDisabledInputOutput enumDisabledInputOutput : CONFIG.getAllowedValues()) {
 			final String variant = String.format("%s=%s",
 			                                     CONFIG.getName(), enumDisabledInputOutput);
-			ModelBakeEventHandler.registerBakedModel(new ModelResourceLocation(registryName, variant), BakedModelCapacitor.class);
+			ModelHandler.registerBakedModel(new ModelResourceLocation(registryName, variant), BakedModelCapacitor.class);
 		}
 	}
 	

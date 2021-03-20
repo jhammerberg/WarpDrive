@@ -2,15 +2,16 @@ package cr0s.warpdrive.block.building;
 
 import cr0s.warpdrive.Commons;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.state.StateContainer.Builder;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
 import cr0s.warpdrive.block.BlockAbstractContainer;
@@ -24,9 +25,15 @@ public class BlockShipScanner extends BlockAbstractContainer {
 	public BlockShipScanner(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(getDefaultProperties(null), registryName, enumTier);
 		
-		setDefaultState(getDefaultState()
+		setDefaultState(getStateContainer().getBaseState()
 				                .with(BlockProperties.ACTIVE, false)
 		               );
+	}
+	
+	@Override
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(BlockProperties.ACTIVE);
 	}
 	
 	/* TODO MC1.15 ship scanner builder's field
@@ -39,12 +46,6 @@ public class BlockShipScanner extends BlockAbstractContainer {
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityShipScanner.class, new TileEntityShipScannerRenderer());
 	}
 	*/
-	
-	@Nonnull
-	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityShipScanner();
-	}
 	
 	@Nonnull
 	@Override

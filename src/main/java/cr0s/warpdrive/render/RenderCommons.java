@@ -228,7 +228,7 @@ public class RenderCommons {
 	public static IModelGeometry<?> getModel(final ResourceLocation resourceLocation) {
 		final IModelGeometry<?> model = null;
 		try {
-			// MC1.15 reactor core rendering
+			// TODO MC1.15 reactor core rendering
 			// model = ModelLoaderRegistry.getModel(resourceLocation);
 		} catch (final Exception exception) {
 			WarpDrive.logger.info(String.format("getModel %s", resourceLocation));

@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.detection;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.block.TileEntityAbstractEnergyConsumer;
 import cr0s.warpdrive.data.CelestialObjectManager;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -22,12 +23,9 @@ import java.util.Arrays;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 
 public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
-	
-	public static TileEntityType<TileEntityRadar> TYPE;
 	
 	private ArrayList<RadarEcho> results;
 	
@@ -38,8 +36,8 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 	private int scanning_radius = 0;
 	private int scanning_countdown_ticks = 0;
 	
-	public TileEntityRadar() {
-		super(TYPE);
+	public TileEntityRadar(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveRadar";
 		addMethods(new String[] {

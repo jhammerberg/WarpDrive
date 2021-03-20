@@ -39,17 +39,17 @@ public class MessageBeamEffect implements IMessage {
 	}
 	
 	@Override
-	public void encode(@Nonnull final PacketBuffer buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		double x = buffer.readDouble();
 		double y = buffer.readDouble();
 		double z = buffer.readDouble();
 		source = new Vector3(x, y, z);
-
+		
 		x = buffer.readDouble();
 		y = buffer.readDouble();
 		z = buffer.readDouble();
 		target = new Vector3(x, y, z);
-
+		
 		red = buffer.readFloat();
 		green = buffer.readFloat();
 		blue = buffer.readFloat();
@@ -57,7 +57,7 @@ public class MessageBeamEffect implements IMessage {
 	}
 	
 	@Override
-	public void decode(@Nonnull final PacketBuffer buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		buffer.writeDouble(source.x);
 		buffer.writeDouble(source.y);
 		buffer.writeDouble(source.z);

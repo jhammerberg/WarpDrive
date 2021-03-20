@@ -81,7 +81,7 @@ public class MessageTransporterEffect implements IMessage {
 	}
 	
 	@Override
-	public void encode(@Nonnull final PacketBuffer buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		isTransporterRoom = buffer.readBoolean();
 		
 		final ResourceLocation dimensionId = new ResourceLocation(buffer.readString());
@@ -109,7 +109,7 @@ public class MessageTransporterEffect implements IMessage {
 	}
 	
 	@Override
-	public void decode(@Nonnull final PacketBuffer buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		buffer.writeBoolean(isTransporterRoom);
 		
 		buffer.writeString(globalPosition.dimensionId.toString());

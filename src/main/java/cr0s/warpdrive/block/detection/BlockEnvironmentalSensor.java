@@ -8,7 +8,6 @@ import javax.annotation.Nonnull;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
@@ -21,29 +20,23 @@ import net.minecraft.world.World;
 
 public class BlockEnvironmentalSensor extends BlockAbstractHorizontalSpinningContainer {
 	
-	private static final VoxelShape SHAPE_DOWN   = makeCuboidShape(0.1250D, 0.6875D, 0.1250D, 0.8750D, 1.0000D, 0.8750D);
-	private static final VoxelShape SHAPE_UP     = makeCuboidShape(0.1250D, 0.0000D, 0.1250D, 0.8750D, 0.3125D, 0.8750D);
-	private static final VoxelShape SHAPE_NORTH  = makeCuboidShape(0.1250D, 0.1250D, 0.6875D, 0.8750D, 0.8750D, 1.0000D);
-	private static final VoxelShape SHAPE_SOUTH  = makeCuboidShape(0.1250D, 0.1250D, 0.0000D, 0.8750D, 0.8750D, 0.3125D);
-	private static final VoxelShape SHAPE_WEST   = makeCuboidShape(0.6875D, 0.1250D, 0.1250D, 1.0000D, 0.8750D, 0.8750D);
-	private static final VoxelShape SHAPE_EAST   = makeCuboidShape(0.0000D, 0.1250D, 0.1250D, 0.3125D, 0.8750D, 0.8750D);
+	private static final VoxelShape SHAPE_DOWN   = VoxelShapes.create(0.1250D, 0.6875D, 0.1250D, 0.8750D, 1.0000D, 0.8750D);
+	private static final VoxelShape SHAPE_UP     = VoxelShapes.create(0.1250D, 0.0000D, 0.1250D, 0.8750D, 0.3125D, 0.8750D);
+	private static final VoxelShape SHAPE_NORTH  = VoxelShapes.create(0.1250D, 0.1250D, 0.6875D, 0.8750D, 0.8750D, 1.0000D);
+	private static final VoxelShape SHAPE_SOUTH  = VoxelShapes.create(0.1250D, 0.1250D, 0.0000D, 0.8750D, 0.8750D, 0.3125D);
+	private static final VoxelShape SHAPE_WEST   = VoxelShapes.create(0.6875D, 0.1250D, 0.1250D, 1.0000D, 0.8750D, 0.8750D);
+	private static final VoxelShape SHAPE_EAST   = VoxelShapes.create(0.0000D, 0.1250D, 0.1250D, 0.3125D, 0.8750D, 0.8750D);
 	private static final VoxelShape SHAPE_FULL   = VoxelShapes.fullCube();
 	
 	public BlockEnvironmentalSensor(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(getDefaultProperties(null), registryName, enumTier);
 	}
 	
-	@Nonnull
-	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityEnvironmentalSensor();
-	}
-	
 	@SuppressWarnings("deprecation")
 	@Nonnull
 	@Override
-	public VoxelShape getCollisionShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
-	                                    @Nonnull final ISelectionContext selectionContext) {
+	public VoxelShape getShape(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader, @Nonnull final BlockPos blockPos,
+	                           @Nonnull final ISelectionContext selectionContext) {
 		switch (blockState.get(BlockProperties.HORIZONTAL_SPINNING).facing) {
 		case DOWN : return SHAPE_DOWN;
 		case UP   : return SHAPE_UP;

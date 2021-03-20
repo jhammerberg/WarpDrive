@@ -21,32 +21,32 @@ public class ItemGroupHull extends ItemGroupAbstractBase {
 	@Override
 	@OnlyIn(Dist.CLIENT)
 	public ItemStack createIcon() {
-		final int tier = 1 + random.nextInt(EnumTier.length - 1);
-		final int color = random.nextInt(16);
+		final int indexTier = 1 + random.nextInt(EnumTier.length - 1);
+		final int indexColor = random.nextInt(16);
 		ItemStack itemStack;
 		switch (random.nextInt(7)) {
 		case 0:
-			itemStack = new ItemStack(WarpDrive.blockHulls_plain[tier][0][color], 1);
+			itemStack = new ItemStack(WarpDrive.blockHulls_plain[indexTier][0][indexColor], 1);
 			break;
 		case 1:
-			itemStack = new ItemStack(WarpDrive.blockHulls_plain[tier][1][color], 1);
+			itemStack = new ItemStack(WarpDrive.blockHulls_plain[indexTier][1][indexColor], 1);
 			break;
 		case 2:
-			itemStack = new ItemStack(WarpDrive.blockHulls_glass[tier][color], 1);
+			itemStack = new ItemStack(WarpDrive.blockHulls_glass[indexTier][indexColor], 1);
 			break;
 		case 3:
-			itemStack = new ItemStack(WarpDrive.blockHulls_slab[tier][color], 1);
+			itemStack = new ItemStack(WarpDrive.blockHulls_slab[indexTier][0][indexColor], 1);
 			itemStack.setDamage(0);
 			break;
 		case 4:
-			itemStack = new ItemStack(WarpDrive.blockHulls_slab[tier][color], 1);
+			itemStack = new ItemStack(WarpDrive.blockHulls_slab[indexTier][0][indexColor], 1);
 			itemStack.setDamage(2);
 			break;
 		case 5:
-			itemStack = new ItemStack(WarpDrive.blockHulls_stairs[tier][color], 1);
+			itemStack = new ItemStack(WarpDrive.blockHulls_stairs[indexTier][0][indexColor], 1);
 			break;
 		case 6:
-			itemStack = new ItemStack(WarpDrive.blockHulls_omnipanel[tier][color], 1);
+			itemStack = new ItemStack(WarpDrive.blockHulls_omnipanel[indexTier][indexColor], 1);
 			break;
 		default:
 			itemStack = new ItemStack(Blocks.OBSIDIAN, 1);

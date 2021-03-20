@@ -22,9 +22,6 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Rotation;
 import net.minecraft.util.math.BlockPos;
 
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -81,12 +78,6 @@ public abstract class BlockAbstractBase extends Block implements IBlockBase {
 	@Override
 	public BlockItem createItemBlock() {
 		return new ItemBlockAbstractBase(this);
-	}
-	
-	@OnlyIn(Dist.CLIENT)
-	@Override
-	public void modelInitialisation() {
-		// no operation
 	}
 	
 	@Nullable
@@ -194,7 +185,7 @@ public abstract class BlockAbstractBase extends Block implements IBlockBase {
 				tileEntityAbstractBase.dismountUpgrade(upgradeSlot);
 				// upgrade dismounted
 				Commons.addChatMessage(entityPlayer, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.upgrade.result.dismounted",
-				                                                       new TranslationTextComponent(upgradeSlot.itemStack.getTranslationKey() + ".name") ));
+				                                                       new TranslationTextComponent(upgradeSlot.itemStack.getTranslationKey()) ));
 				return ActionResultType.CONSUME;
 			}
 			
@@ -235,7 +226,7 @@ public abstract class BlockAbstractBase extends Block implements IBlockBase {
 			tileEntityAbstractBase.mountUpgrade(upgradeSlot);
 			// upgrade mounted
 			Commons.addChatMessage(entityPlayer, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.upgrade.result.mounted",
-			                                                       new TranslationTextComponent(upgradeSlot.itemStack.getTranslationKey() + ".name") ));
+			                                                       new TranslationTextComponent(upgradeSlot.itemStack.getTranslationKey()) ));
 			return ActionResultType.CONSUME;
 			
 		} else if ( !world.isRemote()

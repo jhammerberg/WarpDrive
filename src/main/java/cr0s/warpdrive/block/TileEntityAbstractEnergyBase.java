@@ -1,5 +1,6 @@
 package cr0s.warpdrive.block;
 
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.api.computer.IEnergyBase;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -12,15 +13,14 @@ import li.cil.oc.api.machine.Context;
 import javax.annotation.Nonnull;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 
 public abstract class TileEntityAbstractEnergyBase extends TileEntityAbstractMachine implements IEnergyBase {
 	
 	// persistent properties
 	private String energy_displayUnits = null;
 	
-	public TileEntityAbstractEnergyBase(@Nonnull TileEntityType<? extends TileEntityAbstractEnergyBase> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityAbstractEnergyBase(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		addMethods(new String[] {
 				"energyDisplayUnits",
@@ -66,7 +66,7 @@ public abstract class TileEntityAbstractEnergyBase extends TileEntityAbstractMac
 	@Override
 	public WarpDriveText getStatus() {
 		final WarpDriveText textEnergyStatus = getEnergyStatusText();
-		if (textEnergyStatus.getUnformattedComponentText().isEmpty()) {
+		if (textEnergyStatus.isEmpty()) {
 			return super.getStatus();
 		} else {
 			return super.getStatus().append(textEnergyStatus);

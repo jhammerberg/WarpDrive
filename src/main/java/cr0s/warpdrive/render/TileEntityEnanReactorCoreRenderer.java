@@ -54,7 +54,7 @@ public class TileEntityEnanReactorCoreRenderer extends TileEntityRenderer<TileEn
 		if (bakedModelCore == null) {
 			final ResourceLocation resourceLocation = new ResourceLocation(WarpDrive.MODID, "block/energy/reactor_core.obj");
 			final IModelGeometry<?> model = RenderCommons.getModel(resourceLocation);
-			// MC1.15 reactor core rendering
+			// TODO MC1.15 reactor core rendering
 			// bakedModelCore = model.bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
 		}
 		quadsCore = bakedModelCore.getQuads(null, null, null, null);

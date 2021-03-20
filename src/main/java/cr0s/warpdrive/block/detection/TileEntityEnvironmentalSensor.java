@@ -1,5 +1,6 @@
 package cr0s.warpdrive.block.detection;
 
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.block.TileEntityAbstractMachine;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.BlockProperties;
@@ -17,7 +18,6 @@ import java.util.Collections;
 import java.util.Set;
 
 import net.minecraft.block.BlockState;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.Biome.RainType;
@@ -26,8 +26,6 @@ import net.minecraftforge.common.BiomeDictionary.Type;
 
 public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 	
-	public static TileEntityType<TileEntityEnvironmentalSensor> TYPE;
-	
 	// persistent properties
 	// (none)
 	
@@ -35,8 +33,8 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 	private int tickUpdate;
 	private int airConcentration;
 	
-	public TileEntityEnvironmentalSensor() {
-		super(TYPE);
+	public TileEntityEnvironmentalSensor(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveEnvironmentalSensor";
 		addMethods(new String[] {
@@ -98,7 +96,7 @@ public class TileEntityEnvironmentalSensor extends TileEntityAbstractMachine {
 		final Set<Type> types = BiomeDictionary.getTypes(biome);
 		final Object[] result = new Object[2 + types.size()];
 		result[0] = true;
-		result[1] = new TranslationTextComponent(biome.getTranslationKey()).getUnformattedComponentText();
+		result[1] = new TranslationTextComponent(biome.getTranslationKey()).getString();
 		int index = 2;
 		for (final Type type : types) {
 			result[index] = type.getName();

@@ -1,6 +1,6 @@
 package cr0s.warpdrive.data;
 
-import cr0s.warpdrive.block.TileEntityLaser;
+import cr0s.warpdrive.block.weapon.TileEntityLaser;
 import cr0s.warpdrive.block.detection.TileEntityCamera;
 
 import java.util.HashMap;

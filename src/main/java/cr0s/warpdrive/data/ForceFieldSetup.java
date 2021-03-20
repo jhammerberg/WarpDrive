@@ -7,7 +7,7 @@ import cr0s.warpdrive.api.IForceFieldUpgrade;
 import cr0s.warpdrive.api.IForceFieldUpgradeEffector;
 import cr0s.warpdrive.block.TileEntityAbstractBase;
 import cr0s.warpdrive.block.TileEntityAbstractBase.UpgradeSlot;
-import cr0s.warpdrive.block.forcefield.TileEntityForceFieldProjector;
+import cr0s.warpdrive.block.force_field.TileEntityForceFieldProjector;
 import cr0s.warpdrive.config.WarpDriveConfig;
 
 import javax.annotation.Nonnull;

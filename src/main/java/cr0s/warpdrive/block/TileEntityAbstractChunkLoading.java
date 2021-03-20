@@ -1,12 +1,12 @@
 package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.event.ChunkLoadingHandler;
 
 import javax.annotation.Nonnull;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.world.server.ServerWorld;
 
 public abstract class TileEntityAbstractChunkLoading extends TileEntityAbstractEnergyConsumer {
@@ -18,8 +18,8 @@ public abstract class TileEntityAbstractChunkLoading extends TileEntityAbstractE
 	private int range_registered = -1;
 	private boolean isRefreshNeeded = true;
 	
-	TileEntityAbstractChunkLoading(@Nonnull TileEntityType<? extends TileEntityAbstractChunkLoading> tileEntityType) {
-		super(tileEntityType);
+	TileEntityAbstractChunkLoading(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 	}
 	
 	@Override

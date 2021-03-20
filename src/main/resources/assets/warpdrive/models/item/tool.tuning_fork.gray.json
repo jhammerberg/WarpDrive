@@ -1,0 +1,6 @@
+{
+	"parent": "warpdrive:item/tool/tuning_fork",
+	"textures": {
+		"wool": "minecraft:block/gray_wool"
+	}
+}

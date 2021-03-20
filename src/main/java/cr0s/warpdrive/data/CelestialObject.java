@@ -247,7 +247,26 @@ public class CelestialObject implements Cloneable, IStringSerializable, ICelesti
 			isVirtual = false;
 			
 			final Element elementDimension = listDimensions.get(0);
-			dimensionId = new ResourceLocation(elementDimension.getAttribute("id"));
+			dimensionId = new ResourceLocation(elementDimension.getAttribute("registryName"));
+			if (dimensionId.toString().equals("warpdrive:auto")) {
+				// sanitize the id into a valid path by replacing any sequence of invalid characters with a single '_'
+				StringBuilder path = new StringBuilder();
+				boolean wasValidChar = false;
+				for (final char cIn : id.toLowerCase().replace("\\n", "\n").toCharArray()) {
+					if (ResourceLocation.isValidPathCharacter(cIn)) {
+						path.append(cIn);
+						wasValidChar = true;
+					} else if (wasValidChar) {
+						path.append('_');
+						wasValidChar = false;
+					}
+				}
+				// remove final '_' if any
+				if (!wasValidChar) {
+					path.deleteCharAt(path.lastIndexOf("_"));
+				}
+				dimensionId = new ResourceLocation("warpdrive", path.toString());
+			}
 			gravity = parseGravity(elementDimension.getAttribute("gravity"));
 			isBreathable = Boolean.parseBoolean(elementDimension.getAttribute("isBreathable"));
 			isHyperspace = Boolean.parseBoolean(elementDimension.getAttribute("isHyperspace"));

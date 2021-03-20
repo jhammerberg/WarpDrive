@@ -2,8 +2,8 @@ package cr0s.warpdrive.item;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
-import cr0s.warpdrive.block.forcefield.BlockForceFieldProjector;
-import cr0s.warpdrive.block.forcefield.BlockForceFieldRelay;
+import cr0s.warpdrive.block.force_field.BlockForceFieldProjector;
+import cr0s.warpdrive.block.force_field.BlockForceFieldRelay;
 import cr0s.warpdrive.data.EnumForceFieldShape;
 import cr0s.warpdrive.data.EnumTier;
 
@@ -39,7 +39,6 @@ public class ItemForceFieldShape extends ItemAbstractBase {
 		      enumTier );
 		
 		this.forceFieldShape = forceFieldShape;
-		setTranslationKey("warpdrive.force_field.shape." + forceFieldShape.getName());
 	}
 	
 	@Nonnull

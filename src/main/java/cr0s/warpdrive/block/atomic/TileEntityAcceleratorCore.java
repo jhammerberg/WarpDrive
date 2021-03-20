@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.atomic;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IControlChannel;
 import cr0s.warpdrive.api.IParticleContainerItem;
 import cr0s.warpdrive.api.IGlobalRegionProvider;
@@ -50,7 +51,6 @@ import net.minecraft.nbt.ListNBT;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.play.server.SUpdateTileEntityPacket;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvent;
@@ -62,8 +62,6 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.FakePlayer;
 
 public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrController implements IGlobalRegionProvider {
-	
-	public static TileEntityType<TileEntityAcceleratorCore> TYPE;
 	
 	private static final int      ACCELERATOR_COOLDOWN_TICKS = 300;
 	private static final int      ACCELERATOR_GUIDE_UPDATE_TICKS = 300;
@@ -122,8 +120,8 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 	private AcceleratorSetup acceleratorSetup;
 	
 	
-	public TileEntityAcceleratorCore() {
-		super(TYPE);
+	public TileEntityAcceleratorCore(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveAccelerator";
 		addMethods(new String[] {
@@ -839,7 +837,7 @@ public class TileEntityAcceleratorCore extends TileEntityAbstractEnergyCoreOrCon
 			if (!acceleratorSetup.getAssemblyStatus(textReason)) {
 				if (WarpDriveConfig.LOGGING_ACCELERATOR) {
 					WarpDrive.logger.info(String.format("%s invalid accelerator setup: %s",
-					                                    this, textReason.getUnformattedComponentText() ));
+					                                    this, textReason.getString() ));
 				}
 				// don't return false, so the player can still enable the accelerator "at their own risk"
 			} else {

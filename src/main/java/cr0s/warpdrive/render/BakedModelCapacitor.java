@@ -3,6 +3,7 @@ package cr0s.warpdrive.render;
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.block.energy.BlockCapacitor;
+import cr0s.warpdrive.block.energy.TileEntityCapacitor;
 import cr0s.warpdrive.data.EnumDisabledInputOutput;
 
 import javax.annotation.Nonnull;
@@ -16,6 +17,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BlockModelShapes;
 import net.minecraft.client.renderer.model.BakedQuad;
 import net.minecraft.client.renderer.model.IBakedModel;
+import net.minecraft.client.renderer.model.ItemOverrideList;
 import net.minecraft.util.Direction;
 
 import net.minecraftforge.client.model.data.IModelData;
@@ -25,43 +27,33 @@ public class BakedModelCapacitor extends BakedModelAbstractBase {
 	public BakedModelCapacitor() {
 	}
 	
+	@Nonnull
+	@Override
+	public ItemOverrideList getOverrides() {
+		return itemBlockOverrideList;
+	}
+	
 	public IBakedModel getOriginalBakedModel() {
 		return bakedModelOriginal;
 	}
 	
 	@Nonnull
 	@Override
-	public List<BakedQuad> getQuads(@Nullable final BlockState blockState, @Nullable final Direction side, @Nonnull final Random rand, @Nonnull IModelData modelData) {
+	public List<BakedQuad> getQuads(@Nullable final BlockState blockState, @Nullable final Direction side, @Nonnull final Random rand,
+	                                @Nonnull final IModelData modelData) {
 		assert modelResourceLocation != null;
 		assert bakedModelOriginal != null;
 		
-		final BlockState blockStateActual;
-		if (blockState == null) {
-			// dead code until we have different blocks for each tiers to support item rendering and 1.13+
-			if (blockStateDefault == null) {
-				blockStateDefault = WarpDrive.blockCapacitors[0].getDefaultState()
-				        .with(BlockCapacitor.DOWN , EnumDisabledInputOutput.INPUT)
-				        .with(BlockCapacitor.UP   , EnumDisabledInputOutput.INPUT)
-				        .with(BlockCapacitor.NORTH, EnumDisabledInputOutput.OUTPUT)
-				        .with(BlockCapacitor.SOUTH, EnumDisabledInputOutput.OUTPUT)
-				        .with(BlockCapacitor.WEST , EnumDisabledInputOutput.OUTPUT)
-				        .with(BlockCapacitor.EAST , EnumDisabledInputOutput.OUTPUT);
-			}
-			blockStateActual = blockStateDefault;
-		} else {
-			blockStateActual = null;
-		}
-		if (blockStateActual != null) {
-			final EnumDisabledInputOutput enumDisabledInputOutput = getEnumDisabledInputOutput(blockStateActual, side);
+		if (blockState != null) {
+			final EnumDisabledInputOutput enumDisabledInputOutput = getEnumDisabledInputOutput(modelData, side);
 			if (enumDisabledInputOutput == null) {
-				if (Commons.throttleMe("BakedModelCapacitor invalid extended")) {
-					new RuntimeException(String.format("%s Invalid extended property for %s side %s\n%s",
-					                                   this, blockStateActual, side, formatDetails() ))
+				if (Commons.throttleMe("BakedModelCapacitor::getQuads invalid IModelData")) {
+					new RuntimeException(String.format("%s Invalid IModelData for %s side %s\n%s",
+					                                   this, blockState, side, formatDetails() ))
 							.printStackTrace(WarpDrive.printStreamError);
 				}
-				return getDefaultQuads(side, rand, modelData);
 			}
-			final BlockState blockStateToRender = blockStateActual.with(BlockCapacitor.CONFIG, enumDisabledInputOutput);
+			final BlockState blockStateToRender = blockState.with(BlockCapacitor.CONFIG, enumDisabledInputOutput != null ? enumDisabledInputOutput : EnumDisabledInputOutput.DISABLED);
 			
 			// remap to the json model representing the proper state
 			final BlockModelShapes blockModelShapes = Minecraft.getInstance().getBlockRendererDispatcher().getBlockModelShapes();
@@ -72,17 +64,17 @@ public class BakedModelCapacitor extends BakedModelAbstractBase {
 		return getDefaultQuads(side, rand, modelData);
 	}
 	
-	public EnumDisabledInputOutput getEnumDisabledInputOutput(final BlockState blockState, @Nullable final Direction facing) {
+	public EnumDisabledInputOutput getEnumDisabledInputOutput(@Nonnull final IModelData modelData, @Nullable final Direction facing) {
 		if (facing == null) {
 			return EnumDisabledInputOutput.DISABLED;
 		}
 		switch (facing) {
-		case DOWN : return blockState.get(BlockCapacitor.DOWN);
-		case UP   : return blockState.get(BlockCapacitor.UP);
-		case NORTH: return blockState.get(BlockCapacitor.NORTH);
-		case SOUTH: return blockState.get(BlockCapacitor.SOUTH);
-		case WEST : return blockState.get(BlockCapacitor.WEST);
-		case EAST : return blockState.get(BlockCapacitor.EAST);
+		case DOWN : return modelData.getData(TileEntityCapacitor.MODEL_PROPERTY_DOWN);
+		case UP   : return modelData.getData(TileEntityCapacitor.MODEL_PROPERTY_UP);
+		case NORTH: return modelData.getData(TileEntityCapacitor.MODEL_PROPERTY_NORTH);
+		case SOUTH: return modelData.getData(TileEntityCapacitor.MODEL_PROPERTY_SOUTH);
+		case WEST : return modelData.getData(TileEntityCapacitor.MODEL_PROPERTY_WEST);
+		case EAST : return modelData.getData(TileEntityCapacitor.MODEL_PROPERTY_EAST);
 		default: return EnumDisabledInputOutput.DISABLED;
 		}
 	}
@@ -91,12 +83,5 @@ public class BakedModelCapacitor extends BakedModelAbstractBase {
 		final BlockState blockState = Blocks.FIRE.getDefaultState();
 		return Minecraft.getInstance().getBlockRendererDispatcher()
 		       .getModelForState(blockState).getQuads(blockState, side, rand, modelData);
-	}
-	
-	private String formatDetails() {
-		return String.format("modelResourceLocation %s\nbakedModelOriginal %s\nextendedBlockStateDefault %s]",
-		                     modelResourceLocation,
-		                     bakedModelOriginal,
-		                     blockStateDefault);
 	}
 }

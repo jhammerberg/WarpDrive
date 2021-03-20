@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.movement;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IGlobalRegionProvider;
 import cr0s.warpdrive.block.TileEntityAbstractEnergyCoreOrController;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -16,7 +17,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 
@@ -24,8 +24,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class TileEntityJumpGateCore extends TileEntityAbstractEnergyCoreOrController implements IGlobalRegionProvider {
-	
-	public static TileEntityType<TileEntityJumpGateCore> TYPE;
 	
 	private static final int BOUNDING_BOX_INTERVAL_TICKS = 60;
 	
@@ -43,8 +41,8 @@ public class TileEntityJumpGateCore extends TileEntityAbstractEnergyCoreOrContro
 	public double occupancy;
 	
 	
-	public TileEntityJumpGateCore() {
-		super(TYPE);
+	public TileEntityJumpGateCore(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveJumpGate";
 		// addMethods(new String[] {});

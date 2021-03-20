@@ -3,6 +3,7 @@ package cr0s.warpdrive.block.movement;
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IBeamFrequency;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IItemTransporterBeacon;
 import cr0s.warpdrive.api.IGlobalRegionProvider;
 import cr0s.warpdrive.api.WarpDriveText;
@@ -10,8 +11,8 @@ import cr0s.warpdrive.api.computer.ICoreSignature;
 import cr0s.warpdrive.api.computer.ITransporterBeacon;
 import cr0s.warpdrive.api.computer.ITransporterCore;
 import cr0s.warpdrive.block.TileEntityAbstractEnergyCoreOrController;
-import cr0s.warpdrive.block.forcefield.BlockForceField;
-import cr0s.warpdrive.block.forcefield.TileEntityForceField;
+import cr0s.warpdrive.block.force_field.BlockForceField;
+import cr0s.warpdrive.block.force_field.TileEntityForceField;
 import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.BlockProperties;
@@ -63,7 +64,6 @@ import net.minecraft.potion.Effects;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -76,8 +76,6 @@ import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.util.Constants;
 
 public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrController implements ITransporterCore, IBeamFrequency, IGlobalRegionProvider {
-	
-	public static TileEntityType<TileEntityTransporterCore> TYPE;
 	
 	// global properties
 	private static final UpgradeSlot upgradeSlotEnergyStorage = new UpgradeSlot("transporter.energy_storage",
@@ -121,8 +119,8 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	private final HashMap<Integer, MovingEntity> movingEntitiesRemote = new HashMap<>(8);
 	private int tickEnergizing = 0;
 	
-	public TileEntityTransporterCore() {
-		super(TYPE);
+	public TileEntityTransporterCore(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveTransporterCore";
 		addMethods(new String[] {
@@ -198,6 +196,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 			// lock strength is capped at optimal, increasing when powered, decaying otherwise
 			// final double lockStrengthPrevious = lockStrengthActual;
 			if ( isPowered
+			  && !isJammed
 			  && ( transporterState == EnumTransporterState.ACQUIRING
 			    || transporterState == EnumTransporterState.ENERGIZING ) ) {
 				// a slight overshoot is added to force convergence
@@ -445,7 +444,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		}
 		
 		// compute friendly name
-		final String nameEntity = entity.getName().getUnformattedComponentText();
+		final String nameEntity = entity.getName().getString();
 		
 		// check lock strength
 		if ( lockStrength < 1.0D
@@ -823,11 +822,11 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		  || transporterState == EnumTransporterState.ENERGIZING ) {
 			worldRemote = Commons.getOrCreateWorldServer(celestialObjectRemote.dimensionId);
 			if (worldRemote == null) {
-				WarpDrive.logger.error(String.format("Unable to initialize dimension %d for %s",
+				WarpDrive.logger.error(String.format("Unable to initialize dimension %s for %s",
 				                                     celestialObjectRemote.dimensionId,
 				                                     this ));
 				isJammed = true;
-				reasonJammed = String.format("Unable to initialize dimension %d",
+				reasonJammed = String.format("Unable to initialize dimension %s",
 				                             celestialObjectRemote.dimensionId);
 				return;
 			}
@@ -1249,7 +1248,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		if ( transporterState != EnumTransporterState.ENERGIZING
 		  && transporterState != EnumTransporterState.ACQUIRING ) {
 			entityValues.count = countScanners;
-			entityValues.mass = 2 * countScanners;
+			entityValues.mass = 2L * countScanners;
 			return entityValues;
 		}
 		
@@ -1401,13 +1400,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		final List<Entity> entities = world.getEntitiesWithinAABBExcludingEntity(null, aabb);
 		Entity entityReturn = null;
 		int countEntities = 0;
-		for (final Object object : entities) {
-			if (!(object instanceof Entity)) {
-				continue;
-			}
-			
-			final Entity entity = (Entity) object;
-			
+		for (final Entity entity : entities) {
 			// (particle effects are client side only, no need to filter them out)
 			
 			// skip blacklisted ids
@@ -1458,13 +1451,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		
 		final List<Entity> entities = world.getEntitiesWithinAABBExcludingEntity(null, aabb);
 		final LinkedHashSet<Entity> entitiesReturn = new LinkedHashSet<>(entities.size());
-		for (final Object object : entities) {
-			if (!(object instanceof Entity)) {
-				continue;
-			}
-			
-			final Entity entity = (Entity) object;
-			
+		for (final Entity entity : entities) {
 			// (particle effects are client side only, no need to filter them out)
 			
 			// skip blacklisted ids

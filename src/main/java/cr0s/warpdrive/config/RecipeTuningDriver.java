@@ -3,13 +3,15 @@ package cr0s.warpdrive.config;
 import cr0s.warpdrive.item.ItemTuningDriver;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 
 import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.DyeColor;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.ICraftingRecipe;
 import net.minecraft.item.crafting.IRecipeSerializer;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.Tag;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
@@ -19,6 +21,7 @@ public class RecipeTuningDriver implements ICraftingRecipe {
 	private final ResourceLocation id;
 	
 	private final ItemStack itemStackTool;
+	private final ItemTuningDriver.Mode mode;
 	private final ItemStack itemStackConsumable;
 	private final int countDyesExpected;
 	private ItemStack itemStackResult = ItemStack.EMPTY;
@@ -26,10 +29,11 @@ public class RecipeTuningDriver implements ICraftingRecipe {
 	private final String group;
 	
 	public RecipeTuningDriver(@Nonnull final String group, @Nonnull final String suffix, @Nonnull final ItemStack itemStackTool,
-	                          @Nonnull final ItemStack itemStackConsumable, final int countDyesExpected) {
+	                          @Nonnull final ItemTuningDriver.Mode mode, @Nonnull final ItemStack itemStackConsumable, final int countDyesExpected) {
 		this.id = Recipes.buildRecipeId(suffix, itemStackTool);
 		this.group = group;
 		this.itemStackTool = itemStackTool.copy();
+		this.mode = mode;
 		this.itemStackConsumable = itemStackConsumable.copy();
 		this.countDyesExpected = countDyesExpected;
 		this.size = 1 + (itemStackConsumable.isEmpty() ? 0 : 1) + countDyesExpected;
@@ -89,6 +93,10 @@ public class RecipeTuningDriver implements ICraftingRecipe {
 				if (itemStackInput != null) {
 					return false;
 				}
+				// invalid mode?
+				if (ItemTuningDriver.getMode(itemStackTool) != mode) {
+					return false;
+				}
 				itemStackInput = itemStackSlot;
 				
 			} else if (itemStackConsumable.isItemEqual(itemStackSlot)) {
@@ -101,15 +109,14 @@ public class RecipeTuningDriver implements ICraftingRecipe {
 			} else {
 				// find a matching dye from ore dictionary
 				boolean matched = false;
-				for (final DyeColor enumDyeColor : DyeColor.values()) {
-					final List<ItemStack> itemStackDyes = OreDictionary.getOres(Recipes.oreDyes.get(enumDyeColor));
-					for (final ItemStack itemStackDye : itemStackDyes) {
-						if (OreDictionary.itemMatches(itemStackSlot, itemStackDye, true)) {
-							// match found, update dye combination
-							matched = true;
-							countDyesFound++;
-							dye = dye * 16 + enumDyeColor.getId();
-						}
+				for (final DyeColor dyeColor : DyeColor.values()) {
+					final Tag<Item> itemDyes = ItemTags.getCollection().get(new ResourceLocation(Recipes.oreDyes.get(dyeColor)));
+					assert itemDyes != null;
+					if (itemDyes.contains(itemStackSlot.getItem())) {
+						// match found, update dye combination
+						matched = true;
+						countDyesFound++;
+						dye = dye * 16 + dyeColor.getId();
 					}
 				}
 				if (!matched) {
@@ -129,8 +136,8 @@ public class RecipeTuningDriver implements ICraftingRecipe {
 		}
 		
 		// consumable missing or not required
-		if ( (itemStackConsumable != null && !isConsumableFound)
-		  || (itemStackConsumable == null &&  isConsumableFound) ) {
+		if ( (!itemStackConsumable.isEmpty() && !isConsumableFound)
+		  || ( itemStackConsumable.isEmpty() &&  isConsumableFound) ) {
 			return false;
 		}
 		

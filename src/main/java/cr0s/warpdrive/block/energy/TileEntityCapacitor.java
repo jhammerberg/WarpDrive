@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.energy;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.block.TileEntityAbstractEnergy;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.EnumComponentType;
@@ -13,14 +14,13 @@ import javax.annotation.Nonnull;
 
 import net.minecraft.block.Blocks;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 
 import net.minecraftforge.client.model.data.IModelData;
+import net.minecraftforge.client.model.data.ModelDataMap;
+import net.minecraftforge.client.model.data.ModelProperty;
 
 public class TileEntityCapacitor extends TileEntityAbstractEnergy {
-	
-	public static TileEntityType<TileEntityCapacitor> TYPE;
 	
 	// global properties
 	private static final String TAG_MODE_SIDE = "modeSide";
@@ -33,6 +33,13 @@ public class TileEntityCapacitor extends TileEntityAbstractEnergy {
 			EnumDisabledInputOutput.OUTPUT,
 			EnumDisabledInputOutput.OUTPUT };
 	
+	public static final ModelProperty<EnumDisabledInputOutput> MODEL_PROPERTY_DOWN  = new ModelProperty<>();
+	public static final ModelProperty<EnumDisabledInputOutput> MODEL_PROPERTY_UP    = new ModelProperty<>();
+	public static final ModelProperty<EnumDisabledInputOutput> MODEL_PROPERTY_NORTH = new ModelProperty<>();
+	public static final ModelProperty<EnumDisabledInputOutput> MODEL_PROPERTY_SOUTH = new ModelProperty<>();
+	public static final ModelProperty<EnumDisabledInputOutput> MODEL_PROPERTY_WEST  = new ModelProperty<>();
+	public static final ModelProperty<EnumDisabledInputOutput> MODEL_PROPERTY_EAST  = new ModelProperty<>();
+	
 	private static final UpgradeSlot upgradeSlotEfficiency = new UpgradeSlot("capacitor.efficiency",
 	                                                                         ItemComponent.getItemStackNoCache(EnumComponentType.SUPERCONDUCTOR, 1),
 	                                                                         WarpDriveConfig.CAPACITOR_EFFICIENCY_PER_UPGRADE.length - 1);
@@ -40,8 +47,8 @@ public class TileEntityCapacitor extends TileEntityAbstractEnergy {
 	// persistent properties
 	private EnumDisabledInputOutput[] modeSide = MODE_DEFAULT_SIDES.clone();
 	
-	public TileEntityCapacitor() {
-		super(TYPE);
+	public TileEntityCapacitor(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveCapacitor";
 		doRequireUpgradeToInterface();
@@ -152,7 +159,20 @@ public class TileEntityCapacitor extends TileEntityAbstractEnergy {
 	@Nonnull
 	@Override
 	public IModelData getModelData() {// TODO MC1.15 Capacitor rendering
-		return null;
+		final IModelData modelData = new ModelDataMap.Builder()
+		            .withProperty(MODEL_PROPERTY_DOWN )
+		            .withProperty(MODEL_PROPERTY_UP   )
+		            .withProperty(MODEL_PROPERTY_NORTH)
+		            .withProperty(MODEL_PROPERTY_SOUTH)
+		            .withProperty(MODEL_PROPERTY_WEST )
+		            .withProperty(MODEL_PROPERTY_EAST ).build();
+		modelData.setData(MODEL_PROPERTY_DOWN , modeSide[0]);
+		modelData.setData(MODEL_PROPERTY_UP   , modeSide[1]);
+		modelData.setData(MODEL_PROPERTY_NORTH, modeSide[2]);
+		modelData.setData(MODEL_PROPERTY_SOUTH, modeSide[3]);
+		modelData.setData(MODEL_PROPERTY_WEST , modeSide[4]);
+		modelData.setData(MODEL_PROPERTY_EAST , modeSide[5]);
+		return modelData;
 	}
 	
 	@Nonnull

@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.building;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.ISequencerCallbacks;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.block.TileEntityAbstractMachine;
@@ -42,7 +43,6 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -56,8 +56,6 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import javax.annotation.Nonnull;
 
 public class TileEntityShipScanner extends TileEntityAbstractMachine implements ISequencerCallbacks {
-	
-	public static TileEntityType<TileEntityShipScanner> TYPE;
 	
 	// persistent properties
 	private String schematicFileName = "";
@@ -82,8 +80,8 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 	private JumpShip jumpShip;
 	private int blocksToDeployCount;
 	
-	public TileEntityShipScanner() {
-		super(TYPE);
+	public TileEntityShipScanner(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveShipScanner";
 		addMethods(new String[] {
@@ -715,7 +713,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		}
 		final WarpDriveText reason = new WarpDriveText();
 		final boolean success = scanShip(reason);
-		return new Object[] { success, 3, Commons.removeFormatting( reason.getUnformattedComponentText() ) };
+		return new Object[] { success, 3, Commons.removeFormatting( reason.getString() ) };
 	}
 	
 	@Nonnull
@@ -768,12 +766,12 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		// don't force captain when deploying from LUA
 		final PlayerEntity entityPlayer = world.getClosestPlayer(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 8.0D, false);
 		if (entityPlayer != null) {
-			playerName = entityPlayer.getName().getUnformattedComponentText();
+			playerName = entityPlayer.getName().getString();
 		} else {
 			playerName = "";
 		}
 		
-		return new Object[] { isSuccess, Commons.removeFormatting( reason.getUnformattedComponentText() ) };
+		return new Object[] { isSuccess, Commons.removeFormatting( reason.getString() ) };
 	}
 	
 	@Nonnull
@@ -887,7 +885,7 @@ public class TileEntityShipScanner extends TileEntityAbstractMachine implements 
 		}
 		// warm-up done
 		shipToken_idPlayer = null;
-		playerName = entityPlayer.getName().getUnformattedComponentText();
+		playerName = entityPlayer.getName().getString();
 		
 		// try deploying
 		final WarpDriveText reason = new WarpDriveText();

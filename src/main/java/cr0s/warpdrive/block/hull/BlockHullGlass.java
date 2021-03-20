@@ -12,10 +12,10 @@ import javax.annotation.Nullable;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.SoundType;
-import net.minecraft.block.material.MaterialColor;
 import net.minecraft.block.material.PushReaction;
 import net.minecraft.block.material.Material;
 import net.minecraft.item.BlockItem;
+import net.minecraft.item.DyeColor;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -24,8 +24,10 @@ import net.minecraftforge.common.ToolType;
 
 public class BlockHullGlass extends BlockAbstractBase implements IDamageReceiver {
 	
-	public BlockHullGlass(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final MaterialColor materialColor) {
-		super(getDefaultProperties(Material.GLASS, materialColor)
+	final int   indexColor;
+	
+	public BlockHullGlass(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final DyeColor dyeColor) {
+		super(getDefaultProperties(Material.GLASS, dyeColor.getMapColor())
 				.hardnessAndResistance(WarpDriveConfig.HULL_HARDNESS[enumTier.getIndex()], WarpDriveConfig.HULL_BLAST_RESISTANCE[enumTier.getIndex()])
 				.harvestTool(ToolType.PICKAXE)
 				.harvestLevel(WarpDriveConfig.HULL_HARVEST_LEVEL[enumTier.getIndex()])
@@ -33,8 +35,7 @@ public class BlockHullGlass extends BlockAbstractBase implements IDamageReceiver
 				.lightValue(10),
 		      registryName, enumTier);
 		
-		setRegistryName(registryName);
-		WarpDrive.register(this, new ItemBlockHull(this));
+		this.indexColor = dyeColor.getId();
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -66,7 +67,7 @@ public class BlockHullGlass extends BlockAbstractBase implements IDamageReceiver
 		if (enumTier == EnumTier.BASIC) {
 			world.removeBlock(blockPos, false);
 		} else {
-			world.setBlockState(blockPos, WarpDrive.blockHulls_glass[enumTier.getIndex() - 1][materialColor.colorIndex]
+			world.setBlockState(blockPos, WarpDrive.blockHulls_glass[enumTier.getIndex() - 1][indexColor]
 			                              .getDefaultState(), 2);
 		}
 		return 0;

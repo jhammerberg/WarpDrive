@@ -1,9 +1,9 @@
 {
 	"forge_marker": 1,
 	"defaults": {
-		"model": "minecraft:cube_all",
+		"model": "minecraft:block/cube_all",
 		"textures": {
-			"all": "warpdrive:blocks/hull/glass-black"
+			"all": "warpdrive:block/hull/glass-black"
 		},
 		"transform": "forge:default-block"
 	},
@@ -11,22 +11,22 @@
 		"normal": [{}],
 		"inventory": [{}],
 		"color": {
-			"black"     : { "textures": { "all": "warpdrive:blocks/hull/glass-black"		} },
-			"blue"      : { "textures": { "all": "warpdrive:blocks/hull/glass-blue"			} },
-			"brown"     : { "textures": { "all": "warpdrive:blocks/hull/glass-brown"		} },
-			"cyan"      : { "textures": { "all": "warpdrive:blocks/hull/glass-cyan"			} },
-			"gray"      : { "textures": { "all": "warpdrive:blocks/hull/glass-gray"			} },
-			"green"     : { "textures": { "all": "warpdrive:blocks/hull/glass-green"		} },
-			"light_blue": { "textures": { "all": "warpdrive:blocks/hull/glass-light_blue"	} },
-			"lime"      : { "textures": { "all": "warpdrive:blocks/hull/glass-lime"			} },
-			"magenta"   : { "textures": { "all": "warpdrive:blocks/hull/glass-magenta"		} },
-			"orange"    : { "textures": { "all": "warpdrive:blocks/hull/glass-orange"		} },
-			"pink"      : { "textures": { "all": "warpdrive:blocks/hull/glass-pink"			} },
-			"purple"    : { "textures": { "all": "warpdrive:blocks/hull/glass-purple"		} },
-			"red"       : { "textures": { "all": "warpdrive:blocks/hull/glass-red"			} },
-			"silver"    : { "textures": { "all": "warpdrive:blocks/hull/glass-silver"		} },
-			"white"     : { "textures": { "all": "warpdrive:blocks/hull/glass-white"		} },
-			"yellow"    : { "textures": { "all": "warpdrive:blocks/hull/glass-yellow"		} }
+			"black"     : { "textures": { "all": "warpdrive:block/hull/glass-black"		} },
+			"blue"      : { "textures": { "all": "warpdrive:block/hull/glass-blue"			} },
+			"brown"     : { "textures": { "all": "warpdrive:block/hull/glass-brown"		} },
+			"cyan"      : { "textures": { "all": "warpdrive:block/hull/glass-cyan"			} },
+			"gray"      : { "textures": { "all": "warpdrive:block/hull/glass-gray"			} },
+			"green"     : { "textures": { "all": "warpdrive:block/hull/glass-green"		} },
+			"light_blue": { "textures": { "all": "warpdrive:block/hull/glass-light_blue"	} },
+			"lime"      : { "textures": { "all": "warpdrive:block/hull/glass-lime"			} },
+			"magenta"   : { "textures": { "all": "warpdrive:block/hull/glass-magenta"		} },
+			"orange"    : { "textures": { "all": "warpdrive:block/hull/glass-orange"		} },
+			"pink"      : { "textures": { "all": "warpdrive:block/hull/glass-pink"			} },
+			"purple"    : { "textures": { "all": "warpdrive:block/hull/glass-purple"		} },
+			"red"       : { "textures": { "all": "warpdrive:block/hull/glass-red"			} },
+			"silver"    : { "textures": { "all": "warpdrive:block/hull/glass-silver"		} },
+			"white"     : { "textures": { "all": "warpdrive:block/hull/glass-white"		} },
+			"yellow"    : { "textures": { "all": "warpdrive:block/hull/glass-yellow"		} }
 		}
 	}
 }

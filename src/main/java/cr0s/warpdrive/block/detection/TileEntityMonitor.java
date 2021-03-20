@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.detection;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IVideoChannel;
 import cr0s.warpdrive.block.TileEntityAbstractMachine;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -14,19 +15,16 @@ import li.cil.oc.api.machine.Context;
 import javax.annotation.Nonnull;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 
 public class TileEntityMonitor extends TileEntityAbstractMachine implements IVideoChannel {
-	
-	public static TileEntityType<TileEntityMonitor> TYPE;
 	
 	private int videoChannel = -1;
 	
 	private static final int PACKET_SEND_INTERVAL_TICKS = 60 * 20;
 	private int packetSendTicks = 10;
 	
-	public TileEntityMonitor() {
-		super(TYPE);
+	public TileEntityMonitor(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveMonitor";
 		addMethods(new String[] {

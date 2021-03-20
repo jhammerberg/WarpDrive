@@ -34,13 +34,13 @@ public class MessageVideoChannel implements IMessage {
 	}
 	
 	@Override
-	public void encode(@Nonnull final PacketBuffer buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		blockPos = new BlockPos(buffer.readInt(), buffer.readInt(), buffer.readInt());
 		videoChannel = buffer.readInt();
 	}
 	
 	@Override
-	public void decode(@Nonnull final PacketBuffer buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		buffer.writeInt(blockPos.getX());
 		buffer.writeInt(blockPos.getY());
 		buffer.writeInt(blockPos.getZ());

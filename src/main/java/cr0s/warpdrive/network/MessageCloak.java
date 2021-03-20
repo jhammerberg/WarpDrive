@@ -50,7 +50,7 @@ public class MessageCloak implements IMessage {
 	}
 	
 	@Override
-	public void encode(@Nonnull final PacketBuffer buffer) {
+	public void decode(@Nonnull final PacketBuffer buffer) {
 		coreX = buffer.readInt();
 		coreY = buffer.readInt();
 		coreZ = buffer.readInt();
@@ -65,7 +65,7 @@ public class MessageCloak implements IMessage {
 	}
 
 	@Override
-	public void decode(@Nonnull final PacketBuffer buffer) {
+	public void encode(@Nonnull final PacketBuffer buffer) {
 		buffer.writeInt(coreX);
 		buffer.writeInt(coreY);
 		buffer.writeInt(coreZ);

@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.movement;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.api.computer.ICoreSignature;
 import cr0s.warpdrive.api.computer.ITransporterBeacon;
@@ -23,13 +24,10 @@ import java.util.UUID;
 import net.minecraft.block.BlockState;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.world.server.ServerWorld;
 
 public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsumer implements ITransporterBeacon {
-	
-	public static TileEntityType<TileEntityTransporterBeacon> TYPE;
 	
 	// persistent properties
 	private String nameTransporterCore;
@@ -40,8 +38,8 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 	private boolean isActive = false;
 	protected String stateTransporter = "";
 	
-	public TileEntityTransporterBeacon() {
-		super(TYPE);
+	public TileEntityTransporterBeacon(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		isEnergyLostWhenBroken = false;
 		
@@ -202,7 +200,7 @@ public class TileEntityTransporterBeacon extends TileEntityAbstractEnergyConsume
 	@Override
 	public WarpDriveText getStatus() {
 		final WarpDriveText textSignatureStatus = getSignatureStatus();
-		if (textSignatureStatus.getUnformattedComponentText().isEmpty()) {
+		if (textSignatureStatus.isEmpty()) {
 			return super.getStatus();
 		} else {
 			return super.getStatus()

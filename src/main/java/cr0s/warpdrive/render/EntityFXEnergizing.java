@@ -181,46 +181,46 @@ public class EntityFXEnergizing extends AbstractEntityFX {
 			final double sinNext = radius * Math.sin(angle);
 			
 			// cos sin
-			vertexBuffer.pos( cosPrev, yMax,  sinPrev).tex(uMax, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( cosPrev, yMin,  sinPrev).tex(uMax, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( cosNext, yMin,  sinNext).tex(uMin, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( cosNext, yMax,  sinNext).tex(uMin, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( cosPrev, yMax,  sinPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( cosPrev, yMin,  sinPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( cosNext, yMin,  sinNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( cosNext, yMax,  sinNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
 			
-			vertexBuffer.pos(-cosPrev, yMax,  sinPrev).tex(uMax, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-cosPrev, yMin,  sinPrev).tex(uMax, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-cosNext, yMin,  sinNext).tex(uMin, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-cosNext, yMax,  sinNext).tex(uMin, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-cosPrev, yMax,  sinPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-cosPrev, yMin,  sinPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-cosNext, yMin,  sinNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-cosNext, yMax,  sinNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
 			
-			vertexBuffer.pos( cosPrev, yMax, -sinPrev).tex(uMax, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( cosPrev, yMin, -sinPrev).tex(uMax, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( cosNext, yMin, -sinNext).tex(uMin, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( cosNext, yMax, -sinNext).tex(uMin, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( cosPrev, yMax, -sinPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( cosPrev, yMin, -sinPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( cosNext, yMin, -sinNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( cosNext, yMax, -sinNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
 			
-			vertexBuffer.pos(-cosPrev, yMax, -sinPrev).tex(uMax, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-cosPrev, yMin, -sinPrev).tex(uMax, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-cosNext, yMin, -sinNext).tex(uMin, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-cosNext, yMax, -sinNext).tex(uMin, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-cosPrev, yMax, -sinPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-cosPrev, yMin, -sinPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-cosNext, yMin, -sinNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-cosNext, yMax, -sinNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
 			
 			// sin cos
-			vertexBuffer.pos( sinPrev, yMax,  cosPrev).tex(uMax, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( sinPrev, yMin,  cosPrev).tex(uMax, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( sinNext, yMin,  cosNext).tex(uMin, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( sinNext, yMax,  cosNext).tex(uMin, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( sinPrev, yMax,  cosPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( sinPrev, yMin,  cosPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( sinNext, yMin,  cosNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( sinNext, yMax,  cosNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
 			
-			vertexBuffer.pos(-sinPrev, yMax,  cosPrev).tex(uMax, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-sinPrev, yMin,  cosPrev).tex(uMax, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-sinNext, yMin,  cosNext).tex(uMin, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-sinNext, yMax,  cosNext).tex(uMin, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-sinPrev, yMax,  cosPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-sinPrev, yMin,  cosPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-sinNext, yMin,  cosNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-sinNext, yMax,  cosNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
 			
-			vertexBuffer.pos( sinPrev, yMax, -cosPrev).tex(uMax, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( sinPrev, yMin, -cosPrev).tex(uMax, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( sinNext, yMin, -cosNext).tex(uMin, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos( sinNext, yMax, -cosNext).tex(uMin, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( sinPrev, yMax, -cosPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( sinPrev, yMin, -cosPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( sinNext, yMin, -cosNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos( sinNext, yMax, -cosNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
 			
-			vertexBuffer.pos(-sinPrev, yMax, -cosPrev).tex(uMax, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-sinPrev, yMin, -cosPrev).tex(uMax, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-sinNext, yMin, -cosNext).tex(uMin, vMin).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
-			vertexBuffer.pos(-sinNext, yMax, -cosNext).tex(uMin, vMax).color(particleRed, particleGreen, particleBlue, alpha).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-sinPrev, yMax, -cosPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-sinPrev, yMin, -cosPrev).color(particleRed, particleGreen, particleBlue, alpha).tex(uMax, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-sinNext, yMin, -cosNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMin).lightmap(brightnessHigh, brightnessLow).endVertex();
+			vertexBuffer.pos(-sinNext, yMax, -cosNext).color(particleRed, particleGreen, particleBlue, alpha).tex(uMin, vMax).lightmap(brightnessHigh, brightnessLow).endVertex();
 			
 			cosPrev = cosNext;
 			sinPrev = sinNext;

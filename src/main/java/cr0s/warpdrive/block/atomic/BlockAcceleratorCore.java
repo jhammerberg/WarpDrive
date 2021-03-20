@@ -4,9 +4,9 @@ import cr0s.warpdrive.block.BlockAbstractContainer;
 import cr0s.warpdrive.data.BlockProperties;
 import cr0s.warpdrive.data.EnumTier;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.state.StateContainer.Builder;
 
 import javax.annotation.Nonnull;
 
@@ -16,14 +16,14 @@ public class BlockAcceleratorCore extends BlockAbstractContainer {
 		super(getDefaultProperties(null),
 		      registryName, enumTier);
 		
-		setDefaultState(getDefaultState()
+		setDefaultState(getStateContainer().getBaseState()
 				                .with(BlockProperties.ACTIVE, false)
 		               );
 	}
 	
-	@Nonnull
 	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityAcceleratorCore();
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(BlockProperties.ACTIVE);
 	}
 }

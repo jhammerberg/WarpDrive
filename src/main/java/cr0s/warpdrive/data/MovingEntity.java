@@ -60,7 +60,7 @@ public class MovingEntity {
 			return false;
 		}
 		
-		final String playerName = entity.getName().getUnformattedComponentText();
+		final String playerName = entity.getName().getString();
 		for (final String unlimitedName : WarpDriveConfig.SHIP_MASS_UNLIMITED_PLAYER_NAMES) {
 			if (unlimitedName.equals(playerName)) {
 				return true;

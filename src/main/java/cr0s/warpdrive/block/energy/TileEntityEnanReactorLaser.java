@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.energy;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.api.computer.IEnanReactorLaser;
 import cr0s.warpdrive.block.TileEntityAbstractLaser;
@@ -24,13 +25,10 @@ import java.lang.ref.WeakReference;
 import net.minecraft.block.BlockState;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 
 public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implements IEnanReactorLaser {
-	
-	public static TileEntityType<TileEntityEnanReactorLaser> TYPE;
 	
 	// persistent properties
 	private ReactorFace reactorFace = ReactorFace.UNKNOWN;
@@ -41,8 +39,8 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 	private String reactorSignatureName;
 	private WeakReference<TileEntityEnanReactorCore> weakReactorCore;
 	
-	public TileEntityEnanReactorLaser() {
-		super(TYPE);
+	public TileEntityEnanReactorLaser(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveEnanReactorLaser";
 		addMethods(new String[] {
@@ -145,14 +143,15 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 		super.doUpdateParameters(isDirty);
 		
 		// refresh blockstate
+		assert world != null;
 		final BlockState blockState_old = world.getBlockState(pos);
 		final BlockState blockState_new;
 		if (reactorFace.facingLaserProperty != null) {
 			blockState_new = blockState_old.with(BlockProperties.ACTIVE, true)
-			                               .with(BlockProperties.FACING, reactorFace.facingLaserProperty);
+			                               .with(BlockProperties.FACING_HORIZONTAL, reactorFace.facingLaserProperty);
 		} else {
 			blockState_new = blockState_old.with(BlockProperties.ACTIVE, false)
-			                               .with(BlockProperties.FACING, Direction.DOWN);
+			                               .with(BlockProperties.FACING_HORIZONTAL, Direction.NORTH);
 		}
 		updateBlockState(blockState_old, blockState_new);
 	}

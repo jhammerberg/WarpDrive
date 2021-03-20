@@ -1,0 +1,6 @@
+{
+    "parent": "warpdrive:block/force_field/shape",
+    "textures": {
+        "shape": "warpdrive:item/force_field/shape-tube"
+    }
+}

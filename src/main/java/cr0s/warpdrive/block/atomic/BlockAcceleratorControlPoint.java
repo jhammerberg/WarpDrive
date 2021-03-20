@@ -3,12 +3,11 @@ package cr0s.warpdrive.block.atomic;
 import cr0s.warpdrive.data.BlockProperties;
 import cr0s.warpdrive.data.EnumTier;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.state.StateContainer.Builder;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class BlockAcceleratorControlPoint extends BlockAbstractAccelerator {
 	
@@ -19,19 +18,19 @@ public class BlockAcceleratorControlPoint extends BlockAbstractAccelerator {
 			return;
 		}
 		
-		setDefaultState(getDefaultState()
+		setDefaultState(getStateContainer().getBaseState()
 				                .with(BlockProperties.ACTIVE, false)
 		               );
 	}
 	
 	@Override
-	public boolean hasTileEntity(BlockState state) {
-		return true;
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(BlockProperties.ACTIVE);
 	}
 	
-	@Nullable
 	@Override
-	public TileEntity createTileEntity(BlockState state, IBlockReader world) {
-		return new TileEntityAcceleratorControlPoint();
+	public boolean hasTileEntity(BlockState state) {
+		return true;
 	}
 }

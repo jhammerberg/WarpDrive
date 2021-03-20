@@ -1,0 +1,7 @@
+{
+    "parent": "warpdrive:block/force_field/relay",
+    "textures": {
+        "front": "warpdrive:block/force_field/relay.basic-front",
+        "top": "warpdrive:block/force_field/relay-top_off"
+    }
+}

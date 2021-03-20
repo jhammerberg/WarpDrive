@@ -1,15 +1,17 @@
 package cr0s.warpdrive.block.energy;
 
-import cr0s.warpdrive.block.BlockAbstractRotatingContainer;
+import cr0s.warpdrive.block.BlockAbstractContainer;
+import cr0s.warpdrive.data.BlockProperties;
 import cr0s.warpdrive.data.EnumTier;
-
-import net.minecraft.block.BlockState;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.IBlockReader;
 
 import javax.annotation.Nonnull;
 
-public class BlockEnanReactorLaser extends BlockAbstractRotatingContainer {
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.state.StateContainer.Builder;
+import net.minecraft.util.Direction;
+
+public class BlockEnanReactorLaser extends BlockAbstractContainer {
 	
 	public BlockEnanReactorLaser(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(getDefaultProperties(null)
@@ -17,11 +19,16 @@ public class BlockEnanReactorLaser extends BlockAbstractRotatingContainer {
 		      registryName, enumTier);
 		
 		ignoreFacingOnPlacement = true;
+		setDefaultState(getStateContainer().getBaseState()
+		                                   .with(BlockProperties.ACTIVE, false)
+		                                   .with(BlockProperties.FACING_HORIZONTAL, Direction.NORTH)
+		               );
 	}
 	
-	@Nonnull
 	@Override
-	public TileEntity createTileEntity(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader) {
-		return new TileEntityEnanReactorLaser();
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(BlockProperties.ACTIVE);
+		builder.add(BlockProperties.FACING_HORIZONTAL);
 	}
 }

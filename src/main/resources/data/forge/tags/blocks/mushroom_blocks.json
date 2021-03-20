@@ -1,0 +1,18 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:brown_mushroom_block",
+    "minecraft:red_mushroom_block",
+    "minecraft:mushroom_stem"
+  ],
+  "optional": [
+    "byg:imparius_mushroom_block",
+    "byg:death_cap_mushroom_block",
+    "byg:green_mushroom_block",
+    "byg:weeping_milkcap_mushroom_block",
+    "byg:wood_blewit_mushroom_block",
+    "byg:black_puff_mushroom_block",
+    "byg:white_mushroom_block",
+    "byg:brown_mushroom_block"
+  ]
+}

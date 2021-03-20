@@ -26,3 +26,4 @@ gradle\.properties
 LemADEC\.jks
 LemADEC\.jks\.old
 
+src/generated

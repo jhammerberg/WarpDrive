@@ -5,74 +5,69 @@ import cr0s.warpdrive.data.EnumGlobalRegionType;
 import cr0s.warpdrive.data.GlobalRegionManager;
 import cr0s.warpdrive.data.GlobalRegion;
 
-import net.minecraft.command.ICommandSender;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.Commands;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.StringTextComponent;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-public class CommandFind extends AbstractCommand {
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.tree.CommandNode;
+
+public class CommandFind {
 	
-	@Nonnull
-	@Override
-	public String getName() {
-		return "wfind";
+	public static void register(@Nonnull final CommandDispatcher<CommandSource> dispatcher) {
+		final CommandNode<CommandSource> commandNode = dispatcher.register(
+				Commands.literal("wfind")
+				        .requires(commandSource -> commandSource.hasPermissionLevel(2))
+				        .then(Commands.argument("nameToken", StringArgumentType.string())
+				                      .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                            StringArgumentType.getString(commandContext, "nameToken") ))
+				             )
+				        
+				        .then(Commands.literal("help")
+				                      .executes((commandContext) -> help(commandContext.getSource(),
+				                                                         commandContext.getRootNode().getName() ))
+				             )
+				        .executes((commandContext) -> execute(commandContext.getSource(),
+				                                              null ))
+		                                                                  );
+		dispatcher.register(Commands.literal("find").redirect(commandNode));
 	}
 	
-	@Override
-	public int getRequiredPermissionLevel() {
-		return 2;
+	private static int help(@Nonnull final CommandSource commandSource, @Nonnull final String name) {
+		commandSource.sendFeedback(new StringTextComponent( "/" + name + " (<shipName>)\n"
+		                                                  + "shipName: name of the ship to find. Exact casing is preferred.\n"
+		                                                  + "Defaults to the current ship." ), false);
+		return 0;
 	}
 	
-	@Nonnull
-	@Override
-	public String getUsage(@Nonnull final ICommandSource commandSource) {
-		return "/" + getName() + " (<shipName>)"
-		       + "\nshipName: name of the ship to find. Exact casing is preferred.";
-	}
-	
-	@Override
-	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSource commandSource, @Nonnull final String[] args) {
+	private static int execute(@Nonnull final CommandSource commandSource, @Nullable final String nameToken) {
 		// parse arguments
-		final String nameToken;
-		final ServerPlayerEntity entityPlayer = commandSource instanceof ServerPlayerEntity ? (ServerPlayerEntity) commandSource : null;
-		if (args.length == 0) {
-			if (entityPlayer == null) {
-				Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
-				return;
+		final ServerPlayerEntity serverPlayerEntity = commandSource.getEntity() instanceof ServerPlayerEntity ? (ServerPlayerEntity) commandSource.getEntity() : null;
+		if (nameToken == null) {
+			if (serverPlayerEntity == null) {
+				commandSource.sendErrorMessage(new StringTextComponent("warpdrive.command.player_required"));
+				return 0;
 			}
-			final GlobalRegion globalRegion = GlobalRegionManager.getNearest(EnumGlobalRegionType.SHIP, entityPlayer.world, entityPlayer.getPosition());
+			final GlobalRegion globalRegion = GlobalRegionManager.getNearest(EnumGlobalRegionType.SHIP, serverPlayerEntity.world, serverPlayerEntity.getPosition());
 			if (globalRegion != null) {
-				Commons.addChatMessage(commandSource, new StringTextComponent(String.format("Ship '%s' found in %s",
-				                                                                            globalRegion.name,
-				                                                                            globalRegion.getFormattedLocation())));
+				commandSource.sendFeedback(new StringTextComponent(String.format("Ship '%s' found in %s",
+				                                                                 globalRegion.name,
+				                                                                 globalRegion.getFormattedLocation())), true);
 			} else {
-				Commons.addChatMessage(commandSource, new StringTextComponent(String.format("No ship found in %s",
-				                                                                            Commons.format(entityPlayer.world))));
+				commandSource.sendFeedback(new StringTextComponent(String.format("No ship found in %s",
+				                                                                 Commons.format(serverPlayerEntity.world))), true);
 			}
-			return;
+			return 1;
 			
-		} else if (args.length == 1) {
-			if ( args[0].equalsIgnoreCase("help")
-			  || args[0].equalsIgnoreCase("?") ) {
-				Commons.addChatMessage(commandSource, new StringTextComponent(getUsage(commandSource)));
-				return;
-			}
-			nameToken = args[0];
-			
-		} else {
-			final StringBuilder nameBuilder = new StringBuilder();
-			for (final String param : args) {
-				if (nameBuilder.length() > 0) {
-					nameBuilder.append(" ");
-				}
-				nameBuilder.append(param);
-			}
-			nameToken = nameBuilder.toString();
 		}
 		
 		final String result = GlobalRegionManager.listByKeyword(EnumGlobalRegionType.SHIP, nameToken);
-		Commons.addChatMessage(commandSource, new StringTextComponent(result));
+		commandSource.sendFeedback(new StringTextComponent(result), true);
+		return 1;
 	}
 }

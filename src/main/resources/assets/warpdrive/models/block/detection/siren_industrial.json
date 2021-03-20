@@ -1,10 +1,11 @@
 {
 	"credit": "Made with Blockbench",
+	"parent": "block/cube_all",
 	"texture_size": [32, 32],
 	"textures": {
-		"particle"  : "warpdrive:blocks/detection/siren_industrial-base_connection",
-		"base"      : "warpdrive:blocks/detection/siren_industrial-base",
-		"connection": "warpdrive:blocks/detection/siren_industrial-base_connection"
+		"particle"  : "warpdrive:block/detection/siren_industrial-base_connection",
+		"base"      : "warpdrive:block/detection/siren_industrial-base",
+		"connection": "warpdrive:block/detection/siren_industrial-base_connection"
 	},
 	"elements": [
 		{

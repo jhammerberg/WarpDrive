@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.energy;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IGlobalRegionProvider;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -24,7 +25,6 @@ import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -35,8 +35,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class TileEntityEnanReactorCore extends TileEntityEnanReactorController implements IGlobalRegionProvider {
-	
-	public static TileEntityType<TileEntityEnanReactorCore> TYPE;
 	
 	// generation & instability is 'per tick'
 	private static final double INSTABILITY_MIN = 0.004D;
@@ -98,8 +96,8 @@ public class TileEntityEnanReactorCore extends TileEntityEnanReactorController i
 	@SuppressWarnings("unchecked")
 	private final WeakReference<TileEntityEnanReactorLaser>[] weakTileEntityLasers = (WeakReference<TileEntityEnanReactorLaser>[]) Array.newInstance(WeakReference.class, ReactorFace.maxInstabilities);
 	
-	public TileEntityEnanReactorCore() {
-		super(TYPE);
+	public TileEntityEnanReactorCore(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveEnanReactorCore";
 		

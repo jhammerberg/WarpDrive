@@ -74,12 +74,12 @@ public enum EnumForceFieldUpgrade implements IStringSerializable, IForceFieldUpg
 	
 	// cached values
 	public static final int length;
-	private static final HashMap<Integer, EnumForceFieldUpgrade> ID_MAP = new HashMap<>();
+	private static final HashMap<String, EnumForceFieldUpgrade> NAME_MAP = new HashMap<>();
 	
 	static {
 		length = EnumForceFieldUpgrade.values().length;
 		for (final EnumForceFieldUpgrade forceFieldUpgrade : values()) {
-			ID_MAP.put(forceFieldUpgrade.ordinal(), forceFieldUpgrade);
+			NAME_MAP.put(forceFieldUpgrade.name, forceFieldUpgrade);
 		}
 	}
 	
@@ -108,9 +108,8 @@ public enum EnumForceFieldUpgrade implements IStringSerializable, IForceFieldUpg
 	}
 	
 	@Nonnull
-	public static EnumForceFieldUpgrade get(final int damage) {
-		final EnumForceFieldUpgrade enumForceFieldUpgrade = ID_MAP.get(damage);
-		return enumForceFieldUpgrade == null ? EnumForceFieldUpgrade.NONE : enumForceFieldUpgrade;
+	public static EnumForceFieldUpgrade get(final String name) { 
+		return NAME_MAP.getOrDefault(name, NONE);
 	}
 	
 	@Nonnull

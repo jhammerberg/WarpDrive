@@ -25,8 +25,8 @@ public abstract class BlockAbstractAir extends BlockAbstractBase {
 	BlockAbstractAir(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(Block.Properties.create(Material.AIR)
 		                      .hardnessAndResistance(0.0F)
-		                      .noDrops()
-		                      .notSolid(),
+		                      .doesNotBlockMovement()
+		                      .noDrops(),
 		      registryName, enumTier );
 	}
 	

@@ -9,6 +9,7 @@ import java.util.Random;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.model.BakedQuad;
+import net.minecraft.client.renderer.model.ItemOverrideList;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.AtlasTexture;
 import net.minecraft.util.Direction;
@@ -21,10 +22,16 @@ public class BakedModelShipScanner extends BakedModelAbstractBase {
 	
 	private void initSprite() {
 		if (spriteBorder == null) {
-			// MC1.15 getAtlasSprite for ship scanner
+			// TODO MC1.15 getAtlasSprite for ship scanner
 			// final AtlasTexture textureMapBlocks = Minecraft.getInstance().getTextureMapBlocks();
 			// spriteBorder = textureMapBlocks.getAtlasSprite("warpdrive:blocks/building/ship_scanner-border");
 		}
+	}
+	
+	@Nonnull
+	@Override
+	public ItemOverrideList getOverrides() {
+		return itemBlockOverrideList;
 	}
 	
 	@Nonnull

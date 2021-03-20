@@ -1,5 +1,6 @@
 package cr0s.warpdrive.block.breathing;
 
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.block.TileEntityAbstractEnergyConsumer;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.BlockProperties;
@@ -8,14 +9,13 @@ import cr0s.warpdrive.data.EnergyWrapper;
 import cr0s.warpdrive.data.StateAir;
 import cr0s.warpdrive.event.ChunkHandler;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.block.BlockState;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 
 public class TileEntityAirGeneratorTiered extends TileEntityAbstractEnergyConsumer {
-	
-	public static TileEntityType<TileEntityAirGeneratorTiered> TYPE;
 	
 	// persistent properties
 	// (none)
@@ -23,8 +23,8 @@ public class TileEntityAirGeneratorTiered extends TileEntityAbstractEnergyConsum
 	// computed properties
 	private int tickUpdate;
 	
-	public TileEntityAirGeneratorTiered() {
-		super(TYPE);
+	public TileEntityAirGeneratorTiered(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveAirGenerator";
 		doRequireUpgradeToInterface();

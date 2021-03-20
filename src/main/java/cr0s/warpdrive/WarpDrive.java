@@ -4,11 +4,11 @@ import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.Particle;
 import cr0s.warpdrive.api.ParticleRegistry;
 import cr0s.warpdrive.block.BlockChunkLoader;
-import cr0s.warpdrive.block.BlockLaser;
+import cr0s.warpdrive.block.BlockHighlyAdvancedMachine;
 import cr0s.warpdrive.block.BlockLaserMedium;
 import cr0s.warpdrive.block.BlockSecurityStation;
+import cr0s.warpdrive.block.TileEntityAbstractBase;
 import cr0s.warpdrive.block.TileEntityChunkLoader;
-import cr0s.warpdrive.block.TileEntityLaser;
 import cr0s.warpdrive.block.TileEntityLaserMedium;
 import cr0s.warpdrive.block.TileEntitySecurityStation;
 import cr0s.warpdrive.block.atomic.BlockAcceleratorControlPoint;
@@ -68,17 +68,18 @@ import cr0s.warpdrive.block.energy.TileEntityCapacitor;
 import cr0s.warpdrive.block.energy.TileEntityEnanReactorCore;
 import cr0s.warpdrive.block.energy.TileEntityEnanReactorLaser;
 import cr0s.warpdrive.block.energy.TileEntityIC2reactorLaserMonitor;
-import cr0s.warpdrive.block.forcefield.BlockForceField;
-import cr0s.warpdrive.block.forcefield.BlockForceFieldProjector;
-import cr0s.warpdrive.block.forcefield.BlockForceFieldRelay;
-import cr0s.warpdrive.block.forcefield.TileEntityForceField;
-import cr0s.warpdrive.block.forcefield.TileEntityForceFieldProjector;
-import cr0s.warpdrive.block.forcefield.TileEntityForceFieldRelay;
+import cr0s.warpdrive.block.force_field.BlockForceField;
+import cr0s.warpdrive.block.force_field.BlockForceFieldProjector;
+import cr0s.warpdrive.block.force_field.BlockForceFieldRelay;
+import cr0s.warpdrive.block.force_field.TileEntityForceField;
+import cr0s.warpdrive.block.force_field.TileEntityForceFieldProjector;
+import cr0s.warpdrive.block.force_field.TileEntityForceFieldRelay;
 import cr0s.warpdrive.block.hull.BlockHullGlass;
 import cr0s.warpdrive.block.hull.BlockHullOmnipanel;
 import cr0s.warpdrive.block.hull.BlockHullPlain;
 import cr0s.warpdrive.block.hull.BlockHullSlab;
 import cr0s.warpdrive.block.hull.BlockHullStairs;
+import cr0s.warpdrive.block.hull.BlockIridium;
 import cr0s.warpdrive.block.movement.BlockLift;
 import cr0s.warpdrive.block.movement.BlockShipController;
 import cr0s.warpdrive.block.movement.BlockShipCore;
@@ -86,21 +87,31 @@ import cr0s.warpdrive.block.movement.BlockTransporterBeacon;
 import cr0s.warpdrive.block.movement.BlockTransporterContainment;
 import cr0s.warpdrive.block.movement.BlockTransporterCore;
 import cr0s.warpdrive.block.movement.BlockTransporterScanner;
-import cr0s.warpdrive.block.movement.TileEntityJumpGateCore;
 import cr0s.warpdrive.block.movement.TileEntityLift;
 import cr0s.warpdrive.block.movement.TileEntityShipController;
 import cr0s.warpdrive.block.movement.TileEntityShipCore;
 import cr0s.warpdrive.block.movement.TileEntityTransporterBeacon;
 import cr0s.warpdrive.block.movement.TileEntityTransporterCore;
-import cr0s.warpdrive.block.passive.BlockHighlyAdvancedMachine;
-import cr0s.warpdrive.block.passive.BlockIridium;
+import cr0s.warpdrive.block.weapon.BlockLaser;
 import cr0s.warpdrive.block.weapon.BlockLaserCamera;
 import cr0s.warpdrive.block.weapon.BlockWeaponController;
+import cr0s.warpdrive.block.weapon.TileEntityLaser;
 import cr0s.warpdrive.block.weapon.TileEntityLaserCamera;
 import cr0s.warpdrive.block.weapon.TileEntityWeaponController;
 import cr0s.warpdrive.client.ClientProxy;
 import cr0s.warpdrive.client.ItemGroupHull;
 import cr0s.warpdrive.client.ItemGroupMain;
+import cr0s.warpdrive.command.CommandBed;
+import cr0s.warpdrive.command.CommandDebug;
+import cr0s.warpdrive.command.CommandDump;
+import cr0s.warpdrive.command.CommandEntity;
+import cr0s.warpdrive.command.CommandFind;
+import cr0s.warpdrive.command.CommandGenerate;
+import cr0s.warpdrive.command.CommandInvisible;
+import cr0s.warpdrive.command.CommandNPC;
+import cr0s.warpdrive.command.CommandReload;
+import cr0s.warpdrive.command.CommandRender;
+import cr0s.warpdrive.command.CommandSpace;
 import cr0s.warpdrive.config.Recipes;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.damage.DamageAsphyxia;
@@ -130,7 +141,12 @@ import cr0s.warpdrive.entity.EntitySeat;
 import cr0s.warpdrive.event.ChatHandler;
 import cr0s.warpdrive.event.ChunkHandler;
 import cr0s.warpdrive.event.CommonWorldGenerator;
+import cr0s.warpdrive.event.EMPReceiver;
+import cr0s.warpdrive.event.ItemHandler;
+import cr0s.warpdrive.event.LivingHandler;
+import cr0s.warpdrive.event.PlayerHandler;
 import cr0s.warpdrive.event.WorldHandler;
+import cr0s.warpdrive.generators.MyBlockStateProvider;
 import cr0s.warpdrive.item.ItemAirTank;
 import cr0s.warpdrive.item.ItemComponent;
 import cr0s.warpdrive.item.ItemElectromagneticCell;
@@ -149,13 +165,11 @@ import cr0s.warpdrive.world.EntitySphereGen;
 import cr0s.warpdrive.world.EntityStarCore;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.merchant.villager.VillagerProfession;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ArmorItem;
-import net.minecraft.item.ArmorMaterial;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.DyeColor;
 import net.minecraft.item.IArmorMaterial;
@@ -167,12 +181,12 @@ import net.minecraft.potion.Potion;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.world.biome.Biome;
 
+import net.minecraftforge.client.model.generators.ExistingFileHelper;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
@@ -181,18 +195,17 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.GatherDataEvent;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
-import net.minecraftforge.fml.loading.FMLConfig;
 import net.minecraftforge.fml.loading.FMLPaths;
-import net.minecraftforge.registries.ObjectHolder;
 
-import java.lang.reflect.Field;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 
 import com.google.common.collect.Sets;
@@ -206,7 +219,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 @EventBusSubscriber(bus = Bus.MOD)
-@Mod(value = WarpDrive.MODID)
+@Mod(WarpDrive.MODID)
 public class WarpDrive {
 	public static final String MODID = "warpdrive";
 	public static final String MOD_VERSION = "@version@";
@@ -220,6 +233,7 @@ public class WarpDrive {
 	// common blocks and items
 	public static Block blockLaser;
 	public static Block[] blockChunkLoaders;
+	public static Block blockHighlyAdvancedMachine;
 	public static Block[] blockLaserMediums;
 	public static ItemComponent[] itemComponents;
 	
@@ -233,12 +247,12 @@ public class WarpDrive {
 	public static Block[] blockElectromagnets_plain;
 	public static Block[] blockElectromagnets_glass;
 	public static Block[] blockChillers;
-	public static ItemElectromagneticCell[][] itemElectromagneticCell;
+	public static ItemElectromagneticCell[] itemElectromagneticCell;
 	public static ItemPlasmaTorch[] itemPlasmaTorch;
 	
 	// building blocks and items
 	public static Block[] blockShipScanners;
-	public static ItemShipToken[] itemShipTokens;
+	public static Map<Integer, ItemShipToken> mapItemShipTokens;
 	
 	// breathing
 	public static Block blockAirFlow;
@@ -292,8 +306,9 @@ public class WarpDrive {
 	public static Block[][][] blockHulls_plain;
 	public static Block[][] blockHulls_glass;
 	public static Block[][] blockHulls_omnipanel;
-	public static Block[][] blockHulls_stairs;
-	public static Block[][] blockHulls_slab;
+	public static Block[][][] blockHulls_stairs;
+	public static Block[][][] blockHulls_slab;
+	public static Block blockIridium;
 	
 	// movement blocks
 	public static Block blockLift;
@@ -304,15 +319,11 @@ public class WarpDrive {
 	public static Block blockTransporterContainment;
 	public static Block blockTransporterScanner;
 	
-	// passive blocks
-	public static Block blockHighlyAdvancedMachine;
-	public static Block blockIridium;
-	
 	// weapon blocks
 	public static Block blockLaserCamera;
 	public static Block blockWeaponController;
 	
-	public static final IArmorMaterial[] armorMaterials = new ArmorMaterial[EnumTier.length];
+	public static final IArmorMaterial[] armorMaterials = new IArmorMaterial[EnumTier.length];
 	
 	// equipment items
 	public static ItemAirTank[] itemAirTanks;
@@ -338,23 +349,18 @@ public class WarpDrive {
 	public static Method methodBlock_getSilkTouch = null;
 	
 	// Client settings
-	public static final ItemGroup itemGroupMain = new ItemGroupMain(MODID.toLowerCase() + ".main");
-	public static final ItemGroup itemGroupHull = new ItemGroupHull(MODID.toLowerCase() + ".hull");
+	public static final ItemGroup itemGroupMain = new ItemGroupMain(MODID + ".main");
+	public static final ItemGroup itemGroupHull = new ItemGroupHull(MODID + ".hull");
 	
-	@ObjectHolder(WarpDrive.MODID)
-	public static WarpDrive instance;
 	public static CommonProxy proxy = DistExecutor.safeRunForDist(()-> ClientProxy::new, ()->CommonProxy::new);
 	
 	public static CloakManager cloaks;
 	public static CamerasRegistry cameras;
 	
-	@SuppressWarnings("FieldCanBeLocal")
-	private static WarpDrivePeripheralHandler peripheralHandler = null;
-	
-	public static Logger logger;
-	public static LoggerPrintStream printStreamError;
-	public static LoggerPrintStream printStreamWarn;
-	public static LoggerPrintStream printStreamInfo;
+	public static final Logger logger = LogManager.getLogger(MODID);
+	public static final LoggerPrintStream printStreamError = new LoggerPrintStream(Level.ERROR);
+	public static final LoggerPrintStream printStreamWarn = new LoggerPrintStream(Level.WARN);
+	public static final LoggerPrintStream printStreamInfo = new LoggerPrintStream(Level.INFO);
 	
 	static {
 		// pre-calculate and sanitize the version numbers
@@ -382,30 +388,25 @@ public class WarpDrive {
 	}
 	
 	public WarpDrive() {
-		logger = LogManager.getLogger(MODID);
-		printStreamError = new LoggerPrintStream(Level.ERROR);
-		printStreamWarn = new LoggerPrintStream(Level.WARN);
-		printStreamInfo = new LoggerPrintStream(Level.INFO);
-		
-		final String configPath = FMLPaths.CONFIGDIR.get().resolve(FMLConfig.defaultConfigPath()).toAbsolutePath().toString();
-		WarpDriveConfig.onFMLpreInitialization(configPath);
+		final String configPath = FMLPaths.CONFIGDIR.get().toAbsolutePath().toString();
+		WarpDriveConfig.onModConstruction(configPath);
 		
 		// TODO MC1.15 Silktouch laser mining
 		// methodBlock_getSilkTouch = ReflectionHelper.findMethod(Block.class, "getSilkTouchDrop", "func_180643_i", BlockState.class);
 		
 		// common blocks and items
-		blockLaser = new BlockLaser("laser", EnumTier.BASIC);
-		
 		blockChunkLoaders = new Block[EnumTier.length];
 		for (final EnumTier enumTier : EnumTier.nonCreative()) {
 			final int indexTier = enumTier.getIndex();
-			blockChunkLoaders[indexTier] = new BlockChunkLoader("chunk_loader." + enumTier.getName(), enumTier);
+			blockChunkLoaders[indexTier] = new BlockChunkLoader("machine.chunk_loader." + enumTier.getName(), enumTier);
 		}
+		
+		blockHighlyAdvancedMachine = new BlockHighlyAdvancedMachine("machine.highly_advanced_machine", EnumTier.BASIC);
 		
 		blockLaserMediums = new Block[EnumTier.length];
 		for (final EnumTier enumTier : EnumTier.nonCreative()) {
 			final int indexTier = enumTier.getIndex();
-			blockLaserMediums[indexTier] = new BlockLaserMedium("laser_medium." + enumTier.getName(), enumTier);
+			blockLaserMediums[indexTier] = new BlockLaserMedium("machine.laser_medium." + enumTier.getName(), enumTier);
 		}
 		
 		itemComponents = new ItemComponent[EnumComponentType.length];
@@ -430,7 +431,8 @@ public class WarpDrive {
 		blockElectromagnets_plain = new Block[EnumTier.length];
 		blockElectromagnets_glass = new Block[EnumTier.length];
 		blockChillers = new Block[EnumTier.length];
-		itemElectromagneticCell = new ItemElectromagneticCell[EnumTier.length][ParticleRegistry.getRegisteredParticles().size() + 1];
+		final Map<String, Particle> particles = ParticleRegistry.getRegisteredParticles();
+		itemElectromagneticCell = new ItemElectromagneticCell[EnumTier.length];
 		itemPlasmaTorch = new ItemPlasmaTorch[EnumTier.length];
 		for(final EnumTier enumTier : EnumTier.nonCreative()) {
 			final int indexTier = enumTier.getIndex();
@@ -438,13 +440,8 @@ public class WarpDrive {
 			blockElectromagnets_glass[indexTier] = new BlockElectromagnetGlass("atomic.electromagnet." + enumTier.getName() + ".glass", enumTier);
 			blockChillers[indexTier] = new BlockChiller("atomic.chiller." + enumTier.getName(), enumTier);
 			
-			int indexParticle = 1;
-			itemElectromagneticCell[indexTier][0] = new ItemElectromagneticCell("atomic.electromagnetic_cell." + enumTier.getName(), enumTier, null);
-			for(final Particle particle : ParticleRegistry.getRegisteredParticles().values()) {
-				indexParticle++;
-				itemElectromagneticCell[indexTier][indexParticle] = new ItemElectromagneticCell("atomic.electromagnetic_cell." + enumTier.getName() + "." + particle.getRegistryName(), enumTier, particle);
-				// itemPlasmaTorch[indexTier] = new ItemPlasmaTorch("plasma_torch." + enumTier.getName(), enumTier);
-			}
+			itemElectromagneticCell[indexTier] = new ItemElectromagneticCell("atomic.electromagnetic_cell." + enumTier.getName(), enumTier);
+			// itemPlasmaTorch[indexTier] = new ItemPlasmaTorch("plasma_torch." + enumTier.getName(), enumTier);
 		}
 		
 		// building blocks and items
@@ -453,17 +450,18 @@ public class WarpDrive {
 			final int indexTier = enumTier.getIndex();
 			blockShipScanners[indexTier] = new BlockShipScanner("building.ship_scanner." + enumTier.getName(), enumTier);
 		}
-		itemShipTokens = new ItemShipToken[ItemShipToken.TOKEN_IDs.length];
+		mapItemShipTokens = new HashMap<>(ItemShipToken.TOKEN_IDs.length);
 		for(final int tokenId : ItemShipToken.TOKEN_IDs) {
-			itemShipTokens[tokenId] = new ItemShipToken("building.ship_token" + tokenId, EnumTier.BASIC, tokenId);
+			mapItemShipTokens.put(tokenId, new ItemShipToken("building.ship_token." + tokenId, EnumTier.BASIC, tokenId));
 		}
 		
 		// breathing blocks and items
 		blockAirFlow = new BlockAirFlow("breathing.air_flow", EnumTier.BASIC);
 		blockAirSource = new BlockAirSource("breathing.air_source", EnumTier.BASIC);
-		for (final DyeColor enumDyeColor : DyeColor.values()) {
-			final int indexColor = enumDyeColor.getId();
-			blockAirShields[indexColor] = new BlockAirShield("breathing.air_shield", EnumTier.BASIC, enumDyeColor);
+		blockAirShields = new Block[DyeColor.values().length];
+		for (final DyeColor dyeColor : DyeColor.values()) {
+			final int indexColor = dyeColor.getId();
+//			blockAirShields[indexColor] = new BlockAirShield("breathing.air_shield." + dyeColor.getName(), EnumTier.BASIC, dyeColor);
 		}
 		
 		blockAirGeneratorTiered = new Block[EnumTier.length];
@@ -487,7 +485,7 @@ public class WarpDrive {
 		blockDecoratives = new Block[EnumDecorativeType.values().length];
 		for (final EnumDecorativeType enumDecorativeType : EnumDecorativeType.values()) {
 			final int indexType = enumDecorativeType.ordinal();
-			blockDecoratives[indexType] = new BlockDecorative("decorative." + enumDecorativeType.getName(), EnumTier.BASIC);
+			blockDecoratives[indexType] = new BlockDecorative("decoration.decorative." + enumDecorativeType.getName(), EnumTier.BASIC);
 		}
 		
 		blockGas = new Block[EnumGasColor.length];
@@ -547,50 +545,62 @@ public class WarpDrive {
 		blockForceFieldRelays = new Block[EnumTier.length];
 		for(final EnumTier enumTier : EnumTier.nonCreative()) {
 			final int indexTier = enumTier.getIndex();
-			for (final DyeColor enumDyeColor : DyeColor.values()) {
-				final int indexColor = enumDyeColor.getId();
-				blockForceFields[indexTier][indexColor] = new BlockForceField("force_field.block." + enumTier.getName() + "." + enumDyeColor.getName(), enumTier, enumDyeColor);
+			for (int frequency = 0; frequency < 16; frequency++) {
+				blockForceFields[indexTier][frequency] = new BlockForceField("force_field.block." + enumTier.getName() + "." + frequency, enumTier, frequency);
 			}
-			blockForceFieldHalfProjectors[indexTier] = new BlockForceFieldProjector("force_field.projector." + enumTier.getName(), enumTier, false);
-			blockForceFieldFullProjectors[indexTier] = new BlockForceFieldProjector("force_field.projector." + enumTier.getName(), enumTier, true);
+			blockForceFieldHalfProjectors[indexTier] = new BlockForceFieldProjector("force_field.projector." + enumTier.getName() + ".half", enumTier, false);
+			blockForceFieldFullProjectors[indexTier] = new BlockForceFieldProjector("force_field.projector." + enumTier.getName() + ".full", enumTier, true);
 			blockForceFieldRelays[indexTier] = new BlockForceFieldRelay("force_field.relay." + enumTier.getName(), enumTier);
 		}
-		blockSecurityStation = new BlockSecurityStation("machines.security_station", EnumTier.BASIC);
+		blockSecurityStation = new BlockSecurityStation("machine.security_station", EnumTier.BASIC);
 		
 		itemForceFieldShapes = new ItemForceFieldShape[EnumForceFieldShape.length];
 		for (final EnumForceFieldShape forceFieldShape : EnumForceFieldShape.values()) {
 			final int indexShape = forceFieldShape.ordinal();
-			itemForceFieldShapes[indexShape] = new ItemForceFieldShape("force_field.shape." + forceFieldShape.getName(), EnumTier.BASIC, forceFieldShape);
+			if (forceFieldShape != EnumForceFieldShape.NONE) {
+				itemForceFieldShapes[indexShape] = new ItemForceFieldShape("force_field.shape." + forceFieldShape.getName(), EnumTier.BASIC, forceFieldShape);
+			}
 		}
 		
-		itemForceFieldUpgrades = new ItemForceFieldUpgrade[EnumForceFieldShape.length];
+		itemForceFieldUpgrades = new ItemForceFieldUpgrade[EnumForceFieldUpgrade.length];
 		for (final EnumForceFieldUpgrade forceFieldUpgrade : EnumForceFieldUpgrade.values()) {
 			final int indexShape = forceFieldUpgrade.ordinal();
-			itemForceFieldUpgrades[indexShape] = new ItemForceFieldUpgrade("force_field.upgrade." + forceFieldUpgrade.getName(), EnumTier.BASIC, forceFieldUpgrade);
+			if (forceFieldUpgrade != EnumForceFieldUpgrade.NONE) {
+				itemForceFieldUpgrades[indexShape] = new ItemForceFieldUpgrade("force_field.upgrade." + forceFieldUpgrade.getName(), EnumTier.BASIC, forceFieldUpgrade);
+			}
 		}
 		
 		// hull blocks
 		blockHulls_plain = new Block[EnumTier.length][EnumHullPlainType.length][16];
 		blockHulls_glass = new Block[EnumTier.length][16];
 		blockHulls_omnipanel = new Block[EnumTier.length][16];
-		blockHulls_stairs = new Block[EnumTier.length][16];
-		blockHulls_slab = new Block[EnumTier.length][16];
+		blockHulls_stairs = new Block[EnumTier.length][EnumHullPlainType.length][16];
+		blockHulls_slab = new Block[EnumTier.length][EnumHullPlainType.length][16];
 		
 		for(final EnumTier enumTier : EnumTier.nonCreative()) {
 			final int indexTier = enumTier.getIndex();
-			for (final DyeColor enumDyeColor : DyeColor.values()) {
-				final int indexColor = enumDyeColor.getId();
+			for (final DyeColor dyeColor : DyeColor.values()) {
+				final int indexColor = dyeColor.getId();
 				for (final EnumHullPlainType hullPlainType : EnumHullPlainType.values()) {
-					blockHulls_plain[indexTier][hullPlainType.ordinal()][indexColor] = new BlockHullPlain("hull." + enumTier.getName() + "." + hullPlainType.getName() + "." +  enumDyeColor.getName(), enumTier, enumDyeColor, hullPlainType);
+					final int indexType = hullPlainType.ordinal();
+					blockHulls_plain[indexTier][indexType][indexColor] = new BlockHullPlain(
+							"hull." + enumTier.getName() + "." + hullPlainType.getName() + "." + dyeColor.getName(),
+							enumTier, hullPlainType, dyeColor );
+					blockHulls_stairs[indexTier][indexType][indexColor] = new BlockHullStairs(
+							"hull." + enumTier.getName() + ".stairs." + hullPlainType.getName() + "." + dyeColor.getName(),
+							blockHulls_plain[indexTier][indexType][indexColor].getDefaultState() );
+					blockHulls_slab[indexTier][indexType][indexColor] = new BlockHullSlab(
+							"hull." + enumTier.getName() + ".slab." + hullPlainType.getName() + "." + dyeColor.getName(),
+							blockHulls_plain[indexTier][0][indexColor].getDefaultState() );
 				}
-				blockHulls_glass[indexTier][indexColor] = new BlockHullGlass("hull." + enumTier.getName() + ".glass." + enumDyeColor.getName(), enumTier, enumDyeColor.getMapColor());
-				blockHulls_omnipanel[indexTier][indexColor] = new BlockHullOmnipanel("hull." + enumTier.getName() + ".omnipanel." + enumDyeColor.getName(), enumTier, enumDyeColor);
-				blockHulls_stairs[indexTier][indexColor] = new BlockHullStairs("hull." + enumTier.getName() + ".stairs." + enumDyeColor.getName(), enumTier, enumDyeColor,
-				                                                           blockHulls_plain[indexTier][indexColor][0].getDefaultState());
-				blockHulls_slab[indexTier][indexColor] = new BlockHullSlab("hull." + enumTier.getName() + ".slab." + enumDyeColor.getName(), enumTier, enumDyeColor,
-				                                                       blockHulls_plain[indexTier][indexColor][0].getDefaultState());
+				blockHulls_glass[indexTier][indexColor] = new BlockHullGlass(
+						"hull." + enumTier.getName() + ".glass." + dyeColor.getName(), enumTier, dyeColor );
+//				blockHulls_omnipanel[indexTier][indexColor] = new BlockHullOmnipanel(
+//						"hull." + enumTier.getName() + ".omnipanel." + dyeColor.getName(), enumTier, dyeColor );
 			}
 		}
+		
+		blockIridium = new BlockIridium("hull.iridium_block", EnumTier.BASIC);
 		
 		// movement blocks
 		blockLift = new BlockLift("movement.lift", EnumTier.BASIC);
@@ -608,19 +618,16 @@ public class WarpDrive {
 		blockTransporterCore = new BlockTransporterCore("movement.transporter_core", EnumTier.BASIC);
 		blockTransporterScanner = new BlockTransporterScanner("movement.transporter_scanner", EnumTier.BASIC);
 		
-		// passive blocks
-		blockHighlyAdvancedMachine = new BlockHighlyAdvancedMachine("passive.highly_advanced_machine", EnumTier.BASIC);
-		blockIridium = new BlockIridium("passive.iridium_block", EnumTier.BASIC);
-		
 		// weapon blocks
+		blockLaser = new BlockLaser("weapon.laser", EnumTier.BASIC);
 		blockLaserCamera = new BlockLaserCamera("weapon.laser_camera", EnumTier.BASIC);
 		blockWeaponController = new BlockWeaponController("weapon.weapon_controller", EnumTier.BASIC);
 		
 		// equipment items
 		itemTuningForks = new ItemTuningFork[16];
-		for (final DyeColor enumDyeColor : DyeColor.values()) {
-			final int indexColor = enumDyeColor.getId();
-			itemTuningForks[indexColor] = new ItemTuningFork("tool.tuning_fork." + enumDyeColor.getName(), EnumTier.BASIC);
+		for (final DyeColor dyeColor : DyeColor.values()) {
+			final int indexColor = dyeColor.getId();
+			itemTuningForks[indexColor] = new ItemTuningFork("tool.tuning_fork." + dyeColor.getName(), EnumTier.BASIC);
 		}
 		itemTuningDriver = new ItemTuningDriver("tool.tuning_driver", EnumTier.ADVANCED);
 		itemWrench = new ItemWrench("tool.wrench", EnumTier.BASIC);
@@ -628,10 +635,10 @@ public class WarpDrive {
 		itemWarpArmor = new ArmorItem[EnumTier.length][4];
 		for(final EnumTier enumTier : EnumTier.nonCreative()) {
 			final int indexTier = enumTier.getIndex();
-			itemWarpArmor[indexTier][EquipmentSlotType.HEAD.getIndex() ] = new ItemWarpArmor("warp_armor." + enumTier.getName() + "." + ItemWarpArmor.suffixes[EquipmentSlotType.HEAD.getIndex() ], enumTier, armorMaterials[indexTier], EquipmentSlotType.HEAD );
-			itemWarpArmor[indexTier][EquipmentSlotType.CHEST.getIndex()] = new ItemWarpArmor("warp_armor." + enumTier.getName() + "." + ItemWarpArmor.suffixes[EquipmentSlotType.CHEST.getIndex()], enumTier, armorMaterials[indexTier], EquipmentSlotType.CHEST);
-			itemWarpArmor[indexTier][EquipmentSlotType.LEGS.getIndex() ] = new ItemWarpArmor("warp_armor." + enumTier.getName() + "." + ItemWarpArmor.suffixes[EquipmentSlotType.LEGS.getIndex() ], enumTier, armorMaterials[indexTier], EquipmentSlotType.LEGS );
-			itemWarpArmor[indexTier][EquipmentSlotType.FEET.getIndex() ] = new ItemWarpArmor("warp_armor." + enumTier.getName() + "." + ItemWarpArmor.suffixes[EquipmentSlotType.FEET.getIndex() ], enumTier, armorMaterials[indexTier], EquipmentSlotType.FEET );
+			itemWarpArmor[indexTier][EquipmentSlotType.HEAD.getIndex() ] = new ItemWarpArmor("armor." + enumTier.getName() + "." + ItemWarpArmor.suffixes[EquipmentSlotType.HEAD.getIndex() ], enumTier, armorMaterials[indexTier], EquipmentSlotType.HEAD );
+			itemWarpArmor[indexTier][EquipmentSlotType.CHEST.getIndex()] = new ItemWarpArmor("armor." + enumTier.getName() + "." + ItemWarpArmor.suffixes[EquipmentSlotType.CHEST.getIndex()], enumTier, armorMaterials[indexTier], EquipmentSlotType.CHEST);
+			itemWarpArmor[indexTier][EquipmentSlotType.LEGS.getIndex() ] = new ItemWarpArmor("armor." + enumTier.getName() + "." + ItemWarpArmor.suffixes[EquipmentSlotType.LEGS.getIndex() ], enumTier, armorMaterials[indexTier], EquipmentSlotType.LEGS );
+			itemWarpArmor[indexTier][EquipmentSlotType.FEET.getIndex() ] = new ItemWarpArmor("armor." + enumTier.getName() + "." + ItemWarpArmor.suffixes[EquipmentSlotType.FEET.getIndex() ], enumTier, armorMaterials[indexTier], EquipmentSlotType.FEET );
 		}
 		
 		// damage sources
@@ -647,7 +654,7 @@ public class WarpDrive {
 		// (done in the event handler)
 		
 		// world generation
-		/* TODO MC1.15 World geenration
+		/* TODO MC1.15 World generation
 		final Biome.BiomeProperties biomeProperties = new Biome.BiomeProperties("space").setRainDisabled().setWaterColor(0);
 		biomeSpace = new BiomeSpace(biomeProperties);
 		register(biomeSpace);
@@ -658,54 +665,78 @@ public class WarpDrive {
 		
 		// Event handlers
 		MinecraftForge.EVENT_BUS.register(this);
+		MinecraftForge.EVENT_BUS.register(new ChatHandler());
+		MinecraftForge.EVENT_BUS.register(new ChunkHandler());
+		MinecraftForge.EVENT_BUS.register(new ItemHandler());
+		MinecraftForge.EVENT_BUS.register(new LivingHandler());
+		MinecraftForge.EVENT_BUS.register(new PlayerHandler());
+		MinecraftForge.EVENT_BUS.register(new WorldHandler());
+		if (WarpDriveConfig.isICBMClassicLoaded) {
+			MinecraftForge.EVENT_BUS.register(EMPReceiver.class);
+		}
 		
+		// Networking
 		PacketHandler.init();
 		
-		// Registers
+		// Internal registries
 		cloaks = new CloakManager();
 		cameras = new CamerasRegistry();
 		
-		CelestialObjectManager.onFMLInitialization();
+		CelestialObjectManager.onModConstruction();
 		
-		proxy.onForgePreInitialisation();
+		proxy.onModConstruction();
 	}
 	
+	@SubscribeEvent
+	public static void onModConfigLoading(@Nonnull final ModConfig.Loading event) {
+		WarpDriveConfig.onModConfigLoading(event);
+	}
+	
+	@SubscribeEvent
+	public static void onGatherData(@Nonnull final GatherDataEvent gatherDataEvent) {
+		final ExistingFileHelper helper = gatherDataEvent.getExistingFileHelper();
+		if (gatherDataEvent.includeServer()) {
+			// gatherDataEvent.getGenerator().addProvider(new BlockLootProvider(gatherDataEvent.getGenerator()));
+			// BlockTagProvider blockTagProvider = new BlockTagProvider(gatherDataEvent.getGenerator(), helper);
+			// gatherDataEvent.getGenerator().addProvider(blockTagProvider);
+			// gatherDataEvent.getGenerator().addProvider(new ItemTagProvider(gatherDataEvent.getGenerator(), blockTagProvider, helper));
+			// gatherDataEvent.getGenerator().addProvider(new EntityTagProvider(gatherDataEvent.getGenerator(), helper));
+			// gatherDataEvent.getGenerator().addProvider(new StoneCuttingProvider(gatherDataEvent.getGenerator()));
+			// gatherDataEvent.getGenerator().addProvider(new RecipeProvider(gatherDataEvent.getGenerator()));
+			// gatherDataEvent.getGenerator().addProvider(new SmeltingProvider(gatherDataEvent.getGenerator()));
+			// gatherDataEvent.getGenerator().addProvider(new BrewProvider(gatherDataEvent.getGenerator()));
+		}
+		if (gatherDataEvent.includeClient()) {
+			gatherDataEvent.getGenerator().addProvider(new MyBlockStateProvider(gatherDataEvent.getGenerator(), helper));
+			// gatherDataEvent.getGenerator().addProvider(new MyItemModelProvider(gatherDataEvent.getGenerator(), helper));
+		}
+	}
+	
+	@SuppressWarnings("unused") // FML event
 	public void onCommonSetup(@Nonnull final FMLCommonSetupEvent event) {
-		WarpDriveConfig.onFMLInitialization();
+		WarpDriveConfig.onFMLCommonSetup();
 		
-		proxy.onForgeInitialisation();
-		
-		WarpDriveConfig.onFMLPostInitialization();
+		proxy.onFMLCommonSetup();
 		
 		if (WarpDriveConfig.isComputerCraftLoaded) {
-			peripheralHandler = new WarpDrivePeripheralHandler();
+			final WarpDrivePeripheralHandler peripheralHandler = new WarpDrivePeripheralHandler();
 			peripheralHandler.register();
 		}
-		
-		final WorldHandler worldHandler = new WorldHandler();
-		MinecraftForge.EVENT_BUS.register(worldHandler);
-		
-		final ChunkHandler chunkHandler = new ChunkHandler();
-		MinecraftForge.EVENT_BUS.register(chunkHandler);
-		
-		final ChatHandler chatHandler = new ChatHandler();
-		MinecraftForge.EVENT_BUS.register(chatHandler);
 	}
 	
+	@SuppressWarnings("unused") // FML event
 	public void onFMLServerStarting(@Nonnull final FMLServerStartingEvent event) {
-		/* TODO MC1.15 Commands
-		event.getCommandDispatcher().register(new CommandBed());
-		event.getCommandDispatcher().register(new CommandDebug());
-		event.getCommandDispatcher().register(new CommandDump());
-		event.getCommandDispatcher().register(new CommandEntity());
-		event.getCommandDispatcher().register(new CommandFind());
-		event.getCommandDispatcher().register(new CommandGenerate());
-		event.getCommandDispatcher().register(new CommandInvisible());
-		event.getCommandDispatcher().register(new CommandNPC());
-		event.getCommandDispatcher().register(new CommandReload());
-		event.getCommandDispatcher().register(new CommandRender());
-		event.getCommandDispatcher().register(new CommandSpace());
-		*/
+		CommandBed.register(event.getCommandDispatcher());
+		CommandDebug.register(event.getCommandDispatcher());
+		CommandDump.register(event.getCommandDispatcher());
+		CommandEntity.register(event.getCommandDispatcher());
+		CommandFind.register(event.getCommandDispatcher());
+		CommandGenerate.register(event.getCommandDispatcher());
+		CommandInvisible.register(event.getCommandDispatcher());
+		CommandNPC.register(event.getCommandDispatcher());
+		CommandReload.register(event.getCommandDispatcher());
+		CommandRender.register(event.getCommandDispatcher());
+		CommandSpace.register(event.getCommandDispatcher());
 	}
 	
 	final public static ArrayList<Biome> biomes = new ArrayList<>(10);
@@ -775,41 +806,13 @@ public class WarpDrive {
 	}
 	
 	// Register a recipe.
+	@Nonnull
 	public static <RECIPE extends IRecipe<?>> RECIPE register(@Nonnull final RECIPE recipe) {
-		return register(recipe, "");
-	}
-	public static <RECIPE extends IRecipe<?>> RECIPE register(@Nonnull final RECIPE recipe, final String suffix) {
 		ResourceLocation registryName = recipe.getId();
-		/* TODO MC1.15 recipe name
-		if (registryName == null) {
-			final String path;
-			final ItemStack itemStackOutput = recipe.getRecipeOutput();
-			assert itemStackOutput.getItem().getRegistryName() != null;
-			if (itemStackOutput.isEmpty()) {
-				path = recipe.toString();
-			} else if (itemStackOutput.getCount() == 1) {
-				path = String.format("%s@%d%s",
-				                     itemStackOutput.getItem().getRegistryName().getPath(),
-				                     itemStackOutput.getDamage(),
-				                     suffix );
-			} else {
-				path = String.format("%s@%dx%d%s",
-				                     itemStackOutput.getItem().getRegistryName().getPath(),
-				                     itemStackOutput.getDamage(),
-				                     itemStackOutput.getCount(),
-				                     suffix );
-			}
-			registryName = new ResourceLocation(MODID, path);
-			if (recipes.containsKey(registryName)) {
-				logger.error(String.format("Overlapping recipe detected, please report this to the mod author %s",
-				                           registryName));
-				registryName = new ResourceLocation(MODID, path + "!" + System.nanoTime());
-				assert false;
-			}
-			recipe.setRegistryName(registryName);
+		if (recipes.containsKey(registryName)) {
+			throw new RuntimeException(String.format("Overlapping recipe detected, please report this to the mod author %s",
+			                                     registryName));
 		}
-		*/
-		
 		recipes.put(registryName, recipe);
 		return recipe;
 	}
@@ -827,7 +830,7 @@ public class WarpDrive {
 	}
 	
 	@SubscribeEvent
-	public void onRegisterBiomes(@Nonnull final RegistryEvent.Register<Biome> event) {
+	public static void onRegisterBiomes(@Nonnull final RegistryEvent.Register<Biome> event) {
 		LocalProfiler.start(String.format("Registering %s", event.getName()));
 		
 		for (final Biome biome : biomes) {
@@ -840,7 +843,7 @@ public class WarpDrive {
 	}
 	
 	@SubscribeEvent
-	public void onRegisterBlocks(@Nonnull final RegistryEvent.Register<Block> event) {
+	public static void onRegisterBlocks(@Nonnull final RegistryEvent.Register<Block> event) {
 		LocalProfiler.start(String.format("Registering %s", event.getName()));
 		
 		for (final Block block : blocks) {
@@ -848,102 +851,96 @@ public class WarpDrive {
 		}
 	}
 	
-	private <T extends TileEntity> void doRegisterTileEntity(@Nonnull final RegistryEvent.Register<TileEntityType<?>> event,
-	                                                         @Nonnull final Class<T> classTileEntity,
-	                                                         @Nonnull final String registryName,
-	                                                         @Nonnull final Block[]... blockArrays ) {
-		int size = 0;
-		for (final Block[] blockArray : blockArrays) {
-			size += blockArray.length;
-		}
-		final Block[] blocks = new Block[size];
-		int index = 0;
+	// Note: tier information is stored in the block itself since 1.13 (previously, it was the block attribute/state).
+	// On 1.12, onLoad() wasn't always called, several workarounds were required to get the tier.
+	// On 1.15, we can't access the world during the onLoad() event while reloading a save.
+	// Instead, we register different types for each individual block and pass the block during the construction.
+	private static <T extends TileEntity> void doRegisterTileEntity(
+			@Nonnull final RegistryEvent.Register<TileEntityType<?>> event,
+			@Nonnull final Class<T> classTileEntity,
+			@Nonnull final Block[]... blockArrays ) {
 		for (final Block[] blockArray : blockArrays) {
 			for (final Block block : blockArray) {
-				blocks[index++] = block;
+				doRegisterTileEntity(event, classTileEntity, block);
 			}
 		}
-		doRegisterTileEntity(event, classTileEntity, registryName, blocks);
 	}
 	
-	private <T extends TileEntity> void doRegisterTileEntity(@Nonnull final RegistryEvent.Register<TileEntityType<?>> event,
-	                                                         @Nonnull final Class<T> classTileEntity,
-	                                                         @Nonnull final String registryName,
-	                                                         @Nonnull final Block... blocks ) {
+	private static <T extends TileEntity> void doRegisterTileEntity(
+			@Nonnull final RegistryEvent.Register<TileEntityType<?>> event,
+			@Nonnull final Class<T> classTileEntity,
+			@Nullable final Block block ) {
+		// skip non instantiated blocks
+		if (block == null) {
+			return;
+		}
 		// create the type
-		final TileEntityType<?> tileEntityType = new TileEntityType<>(() -> {
+		final TileEntityType<T> tileEntityType = new TileEntityType<>(() -> {
 			try {
-				return classTileEntity.newInstance();
-			} catch (InstantiationException | IllegalAccessException exception) {
+				final Constructor<T> constructor = classTileEntity.getConstructor(IBlockBase.class);
+				return constructor.newInstance((IBlockBase) block);
+			} catch (final Exception exception) {
 				exception.printStackTrace(WarpDrive.printStreamError);
 				WarpDrive.logger.error(String.format("Failed to instantiate a new tile entity named %s:%s",
-				                                     WarpDrive.MODID, registryName ));
+				                                     WarpDrive.MODID, block.getRegistryName()));
 				throw new RuntimeException(exception);
 			}
 		}, Sets.newHashSet(blocks), null);
-		tileEntityType.setRegistryName(WarpDrive.MODID, registryName);
+		assert block.getRegistryName() != null;
+		tileEntityType.setRegistryName(block.getRegistryName());
 		
-		// save in the class itself to avoid lookups when creating new TileEntity instances
-		try
-		{
-			final Field fieldType = classTileEntity.getField("TYPE");
-			fieldType.set(null, tileEntityType);
-		} catch(NoSuchFieldException | IllegalAccessException exception) {
-			exception.printStackTrace(WarpDrive.printStreamError);
-			WarpDrive.logger.error(String.format("Failed to save tile entity type named %s:%s into class %s",
-			                                     WarpDrive.MODID, registryName, classTileEntity ));
-			throw new RuntimeException(exception);
-		}
+		// save in the base class lookup during instantiation
+		TileEntityAbstractBase.register((IBlockBase) block, tileEntityType);
 		
 		// actually register the type
 		event.getRegistry().register(tileEntityType);
 	}
 	
 	@SubscribeEvent
-	public void onRegisterTileEntities(@Nonnull final RegistryEvent.Register<TileEntityType<?>> event) {
+	public static void onRegisterTileEntities(@Nonnull final RegistryEvent.Register<TileEntityType<?>> event) {
 		LocalProfiler.start(String.format("Registering %s", event.getName()));
 		
-		doRegisterTileEntity(event, TileEntityAcceleratorCore.class, "accelerator_core", blockAcceleratorCore);
-		doRegisterTileEntity(event, TileEntityAcceleratorControlPoint.class, "accelerator_control_point", blockAcceleratorControlPoint);
-		doRegisterTileEntity(event, TileEntityAirGeneratorTiered.class, "air_generator", blockAirGeneratorTiered);
-		doRegisterTileEntity(event, TileEntityBiometricScanner.class, "biometric_scanner", blockBiometricScanner);
-		doRegisterTileEntity(event, TileEntityCamera.class, "camera", blockCamera);
-		doRegisterTileEntity(event, TileEntityCapacitor.class, "capacitor", blockCapacitors);
-		doRegisterTileEntity(event, TileEntityChunkLoader.class, "chunk_loader", blockChunkLoaders);
-		doRegisterTileEntity(event, TileEntityCloakingCore.class, "cloaking_core", blockCloakingCore);
-		doRegisterTileEntity(event, TileEntityEnanReactorCore.class, "enan_reactor_core", blockEnanReactorCores);
-		doRegisterTileEntity(event, TileEntityEnanReactorLaser.class, "enan_reactor_laser", blockEnanReactorLaser);
-		doRegisterTileEntity(event, TileEntityEnvironmentalSensor.class, "environmental_sensor", blockEnvironmentalSensor);
-		doRegisterTileEntity(event, TileEntityForceField.class, "force_field", blockForceFields);
-		doRegisterTileEntity(event, TileEntityForceFieldProjector.class, "force_field_projector", blockForceFieldHalfProjectors, blockForceFieldFullProjectors);
-		doRegisterTileEntity(event, TileEntityForceFieldRelay.class, "force_field_relay", blockForceFieldRelays);
-		doRegisterTileEntity(event, TileEntityIC2reactorLaserMonitor.class, "ic2_reactor_laser_monitor", blockIC2reactorLaserCooler);
-		// doRegisterTileEntity(event, TileEntityJumpGateCore.class, "jump_gate_core", blockJumpGateCores);
-		doRegisterTileEntity(event, TileEntityLaser.class, "laser", blockLaser);
-		doRegisterTileEntity(event, TileEntityLaserCamera.class, "laser_camera", blockLaserCamera);
-		doRegisterTileEntity(event, TileEntityLaserMedium.class, "laser_medium", blockLaserMediums);
-		doRegisterTileEntity(event, TileEntityLaserTreeFarm.class, "laser_tree_farm", blockLaserTreeFarm);
-		doRegisterTileEntity(event, TileEntityLift.class, "lift", blockLift);
-		doRegisterTileEntity(event, TileEntityMiningLaser.class, "mining_laser", blockMiningLaser);
-		doRegisterTileEntity(event, TileEntityMonitor.class, "monitor", blockMonitor);
-		doRegisterTileEntity(event, TileEntityParticlesInjector.class, "particles_injector", blockParticlesInjector);
-		doRegisterTileEntity(event, TileEntityRadar.class, "radar", blockRadar);
-		doRegisterTileEntity(event, TileEntitySecurityStation.class, "security_station", blockSecurityStation);
-		doRegisterTileEntity(event, TileEntityShipController.class, "ship_controller", blockShipControllers);
-		doRegisterTileEntity(event, TileEntityShipCore.class, "ship_core", blockShipCores);
-		doRegisterTileEntity(event, TileEntityShipScanner.class, "ship_scanner", blockShipScanners);
-		doRegisterTileEntity(event, TileEntitySiren.class, "siren", blockSirenIndustrials, blockSirenMilitaries);
-		doRegisterTileEntity(event, TileEntitySpeaker.class, "speaker", blockSpeakers);
-		doRegisterTileEntity(event, TileEntityTransporterBeacon.class, "transporter_beacon", blockTransporterBeacon);
-		doRegisterTileEntity(event, TileEntityTransporterCore.class, "transporter_core", blockTransporterCore);
-		doRegisterTileEntity(event, TileEntityVirtualAssistant.class, "virtual_assistant", blockVirtualAssistants);
-		doRegisterTileEntity(event, TileEntityWeaponController.class, "weapon_controller", blockWeaponController);
+		doRegisterTileEntity(event, TileEntityAcceleratorCore.class, blockAcceleratorCore);
+		doRegisterTileEntity(event, TileEntityAcceleratorControlPoint.class, blockAcceleratorControlPoint);
+		doRegisterTileEntity(event, TileEntityAirGeneratorTiered.class, blockAirGeneratorTiered);
+		doRegisterTileEntity(event, TileEntityBiometricScanner.class, blockBiometricScanner);
+		doRegisterTileEntity(event, TileEntityCamera.class, blockCamera);
+		doRegisterTileEntity(event, TileEntityCapacitor.class, blockCapacitors);
+		doRegisterTileEntity(event, TileEntityChunkLoader.class, blockChunkLoaders);
+		doRegisterTileEntity(event, TileEntityCloakingCore.class, blockCloakingCore);
+		doRegisterTileEntity(event, TileEntityEnanReactorCore.class, blockEnanReactorCores);
+		doRegisterTileEntity(event, TileEntityEnanReactorLaser.class, blockEnanReactorLaser);
+		doRegisterTileEntity(event, TileEntityEnvironmentalSensor.class, blockEnvironmentalSensor);
+		doRegisterTileEntity(event, TileEntityForceField.class, blockForceFields);
+		doRegisterTileEntity(event, TileEntityForceFieldProjector.class, blockForceFieldHalfProjectors, blockForceFieldFullProjectors);
+		doRegisterTileEntity(event, TileEntityForceFieldRelay.class, blockForceFieldRelays);
+		doRegisterTileEntity(event, TileEntityIC2reactorLaserMonitor.class, blockIC2reactorLaserCooler);
+		// doRegisterTileEntity(event, TileEntityJumpGateCore.class, blockJumpGateCores);
+		doRegisterTileEntity(event, TileEntityLaser.class, blockLaser);
+		doRegisterTileEntity(event, TileEntityLaserCamera.class, blockLaserCamera);
+		doRegisterTileEntity(event, TileEntityLaserMedium.class, blockLaserMediums);
+		doRegisterTileEntity(event, TileEntityLaserTreeFarm.class, blockLaserTreeFarm);
+		doRegisterTileEntity(event, TileEntityLift.class, blockLift);
+		doRegisterTileEntity(event, TileEntityMiningLaser.class, blockMiningLaser);
+		doRegisterTileEntity(event, TileEntityMonitor.class, blockMonitor);
+		doRegisterTileEntity(event, TileEntityParticlesInjector.class, blockParticlesInjector);
+		doRegisterTileEntity(event, TileEntityRadar.class, blockRadar);
+		doRegisterTileEntity(event, TileEntitySecurityStation.class, blockSecurityStation);
+		doRegisterTileEntity(event, TileEntityShipController.class, blockShipControllers);
+		doRegisterTileEntity(event, TileEntityShipCore.class, blockShipCores);
+		doRegisterTileEntity(event, TileEntityShipScanner.class, blockShipScanners);
+		doRegisterTileEntity(event, TileEntitySiren.class, blockSirenIndustrials, blockSirenMilitaries);
+		doRegisterTileEntity(event, TileEntitySpeaker.class, blockSpeakers);
+		doRegisterTileEntity(event, TileEntityTransporterBeacon.class, blockTransporterBeacon);
+		doRegisterTileEntity(event, TileEntityTransporterCore.class, blockTransporterCore);
+		doRegisterTileEntity(event, TileEntityVirtualAssistant.class, blockVirtualAssistants);
+		doRegisterTileEntity(event, TileEntityWeaponController.class, blockWeaponController);
 		
 		LocalProfiler.stop(1000);
 	}
 	
 	@SubscribeEvent
-	public void onRegisterEnchantments(@Nonnull final RegistryEvent.Register<Enchantment> event) {
+	public static void onRegisterEnchantments(@Nonnull final RegistryEvent.Register<Enchantment> event) {
 		LocalProfiler.start(String.format("Registering %s", event.getName()));
 		
 		for (final Enchantment enchantment : enchantments) {
@@ -954,7 +951,7 @@ public class WarpDrive {
 	}
 	
 	@SubscribeEvent
-	public void onRegisterEntities(@Nonnull final RegistryEvent.Register<EntityType<?>> event) {
+	public static void onRegisterEntities(@Nonnull final RegistryEvent.Register<EntityType<?>> event) {
 		LocalProfiler.start(String.format("Registering %s", event.getName()));
 		
 		event.getRegistry().register(EntitySphereGen.TYPE);
@@ -970,7 +967,7 @@ public class WarpDrive {
 	}
 	
 	@SubscribeEvent
-	public void onRegisterItems(@Nonnull final RegistryEvent.Register<Item> event) {
+	public static void onRegisterItems(@Nonnull final RegistryEvent.Register<Item> event) {
 		LocalProfiler.start(String.format("Registering %s", event.getName()));
 		
 		for (final Item item : items) {
@@ -985,7 +982,7 @@ public class WarpDrive {
 	}
 	
 	@SubscribeEvent
-	public void onRegisterPotions(@Nonnull final RegistryEvent.Register<Effect> event) {
+	public static void onRegisterPotions(@Nonnull final RegistryEvent.Register<Effect> event) {
 		LocalProfiler.start(String.format("Registering %s", event.getName()));
 		
 		for (final Effect potion : potions) {
@@ -996,7 +993,7 @@ public class WarpDrive {
 	}
 	
 	@SubscribeEvent
-	public void onRegisterPotionTypes(@Nonnull final RegistryEvent.Register<Potion> event) {
+	public static void onRegisterPotionTypes(@Nonnull final RegistryEvent.Register<Potion> event) {
 		LocalProfiler.start(String.format("Registering %s", event.getName()));
 		
 		for (final Potion potionType : potionTypes) {
@@ -1008,10 +1005,8 @@ public class WarpDrive {
 	
 	
 	@SubscribeEvent
-	public void onRegisterRecipes(@Nonnull final RegistryEvent.Register<IRecipeSerializer<?>> event) {
+	public static void onRegisterRecipes(@Nonnull final RegistryEvent.Register<IRecipeSerializer<?>> event) {
 		LocalProfiler.start(String.format("Registering %s step 1", event.getName()));
-		
-		Recipes.initOreDictionary();
 		
 		Recipes.initDynamic();
 		
@@ -1028,7 +1023,7 @@ public class WarpDrive {
 	}
 	
 	@SubscribeEvent
-	public void onRegisterSoundEvents(@Nonnull final RegistryEvent.Register<SoundEvent> event) {
+	public static void onRegisterSoundEvents(@Nonnull final RegistryEvent.Register<SoundEvent> event) {
 		LocalProfiler.start(String.format("Registering %s", event.getName()));
 		
 		cr0s.warpdrive.data.SoundEvents.registerSounds();
@@ -1040,7 +1035,7 @@ public class WarpDrive {
 	}
 	
 	@SubscribeEvent
-	public void onRegisterVillagerProfessions(@Nonnull final RegistryEvent.Register<VillagerProfession> event) {
+	public static void onRegisterVillagerProfessions(@Nonnull final RegistryEvent.Register<VillagerProfession> event) {
 		LocalProfiler.start(String.format("Registering %s", event.getName()));
 		
 		for (final VillagerProfession villagerProfession : villagerProfessions) {

@@ -1,6 +1,7 @@
 package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.BlockProperties;
 import cr0s.warpdrive.data.EnergyWrapper;
@@ -14,12 +15,9 @@ import li.cil.oc.api.machine.Context;
 import javax.annotation.Nonnull;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 
 public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
-	
-	public static TileEntityType<TileEntityChunkLoader> TYPE;
 	
 	// global properties
 	private static final UpgradeSlot upgradeSlotEfficiency = new UpgradeSlot("chunk_loader.efficiency",
@@ -36,8 +34,8 @@ public class TileEntityChunkLoader extends TileEntityAbstractChunkLoading {
 	// computed properties
 	// (none)
 	
-	public TileEntityChunkLoader() {
-		super(TYPE);
+	public TileEntityChunkLoader(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveChunkLoader";
 		addMethods(new String[] {

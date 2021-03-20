@@ -23,6 +23,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 import net.minecraft.world.border.WorldBorder;
+import net.minecraft.world.chunk.ChunkStatus.Type;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.server.ServerWorld;
 
@@ -106,14 +107,21 @@ public class ChunkHandler {
 	// (server side only)
 	@SubscribeEvent
 	public void onLoadChunkData(@Nonnull final ChunkDataEvent.Load event) {
+		final boolean isRemote = event.getWorld() != null ? event.getWorld().isRemote()
+		                       : !Commons.isServerThread();
 		if (WarpDriveConfig.LOGGING_CHUNK_HANDLER) {
-			WarpDrive.logger.info(String.format("%s world %s chunk %s loading data (1)", 
-			                                    event.getWorld().isRemote() ? "Client" : "Server",
+			WarpDrive.logger.info(String.format("%s world %s chunk %s loading data (1), %s",
+			                                    isRemote ? "Client" : "Server",
 			                                    Commons.format(event.getWorld()),
-			                                    event.getChunk().getPos()));
+			                                    event.getChunk().getPos(),
+			                                    event.getStatus() ));
 		}
-		
-		final ChunkData chunkData = getChunkData(event.getWorld().isRemote(), event.getWorld().getDimension().getType(),
+		if (event.getStatus() == Type.PROTOCHUNK) {
+			assert event.getWorld() == null;
+			return;
+		}
+		assert event.getWorld() != null;
+		final ChunkData chunkData = getChunkData(isRemote, event.getWorld().getDimension().getType(),
 		                                         event.getChunk().getPos().x, event.getChunk().getPos().z, true);
 		assert chunkData != null;
 		chunkData.load(event.getData(), event.getWorld());

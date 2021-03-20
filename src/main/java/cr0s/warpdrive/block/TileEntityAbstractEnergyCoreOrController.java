@@ -1,6 +1,7 @@
 package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IGlobalRegionProvider;
 import cr0s.warpdrive.api.computer.ICoreSignature;
 import cr0s.warpdrive.api.computer.IEnergyConsumer;
@@ -15,7 +16,6 @@ import javax.annotation.Nullable;
 import java.util.UUID;
 
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 
 public abstract class TileEntityAbstractEnergyCoreOrController extends TileEntityAbstractEnergyConsumer implements IMultiBlockCoreOrController, IEnergyConsumer {
 	
@@ -26,8 +26,8 @@ public abstract class TileEntityAbstractEnergyCoreOrController extends TileEntit
 	private boolean isDirtyGlobalRegion = true;
 	private int tickUpdateGlobalRegion = 0;
 	
-	public TileEntityAbstractEnergyCoreOrController(@Nonnull TileEntityType<? extends TileEntityAbstractEnergyCoreOrController> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityAbstractEnergyCoreOrController(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		// (abstract) peripheralName = "xxx";
 		// addMethods(new String[] {

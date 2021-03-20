@@ -10,15 +10,18 @@ import cr0s.warpdrive.network.PacketHandler;
 import javax.annotation.Nonnull;
 import java.util.Random;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.particles.RedstoneParticleData;
+import net.minecraft.state.StateContainer.Builder;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
@@ -28,15 +31,21 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 public class BlockChiller extends BlockAbstractAccelerator {
 	
 	private static final float BOUNDING_TOLERANCE = 0.05F;
-	private static final VoxelShape SHAPE_CHILLER_COLLISION = makeCuboidShape(BOUNDING_TOLERANCE, 0.0D, BOUNDING_TOLERANCE,
-	                                                                          1.0D - BOUNDING_TOLERANCE, 1.0D, 1.0D - BOUNDING_TOLERANCE );
+	private static final VoxelShape SHAPE_CHILLER_COLLISION = VoxelShapes.create(       BOUNDING_TOLERANCE, 0.0D,        BOUNDING_TOLERANCE,
+	                                                                             1.0D - BOUNDING_TOLERANCE, 1.0D, 1.0D - BOUNDING_TOLERANCE );
 	
 	public BlockChiller(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
 		super(registryName, enumTier, null);
 		
-		setDefaultState(getDefaultState()
+		setDefaultState(getStateContainer().getBaseState()
 				                .with(BlockProperties.ACTIVE, false)
 		               );
+	}
+	
+	@Override
+	protected void fillStateContainer(@Nonnull final Builder<Block, BlockState> builder) {
+		super.fillStateContainer(builder);
+		builder.add(BlockProperties.ACTIVE);
 	}
 	
 	@SuppressWarnings("deprecation")

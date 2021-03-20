@@ -1,8 +1,8 @@
 package cr0s.warpdrive.block.movement;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
-import cr0s.warpdrive.data.EnergyWrapper;
 import cr0s.warpdrive.data.EnumGlobalRegionType;
 import cr0s.warpdrive.data.GlobalRegionManager;
 import cr0s.warpdrive.data.GlobalRegion;
@@ -13,12 +13,9 @@ import java.util.Collections;
 
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.world.server.ServerWorld;
 
 public class TileEntityShipController extends TileEntityAbstractShipController {
-	
-	public static TileEntityType<TileEntityShipController> TYPE;
 	
 	// persistent properties
 	// (none)
@@ -28,8 +25,8 @@ public class TileEntityShipController extends TileEntityAbstractShipController {
 	
 	private WeakReference<TileEntityShipCore> tileEntityShipCoreWeakReference = null;
 	
-	public TileEntityShipController() {
-		super(TYPE);
+	public TileEntityShipController(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveShipController";
 		// addMethods(new String[] {});

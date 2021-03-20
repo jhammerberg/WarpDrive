@@ -46,18 +46,36 @@ import javax.annotation.Nullable;
 
 public abstract class TileEntityAbstractBase extends TileEntity implements IBlockUpdateDetector, ITickableTileEntity {
 	
+	// static properties
+	private static final HashMap<IBlockBase, TileEntityType<? extends TileEntity>> REGISTRY = new HashMap<>(120);
+	
 	// persistent properties
-	// (none)
+	protected final EnumTier enumTier;
 	
 	// computed properties
 	private boolean isConstructed = false;
 	private boolean isFirstTick = true;
 	private boolean isDirty = false;
 	
-	protected EnumTier enumTier;
+	public TileEntityAbstractBase(@Nonnull final IBlockBase blockBase) {
+		super(getTileEntityType(blockBase));
+		
+		enumTier = blockBase.getTier();
+	}
 	
-	public TileEntityAbstractBase(@Nonnull TileEntityType<? extends TileEntityAbstractBase> tileEntityType) {
-		super(tileEntityType);
+	public static <T extends TileEntity> void register(@Nonnull final IBlockBase blockBase, @Nonnull final TileEntityType<T> tileEntityType) {
+		REGISTRY.put(blockBase, tileEntityType);
+	}
+	
+	@Nullable
+	public static TileEntity createNewTileEntity(@Nonnull final IBlockBase blockBase) {
+		// Items search list is build before registering tile entities, so we can't create tile entities yet during loading...
+		final TileEntityType<?> tileEntityType = REGISTRY.get(blockBase);
+		return tileEntityType == null ? null : tileEntityType.create();
+	}
+	
+	public static TileEntityType<?> getTileEntityType(@Nonnull final IBlockBase blockBase) {
+		return REGISTRY.get(blockBase);
 	}
 	
 	@Override
@@ -71,28 +89,18 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 	
 	protected void onConstructed() {
 		// warning: we can't use Block.CreateNewTileEntity() as world loading calls the TileEntity constructor directly
-		// warning: we can't use setPos(), setWorld() or validate() as getBlockState() will cause a stack overflow
+		// warning: we can't use setWorldAndPos() or validate() as getBlockState() will cause a stack overflow
 		// warning: we can't use onLoad() to trigger this method as onLoad() isn't always called, see https://github.com/MinecraftForge/MinecraftForge/issues/5061
 		
 		if (world == null) {// we're client side, tier is already set
 			return;
 		}
 		
-		if (WarpDrive.isDev && this instanceof TileEntityAbstractMachine) {
+		if (false && WarpDrive.isDev && this instanceof TileEntityAbstractMachine) {
 			WarpDrive.logger.info(String.format("%s onConstructed at %d", this, world.getGameTime()));
 			if (Commons.throttleMe("onConstructed")) {
 				new Exception().printStackTrace(WarpDrive.printStreamInfo);
 			}
-		}
-		
-		// immediately retrieve tier, we need it to connect energy conduits and save the world before the first tick
-		final Block block = getBlockState().getBlock();
-		if (block instanceof IBlockBase) {
-			enumTier = ((IBlockBase) block).getTier();
-		} else {
-			WarpDrive.logger.error(String.format("Invalid block for %s %s: %s",
-			                                     this, Commons.format(world, pos), block));
-			enumTier = EnumTier.BASIC;
 		}
 		
 		isConstructed = true;
@@ -302,7 +310,7 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		final WarpDriveText warpDriveText = new WarpDriveText(null, "warpdrive.upgrade.status_line.header");
 		for (final Entry<UpgradeSlot, Integer> entry : upgradeSlots.entrySet()) {
 			final UpgradeSlot upgradeSlot = entry.getKey();
-			final String keyName = isShowingItemNames ? upgradeSlot.itemStack.getTranslationKey() + ".name" : upgradeSlot.getTranslationKey();
+			final String keyName = isShowingItemNames ? upgradeSlot.itemStack.getTranslationKey() : upgradeSlot.getTranslationKey();
 			final Style style = entry.getValue() == 0 ? Commons.getStyleDisabled() : Commons.getStyleCorrect();
 			warpDriveText.append(Commons.getStyleDisabled(), "- %1$s/%2$s x %3$s",
 			                     new WarpDriveText(Commons.getStyleValue(), "%1$s", entry.getValue()),
@@ -430,7 +438,6 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 		// get tier from ItemStack
 		final Block block = blockState.getBlock();
 		if (block instanceof IBlockBase) {
-			enumTier = ((IBlockBase) block).getTier();
 			onConstructed();
 		}
 		
@@ -445,7 +452,7 @@ public abstract class TileEntityAbstractBase extends TileEntity implements IBloc
 	}
 	
 	public String getStatusHeaderInPureText() {
-		return Commons.removeFormatting( getStatusHeader().getUnformattedComponentText() );
+		return Commons.removeFormatting( getStatusHeader().getString() );
 	}
 	
 	public String getInternalStatus() {

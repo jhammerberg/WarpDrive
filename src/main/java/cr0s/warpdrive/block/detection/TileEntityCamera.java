@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.detection;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IVideoChannel;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.block.TileEntityAbstractMachine;
@@ -38,7 +39,6 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.INBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.RayTraceContext;
@@ -49,8 +49,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.common.util.Constants.NBT;
 
 public class TileEntityCamera extends TileEntityAbstractMachine implements IVideoChannel {
-	
-	public static TileEntityType<TileEntityCamera> TYPE;
 	
 	private int videoChannel = -1;
 
@@ -102,7 +100,7 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 			     new Vector3(entity.getMotion()),
 			     Dictionary.getId(entity),
 			     entity.getUniqueID(),
-			     entity.getName().getUnformattedComponentText(),
+			     entity.getName().getString(),
 			     isCrewMember );
 			// seen it was created from an entity, it's already updated
 			isUpdated = true;
@@ -139,7 +137,7 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 				final Entity entity = (Entity) object;
 				// note: getting an entity type is fairly slow, so we do it as late as possible
 				return (uniqueId == null || entity.getUniqueID().equals(uniqueId))
-				       && entity.getName().getUnformattedComponentText().equals(name)
+				       && entity.getName().getString().equals(name)
 				       && Dictionary.getId(entity).equals(type);
 			}
 			if (getClass() != object.getClass()) {
@@ -157,8 +155,8 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 		}
 	}
 	
-	public TileEntityCamera() {
-		super(TYPE);
+	public TileEntityCamera(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveCamera";
 		addMethods(new String[] {
@@ -449,7 +447,7 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 	@Override
 	public WarpDriveText getStatus() {
 		final WarpDriveText textScanStatus = getSensorStatus();
-		if (textScanStatus.getUnformattedComponentText().isEmpty()) {
+		if (textScanStatus.isEmpty()) {
 			return super.getStatus();
 		} else {
 			return super.getStatus()

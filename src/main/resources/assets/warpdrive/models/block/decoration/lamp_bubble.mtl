@@ -6,4 +6,4 @@ newmtl txt_lamp_bubble
 Ka 1.000000 1.000000 1.000000
 Kd 1.000000 1.000000 1.000000
 # d 1.000000
-map_Kd warpdrive:blocks/decoration/lamp_bubble
+map_Kd warpdrive:block/decoration/lamp_bubble

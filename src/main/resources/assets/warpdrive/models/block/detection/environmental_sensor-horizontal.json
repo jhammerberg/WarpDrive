@@ -1,9 +1,9 @@
 {
 	"credit": "Made with Blockbench",
 	"textures": {
-		"particle": "warpdrive:blocks/detection/environmental_sensor-inactive",
-		"sensor": "warpdrive:blocks/detection/environmental_sensor-active",
-		"bottom": "warpdrive:blocks/detection/environmental_sensor-base"
+		"particle": "warpdrive:block/detection/environmental_sensor-inactive",
+		"sensor": "warpdrive:block/detection/environmental_sensor-active",
+		"bottom": "warpdrive:block/detection/environmental_sensor-base"
 	},
 	"elements": [
 		{

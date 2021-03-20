@@ -2,8 +2,10 @@ package cr0s.warpdrive.block.detection;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.block.TileEntityAbstractEnergyCoreOrController;
+import cr0s.warpdrive.block.detection.BlockCloakingCoil.EnumCoilType;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.BlockProperties;
 import cr0s.warpdrive.data.CloakedArea;
@@ -24,7 +26,6 @@ import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.play.server.SUpdateTileEntityPacket;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -38,8 +39,6 @@ import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 public class TileEntityCloakingCore extends TileEntityAbstractEnergyCoreOrController {
-	
-	public static TileEntityType<TileEntityCloakingCore> TYPE;
 	
 	// global properties
 	private static final int CLOAKING_CORE_SOUND_UPDATE_TICKS = 40;
@@ -84,8 +83,8 @@ public class TileEntityCloakingCore extends TileEntityAbstractEnergyCoreOrContro
 	private boolean soundPlayed = false;
 	private int soundTicks = 0;
 	
-	public TileEntityCloakingCore() {
-		super(TYPE);
+	public TileEntityCloakingCore(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveCloakingCore";
 		// addMethods(new String[] {});
@@ -261,7 +260,7 @@ public class TileEntityCloakingCore extends TileEntityAbstractEnergyCoreOrContro
 			BlockState blockState = world.getBlockState(mutableBlockPos);
 			final boolean isInnerValid = blockState.getBlock() instanceof BlockCloakingCoil;
 			if (isInnerValid) {
-				BlockCloakingCoil.setBlockState(world, mutableBlockPos, blockState, true, isCloaking, false, direction);
+				BlockCloakingCoil.setBlockState(world, mutableBlockPos, blockState, EnumCoilType.INNER, isCloaking, direction);
 			}
 			
 			// whenever a change is detected, force a laser redraw 
@@ -285,7 +284,7 @@ public class TileEntityCloakingCore extends TileEntityAbstractEnergyCoreOrContro
 			blockState = world.getBlockState(mutableBlockPos);
 			final boolean isActualOuterValid = blockState.getBlock() instanceof BlockCloakingCoil;
 			if (isActualOuterValid) {
-				BlockCloakingCoil.setBlockState(world, mutableBlockPos, blockState, true, isCloaking, true, direction);
+				BlockCloakingCoil.setBlockState(world, mutableBlockPos, blockState, EnumCoilType.OUTER, isCloaking, direction);
 				countIntegrity++;
 				continue;
 			}
@@ -296,7 +295,7 @@ public class TileEntityCloakingCore extends TileEntityAbstractEnergyCoreOrContro
 				mutableBlockPos.setPos(pos).move(direction, distance);
 				blockState = world.getBlockState(mutableBlockPos);
 				if (blockState.getBlock() instanceof BlockCloakingCoil) {
-					BlockCloakingCoil.setBlockState(world, mutableBlockPos, blockState, true, isCloaking, true, direction);
+					BlockCloakingCoil.setBlockState(world, mutableBlockPos, blockState, EnumCoilType.OUTER, isCloaking, direction);
 					newCoilDistance = distance;
 					break;
 				}
@@ -455,12 +454,12 @@ public class TileEntityCloakingCore extends TileEntityAbstractEnergyCoreOrContro
 		if (blockState.getBlock() instanceof BlockCloakingCoil) {
 			if (isConnected) {
 				if (distance == DISTANCE_INNER_COILS_BLOCKS) {
-					BlockCloakingCoil.setBlockState(world, blockPos, blockState, true, isActive, false, Direction.DOWN);
+					BlockCloakingCoil.setBlockState(world, blockPos, blockState, EnumCoilType.INNER, isActive, Direction.DOWN);
 				} else {
-					BlockCloakingCoil.setBlockState(world, blockPos, blockState, true, isActive, true, direction);
+					BlockCloakingCoil.setBlockState(world, blockPos, blockState, EnumCoilType.OUTER, isActive, direction);
 				}
 			} else {
-				BlockCloakingCoil.setBlockState(world, blockPos, blockState, false, false, true, Direction.DOWN);
+				BlockCloakingCoil.setBlockState(world, blockPos, blockState, EnumCoilType.DISCONNECTED, false, Direction.DOWN);
 			}
 		}
 	}

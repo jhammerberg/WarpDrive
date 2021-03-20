@@ -37,8 +37,6 @@ public class ItemPlasmaTorch extends ItemAbstractBase implements IParticleContai
 		      registryName,
 		      enumTier );
 		
-		setTranslationKey("warpdrive.tool.plasma_torch." + enumTier.getName());
-		
 		addPropertyOverride(new ResourceLocation(WarpDrive.MODID, "fill"), new IItemPropertyGetter() {
 			@OnlyIn(Dist.CLIENT)
 			@Override

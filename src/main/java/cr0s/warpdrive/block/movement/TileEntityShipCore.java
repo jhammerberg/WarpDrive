@@ -1,6 +1,7 @@
 package cr0s.warpdrive.block.movement;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.block.TileEntitySecurityStation;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.EventWarpDrive.Ship.PreJump;
@@ -50,7 +51,6 @@ import net.minecraft.potion.Effects;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.play.server.SUpdateTileEntityPacket;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvent;
@@ -66,8 +66,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class TileEntityShipCore extends TileEntityAbstractShipController implements IGlobalRegionProvider, IMultiBlockCore {
-	
-	public static TileEntityType<TileEntityShipCore> TYPE;
 	
 	private static final int LOG_INTERVAL_TICKS = 20 * 180;
 	private static final int BOUNDING_BOX_INTERVAL_TICKS = 60;
@@ -114,8 +112,8 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	private int isolationBlocksCount = 0;
 	
 	
-	public TileEntityShipCore() {
-		super(TYPE);
+	public TileEntityShipCore(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveShipCore";
 		// addMethods(new String[] {});
@@ -323,7 +321,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 					continue;
 				}
 				
-				final String playerName = entity.getName().getUnformattedComponentText();
+				final String playerName = entity.getName().getString();
 				for (final String nameUnlimited : WarpDriveConfig.SHIP_MASS_UNLIMITED_PLAYER_NAMES) {
 					isUnlimited = isUnlimited || nameUnlimited.equals(playerName);
 				}
@@ -589,7 +587,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	
 	@Override
 	protected void commandDone(final boolean success, @Nonnull final WarpDriveText reasonRaw) {
-		assert success || !reasonRaw.getUnformattedComponentText().isEmpty();
+		assert success || !reasonRaw.isEmpty();
 		final WarpDriveText reason;
 		if (success || !commandCurrent.isMovement()) {
 			reason = reasonRaw;
@@ -1367,7 +1365,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		final WarpDriveText reason = new WarpDriveText();
 		final int energyRequired = getEnergyRequired(enumShipCommand, reason);
 		if (energyRequired < 0) {
-			return new Object[] { false, Commons.removeFormatting( reason.getUnformattedComponentText() ) };
+			return new Object[] { false, Commons.removeFormatting( reason.getString() ) };
 		}
 		final String units = energy_getDisplayUnits();
 		return new Object[] { true, EnergyWrapper.convert(energyRequired, units) };

@@ -1,9 +1,8 @@
 /*
  * This file is part of the public ComputerCraft API - http://www.computercraft.info
- * Copyright Daniel Ratcliffe, 2011-2017. This API may be redistributed unmodified and in full only.
+ * Copyright Daniel Ratcliffe, 2011-2021. This API may be redistributed unmodified and in full only.
  * For help using the API, and posting your mods, visit the forums at computercraft.info.
  */
-
 package dan200.computercraft.api.filesystem;
 
 import dan200.computercraft.api.ComputerCraftAPI;
@@ -13,6 +12,8 @@ import net.minecraft.world.World;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.channels.WritableByteChannel;
+import java.util.OptionalLong;
 
 /**
  * Represents a part of a virtual filesystem that can be mounted onto a computer using {@link IComputerAccess#mount(String, IMount)}
@@ -48,21 +49,23 @@ public interface IWritableMount extends IMount
      * Opens a file with a given path, and returns an {@link OutputStream} for writing to it.
      *
      * @param path A file path in normalised format, relative to the mount location. ie: "programs/myprogram".
-     * @return A stream for writing to
+     * @return A stream for writing to. If the channel implements {@link java.nio.channels.SeekableByteChannel}, one
+     * will be able to seek to arbitrary positions when using binary mode.
      * @throws IOException If the file could not be opened for writing.
      */
     @Nonnull
-    OutputStream openForWrite( @Nonnull String path ) throws IOException;
+    WritableByteChannel openForWrite( @Nonnull String path ) throws IOException;
 
     /**
      * Opens a file with a given path, and returns an {@link OutputStream} for appending to it.
      *
      * @param path A file path in normalised format, relative to the mount location. ie: "programs/myprogram".
-     * @return A stream for writing to.
+     * @return A stream for writing to. If the channel implements {@link java.nio.channels.SeekableByteChannel}, one
+     * will be able to seek to arbitrary positions when using binary mode.
      * @throws IOException If the file could not be opened for writing.
      */
     @Nonnull
-    OutputStream openForAppend( @Nonnull String path ) throws IOException;
+    WritableByteChannel openForAppend( @Nonnull String path ) throws IOException;
 
     /**
      * Get the amount of free space on the mount, in bytes. You should decrease this value as the user writes to the
@@ -72,4 +75,16 @@ public interface IWritableMount extends IMount
      * @throws IOException If the remaining space could not be computed.
      */
     long getRemainingSpace() throws IOException;
+
+    /**
+     * Get the capacity of this mount. This should be equal to the size of all files/directories on this mount, minus
+     * the {@link #getRemainingSpace()}.
+     *
+     * @return The capacity of this mount, in bytes.
+     */
+    @Nonnull
+    default OptionalLong getCapacity()
+    {
+        return OptionalLong.empty();
+    }
 }

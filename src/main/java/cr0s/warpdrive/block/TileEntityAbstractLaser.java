@@ -2,6 +2,7 @@ package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.api.computer.IAbstractLaser;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -18,7 +19,6 @@ import java.util.List;
 
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 
 // Abstract class to manage laser mediums
@@ -35,8 +35,8 @@ public abstract class TileEntityAbstractLaser extends TileEntityAbstractEnergyBa
 	protected long cache_laserMedium_energyStored = 0L;
 	protected long cache_laserMedium_maxStorage = 0L;
 	
-	public TileEntityAbstractLaser(@Nonnull TileEntityType<? extends TileEntityAbstractLaser> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityAbstractLaser(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		addMethods(new String[] {
 				"getEnergyRequired",
@@ -86,7 +86,7 @@ public abstract class TileEntityAbstractLaser extends TileEntityAbstractEnergyBa
 					// save results
 					laserMedium_direction = facing;
 					cache_laserMedium_count = count;
-					cache_laserMedium_factor = Math.max(1.0D, count * WarpDriveConfig.LASER_MEDIUM_FACTOR_BY_TIER[enumTier.getIndex()]);
+					cache_laserMedium_factor = Math.max(1.0D, count * WarpDriveConfig.LASER_MEDIUM_BONUS_FACTOR_BY_TIER[enumTier.getIndex()]);
 					cache_laserMedium_energyStored = energyStored;
 					cache_laserMedium_maxStorage = maxStorage;
 					return isValid;

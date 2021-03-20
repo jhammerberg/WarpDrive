@@ -413,7 +413,7 @@ public class TrajectoryPoint extends VectorI {
 	public boolean getStatus(final WarpDriveText textReason) {
 		final int errorCode = type & MASK_ERRORS;
 		if (errorCode != ERROR_NONE) {
-			final String strReasonBefore = textReason.getUnformattedComponentText();
+			final String strReasonBefore = textReason.getString();
 			final String strPosition = String.format("(%d %d %d)",
 			                                         x, y, z );
 			if ((errorCode & ERROR_DOUBLE_JUNCTION) != 0) {
@@ -448,7 +448,7 @@ public class TrajectoryPoint extends VectorI {
 				textReason.append(Commons.getStyleWarning(), "warpdrive.accelerator.status_line.too_many_void_shells",
 				                  strPosition );
 			}
-			if (strReasonBefore.equals(textReason.getUnformattedComponentText())) {
+			if (strReasonBefore.equals(textReason.getString())) {
 				textReason.append(Commons.getStyleWarning(), "warpdrive.accelerator.status_line.invalid_error_code",
 				                  errorCode, strPosition);
 			}

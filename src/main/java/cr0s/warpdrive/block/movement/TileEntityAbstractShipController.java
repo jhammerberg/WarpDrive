@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.movement;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.api.computer.IMultiBlockCore;
 import cr0s.warpdrive.api.computer.IShipController;
@@ -19,7 +20,6 @@ import javax.annotation.Nonnull;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.play.server.SUpdateTileEntityPacket;
-import net.minecraft.tileentity.TileEntityType;
 
 public abstract class TileEntityAbstractShipController extends TileEntityAbstractEnergyCoreOrController implements IShipController {
 	
@@ -36,8 +36,8 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	protected EnumShipCommand enumShipCommand = EnumShipCommand.IDLE;
 	protected boolean isCommandConfirmed = false;
 	
-	public TileEntityAbstractShipController(@Nonnull TileEntityType<? extends TileEntityAbstractShipController> tileEntityType) {
-		super(tileEntityType);
+	public TileEntityAbstractShipController(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		addMethods(new String[] {
 				"getOrientation",

@@ -1,13 +1,13 @@
 package cr0s.warpdrive.block.atomic;
 
-import net.minecraft.tileentity.TileEntityType;
+import cr0s.warpdrive.api.IBlockBase;
+
+import javax.annotation.Nonnull;
 
 public class TileEntityParticlesInjector extends TileEntityAcceleratorControlPoint {
 	
-	public static TileEntityType<TileEntityParticlesInjector> TYPE;
-	
-	public TileEntityParticlesInjector() {
-		super(TYPE);
+	public TileEntityParticlesInjector(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		peripheralName = "warpdriveParticlesInjector";
 	}

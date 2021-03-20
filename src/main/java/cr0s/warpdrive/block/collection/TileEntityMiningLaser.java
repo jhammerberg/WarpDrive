@@ -2,6 +2,7 @@ package cr0s.warpdrive.block.collection;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -28,7 +29,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundCategory;
@@ -39,8 +39,6 @@ import net.minecraft.world.Explosion.Mode;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class TileEntityMiningLaser extends TileEntityAbstractMiner {
-	
-	public static TileEntityType<TileEntityMiningLaser> TYPE;
 	
 	// global properties
 	private static final UpgradeSlot upgradeSlotPumping = new UpgradeSlot("mining_laser.pumping",
@@ -77,8 +75,8 @@ public class TileEntityMiningLaser extends TileEntityAbstractMiner {
 	private final ArrayList<BlockPos> blockPosValuables = new ArrayList<>();
 	private int indexValuable = 0;
 	
-	public TileEntityMiningLaser() {
-		super(TYPE);
+	public TileEntityMiningLaser(@Nonnull final IBlockBase blockBase) {
+		super(blockBase);
 		
 		laserOutputSide = Direction.DOWN;
 		peripheralName = "warpdriveMiningLaser";

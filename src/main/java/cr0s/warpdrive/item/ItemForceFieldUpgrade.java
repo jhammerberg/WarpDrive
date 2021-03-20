@@ -4,9 +4,8 @@ import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IForceFieldUpgrade;
 import cr0s.warpdrive.api.IForceFieldUpgradeEffector;
-import cr0s.warpdrive.block.forcefield.BlockForceFieldProjector;
-import cr0s.warpdrive.block.forcefield.BlockForceFieldRelay;
-import cr0s.warpdrive.data.EnumComponentType;
+import cr0s.warpdrive.block.force_field.BlockForceFieldProjector;
+import cr0s.warpdrive.block.force_field.BlockForceFieldRelay;
 import cr0s.warpdrive.data.EnumForceFieldUpgrade;
 import cr0s.warpdrive.data.EnumTier;
 
@@ -15,14 +14,10 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 import net.minecraft.block.Block;
-import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -45,7 +40,6 @@ public class ItemForceFieldUpgrade extends ItemAbstractBase implements IForceFie
 		      enumTier );
 		
 		this.forceFieldUpgrade = forceFieldUpgrade;
-		setTranslationKey("warpdrive.force_field.upgrade." + forceFieldUpgrade.getName());
 	}
 	
 	@Nonnull
@@ -70,6 +64,10 @@ public class ItemForceFieldUpgrade extends ItemAbstractBase implements IForceFie
 		return block instanceof BlockForceFieldRelay
 		    || block instanceof BlockForceFieldProjector
 		    || super.doesSneakBypassUse(itemStack, worldReader, blockPos, player);
+	}
+	
+	public EnumForceFieldUpgrade getUpgrade() {
+		return forceFieldUpgrade;
 	}
 	
 	@Override
@@ -98,7 +96,6 @@ public class ItemForceFieldUpgrade extends ItemAbstractBase implements IForceFie
 		
 		Commons.addTooltip(list, "\n");
 		
-		final EnumForceFieldUpgrade forceFieldUpgrade = EnumForceFieldUpgrade.get(itemStack.getDamage());
 		if (forceFieldUpgrade.maxCountOnProjector > 0) {
 			Commons.addTooltip(list, new TranslationTextComponent("item.warpdrive.force_field.upgrade.tooltip.usage.projector").getFormattedText());
 		}

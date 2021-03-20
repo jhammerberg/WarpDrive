@@ -12,7 +12,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
-import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -59,16 +58,6 @@ public class ItemBlockTransporterBeacon extends ItemBlockController implements I
 		});
 	}
 	
-	@Nonnull
-	@OnlyIn(Dist.CLIENT)
-	@Override
-	public ModelResourceLocation getModelResourceLocation(@Nonnull final ItemStack itemStack) {
-		// suffix registry name to grab the item model so we can use overrides
-		final ResourceLocation resourceLocation = getRegistryName();
-		assert resourceLocation != null;
-		return new ModelResourceLocation(resourceLocation.toString() + "-item", "inventory");
-	}
-	
 	private static int getEnergy(@Nonnull final ItemStack itemStack) {
 		if (!(itemStack.getItem() instanceof ItemBlockTransporterBeacon)) {
 			return 0;
@@ -83,6 +72,7 @@ public class ItemBlockTransporterBeacon extends ItemBlockController implements I
 		return 0;
 	}
 	
+	@Nonnull
 	private static ItemStack setEnergy(@Nonnull final ItemStack itemStack, final int energy) {
 		if (!(itemStack.getItem() instanceof ItemBlockTransporterBeacon)) {
 			return itemStack;
@@ -96,6 +86,7 @@ public class ItemBlockTransporterBeacon extends ItemBlockController implements I
 		return itemStack;
 	}
 	
+	@Nullable
 	private static ItemStack updateDamage(@Nonnull final ItemStack itemStack, final int energy, final boolean isActive) {
 		final int maxDamage = itemStack.getMaxDamage();
 		final int metadataEnergy = maxDamage - maxDamage * energy / WarpDriveConfig.TRANSPORTER_BEACON_MAX_ENERGY_STORED;

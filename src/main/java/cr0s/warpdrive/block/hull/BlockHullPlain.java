@@ -25,11 +25,12 @@ import net.minecraftforge.common.ToolType;
 
 public class BlockHullPlain extends BlockAbstractBase implements IDamageReceiver {
 	
+	final EnumHullPlainType hullPlainType;
 	final int               indexColor;
-	final EnumHullPlainType enumHullPlainType;
 	
-	public BlockHullPlain(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final DyeColor enumDyeColor, @Nonnull final EnumHullPlainType enumHullPlainType) {
-		super(getDefaultProperties(Material.ROCK, enumDyeColor.getMapColor())
+	public BlockHullPlain(@Nonnull final String registryName,
+	                      @Nonnull final EnumTier enumTier, @Nonnull final EnumHullPlainType hullPlainType, @Nonnull final DyeColor dyeColor) {
+		super(getDefaultProperties(Material.ROCK, dyeColor.getMapColor())
 				      .hardnessAndResistance(WarpDriveConfig.HULL_HARDNESS[enumTier.getIndex()], WarpDriveConfig.HULL_BLAST_RESISTANCE[enumTier.getIndex()])
 				      .harvestTool(ToolType.PICKAXE)
 				      .harvestLevel(WarpDriveConfig.HULL_HARVEST_LEVEL[enumTier.getIndex()])
@@ -37,8 +38,8 @@ public class BlockHullPlain extends BlockAbstractBase implements IDamageReceiver
 				      .lightValue(10),
 		      registryName, enumTier);
 		
-		this.indexColor = enumDyeColor.getId();
-		this.enumHullPlainType = enumHullPlainType;
+		this.hullPlainType = hullPlainType;
+		this.indexColor = dyeColor.getId();
 	}
 	
 	@Nullable
@@ -70,7 +71,7 @@ public class BlockHullPlain extends BlockAbstractBase implements IDamageReceiver
 		if (enumTier == EnumTier.BASIC) {
 			world.removeBlock(blockPos, false);
 		} else {
-			world.setBlockState(blockPos, WarpDrive.blockHulls_plain[enumTier.getIndex() - 1][enumHullPlainType.ordinal()][indexColor]
+			world.setBlockState(blockPos, WarpDrive.blockHulls_plain[enumTier.getIndex() - 1][hullPlainType.ordinal()][indexColor]
 			                              .getDefaultState(), 2);
 		}
 		return 0;

@@ -6,32 +6,25 @@ import cr0s.warpdrive.config.WarpDriveConfig;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.command.ICommandSender;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.Commands;
 
-public class CommandReload extends AbstractCommand {
+import com.mojang.brigadier.CommandDispatcher;
+
+public class CommandReload {
 	
-	@Nonnull
-	@Override
-	public String getName() {
-		return "wreload";
+	public static void register(@Nonnull final CommandDispatcher<CommandSource> dispatcher) {
+		dispatcher.register(
+				Commands.literal("wreload")
+				        .requires(commandSource -> commandSource.hasPermissionLevel(2))
+				        .executes((commandContext) -> execute(commandContext.getSource()))
+		                   );
 	}
 	
-	@Override
-	public int getRequiredPermissionLevel() {
-		return 2;
-	}
-	
-	@Nonnull
-	@Override
-	public String getUsage(@Nonnull final ICommandSource commandSource) {
-		return "/wreload";
-	}
-	
-	@Override
-	public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSource commandSource, @Nonnull final String[] params) {
-		WarpDriveConfig.reload(server);
-		Commons.addChatMessage(commandSource, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.command.configuration_reloaded"));
-		Commons.addChatMessage(commandSource, new WarpDriveText(Commons.getStyleWarning(), "warpdrive.command.liability_warning"));
+	private static int execute(@Nonnull final CommandSource commandSource) {
+		WarpDriveConfig.reload(commandSource.getServer());
+		commandSource.sendFeedback(new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.command.configuration_reloaded"), true);
+		commandSource.sendFeedback(new WarpDriveText(Commons.getStyleWarning(), "warpdrive.command.liability_warning"), true);
+		return 1;
 	}
 }

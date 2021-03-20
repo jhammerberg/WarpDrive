@@ -3,24 +3,25 @@ package cr0s.warpdrive.config;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.block.BlockAbstractBase;
 import cr0s.warpdrive.block.BlockAbstractContainer;
-import cr0s.warpdrive.block.forcefield.BlockForceField;
+import cr0s.warpdrive.block.force_field.BlockForceField;
 import cr0s.warpdrive.block.hull.BlockHullStairs;
 import cr0s.warpdrive.world.FakeWorld;
 
 import javax.annotation.Nonnull;
+import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map.Entry;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.ListNBT;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.Tag;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.StringNBT;
 import net.minecraft.util.math.BlockPos;
@@ -35,44 +36,44 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
 public class Dictionary {
 	
 	// Tagged blocks and entities (loaded from configuration file at PreInit, parsed at PostInit)
-	private static HashMap<String, String> taggedBlocks = null;
-	private static HashMap<String, String> taggedEntities = null;
-	private static HashMap<String, String> taggedItems = null;
+	private static HashMap<String, String> taggedBlocks = new HashMap<>();
+	private static HashMap<String, String> taggedEntities = new HashMap<>();
+	private static HashMap<String, String> taggedItems = new HashMap<>();
 	
 	// Blocks dictionary
-	public static HashSet<Block> BLOCKS_ORES = null;
-	private static HashSet<Block> BLOCKS_SOILS = null;
-	private static HashSet<Block> BLOCKS_LOGS = null;
-	private static HashSet<Block> BLOCKS_LEAVES = null;
-	public static HashSet<Block> BLOCKS_ANCHOR = null;
-	public static HashSet<Block> BLOCKS_NOMASS = null;
-	public static HashSet<Block> BLOCKS_LEFTBEHIND = null;
-	public static HashSet<Block> BLOCKS_EXPANDABLE = null;
-	public static HashSet<Block> BLOCKS_MINING = null;
-	public static HashSet<Block> BLOCKS_SKIPMINING = null;
-	public static HashSet<Block> BLOCKS_STOPMINING = null;
-	public static HashMap<Block, Integer> BLOCKS_PLACE = null;
-	public static HashSet<Block> BLOCKS_NOCAMOUFLAGE = null;
-	public static HashSet<Block> BLOCKS_NOBLINK = null;
+	public static HashSet<Block> BLOCKS_ORES = new HashSet<>();
+	private static HashSet<Block> BLOCKS_SOILS = new HashSet<>();
+	private static HashSet<Block> BLOCKS_LOGS = new HashSet<>();
+	private static HashSet<Block> BLOCKS_LEAVES = new HashSet<>();
+	public static HashSet<Block> BLOCKS_ANCHOR = new HashSet<>();
+	public static HashSet<Block> BLOCKS_NOMASS = new HashSet<>();
+	public static HashSet<Block> BLOCKS_LEFTBEHIND = new HashSet<>();
+	public static HashSet<Block> BLOCKS_EXPANDABLE = new HashSet<>();
+	public static HashSet<Block> BLOCKS_MINING = new HashSet<>();
+	public static HashSet<Block> BLOCKS_SKIPMINING = new HashSet<>();
+	public static HashSet<Block> BLOCKS_STOPMINING = new HashSet<>();
+	public static HashMap<Block, Integer> BLOCKS_PLACE = new HashMap<>();
+	public static HashSet<Block> BLOCKS_NOCAMOUFLAGE = new HashSet<>();
+	public static HashSet<Block> BLOCKS_NOBLINK = new HashSet<>();
 	
-	private static HashSet<Block> BLOCKS_LOGS_AND_LEAVES = null;
+	private static HashSet<Block> BLOCKS_LOGS_AND_LEAVES = new HashSet<>();
 	
 	// Entities dictionary
-	private static HashSet<ResourceLocation> ENTITIES_ANCHOR = null;
-	private static HashSet<ResourceLocation> ENTITIES_NOMASS = null;
-	private static HashSet<ResourceLocation> ENTITIES_LEFTBEHIND = null;
-	private static HashSet<ResourceLocation> ENTITIES_NONLIVINGTARGET = null;
-	private static HashSet<ResourceLocation> ENTITIES_LIVING_WITHOUT_AIR = null;
-	private static HashSet<ResourceLocation> ENTITIES_NO_REVEAL = null;
+	private static HashSet<ResourceLocation> ENTITIES_ANCHOR = new HashSet<>();
+	private static HashSet<ResourceLocation> ENTITIES_NOMASS = new HashSet<>();
+	private static HashSet<ResourceLocation> ENTITIES_LEFTBEHIND = new HashSet<>();
+	private static HashSet<ResourceLocation> ENTITIES_NONLIVINGTARGET = new HashSet<>();
+	private static HashSet<ResourceLocation> ENTITIES_LIVING_WITHOUT_AIR = new HashSet<>();
+	private static HashSet<ResourceLocation> ENTITIES_NO_REVEAL = new HashSet<>();
 	
 	// Items dictionary
-	public static HashSet<Item> ITEMS_FLYINSPACE = null;
-	public static HashSet<Item> ITEMS_NOFALLDAMAGE = null;
-	public static HashSet<Item> ITEMS_BREATHING_HELMET = null;
-	public static HashSet<Item> ITEMS_EXCLUDED_AVATAR = null;
+	public static HashSet<Item> ITEMS_FLYINSPACE = new HashSet<>(); // TODO MC1.15 dictionary
+	public static HashSet<Item> ITEMS_NOFALLDAMAGE = new HashSet<>();
+	public static HashSet<Item> ITEMS_BREATHING_HELMET = new HashSet<>();
+	public static HashSet<Item> ITEMS_EXCLUDED_AVATAR = new HashSet<>();
 	
-	public static void loadConfig(@Nonnull final Configuration config) {
-		
+	public static void loadConfig(@Nonnull final File config) {
+		/* TODO MC1.15 move dictionary to upstream tags?
 		// Block dictionary
 		{
 			config.addCustomCategoryComment("block_tags",
@@ -298,7 +299,7 @@ public class Dictionary {
 			config.get("block_tags", "minecraft:redstone_block"                        , "Mining").getString();
 			
 			// mining an 'end' moon
-			config.get("block_tags", "warpdrive:iridium_block"                         , "Mining").getString();	// stronger than obsidian but can still be mined (see ender moon)
+			config.get("block_tags", "warpdrive:hull.iridium_block"                    , "Mining").getString();	// stronger than obsidian but can still be mined (see ender moon)
 			
 			// force field camouflage blacklisting
 			config.get("block_tags", "deepresonance:energy_collector"                  , "NoCamouflage").getString();
@@ -490,10 +491,10 @@ public class Dictionary {
 			config.get("item_tags", "ic2:quantum_boots"                            , "NoFallDamage").getString(); // IC2 Experimental
 			config.get("item_tags", "ic2:itemarmorrubboots"                        , "NoFallDamage").getString(); // IC2 Classic
 			config.get("item_tags", "ic2:itemarmorquantumboots"                    , "NoFallDamage").getString(); // IC2 Classic
-			config.get("item_tags", "warpdrive:warp_armor.advanced.leggings"       , "NoFallDamage").getString();
-			config.get("item_tags", "warpdrive:warp_armor.advanced.boots"          , "NoFallDamage").getString();
-			config.get("item_tags", "warpdrive:warp_armor.superior.leggings"       , "NoFallDamage").getString();
-			config.get("item_tags", "warpdrive:warp_armor.superior.boots"          , "NoFallDamage").getString();
+			config.get("item_tags", "warpdrive:armor.advanced.leggings"            , "NoFallDamage").getString();
+			config.get("item_tags", "warpdrive:armor.advanced.boots"               , "NoFallDamage").getString();
+			config.get("item_tags", "warpdrive:armor.superior.leggings"            , "NoFallDamage").getString();
+			config.get("item_tags", "warpdrive:armor.superior.boots"               , "NoFallDamage").getString();
 			
 			config.get("item_tags", "simplyjetpacks:itemjetpack"                   , "ExcludedAvatar").getString();
 			
@@ -505,7 +506,7 @@ public class Dictionary {
 				taggedItems.put(name, tags);
 			}
 		}
-		
+		*/
 	}
 	
 	public static void apply() {
@@ -515,30 +516,20 @@ public class Dictionary {
 		BLOCKS_ORES = new HashSet<>();
 		BLOCKS_LOGS = new HashSet<>();
 		BLOCKS_LEAVES = new HashSet<>();
-		final String[] oreNames = OreDictionary.getOreNames();
-		for (final String oreName : oreNames) {
-			final String lowerOreName = oreName.toLowerCase();
-			if (oreName.length() > 4 && oreName.startsWith("ore")) {
-				final List<ItemStack> itemStacks = OreDictionary.getOres(oreName);
-				for (final ItemStack itemStack : itemStacks) {
-					BLOCKS_ORES.add(Block.getBlockFromItem(itemStack.getItem()));
-					// WarpDrive.logger.info(String.format("- added %s to ores as %s", oreName, itemStack));
-				}
-			}
-			if (lowerOreName.startsWith("log") || lowerOreName.endsWith("log") || lowerOreName.endsWith("logs")) {
-				final List<ItemStack> itemStacks = OreDictionary.getOres(oreName);
-				for (final ItemStack itemStack : itemStacks) {
-					BLOCKS_LOGS.add(Block.getBlockFromItem(itemStack.getItem()));
-					// WarpDrive.logger.info(String.format("- added %s to logs as %s", oreName, itemStack));
-				}
-			}
-			if (lowerOreName.startsWith("leave") || lowerOreName.endsWith("leave") || lowerOreName.endsWith("leaves")) {
-				final List<ItemStack> itemStacks = OreDictionary.getOres(oreName);
-				for (final ItemStack itemStack : itemStacks) {
-					BLOCKS_LEAVES.add(Block.getBlockFromItem(itemStack.getItem()));
-					// WarpDrive.logger.info(String.format("- added %s to leaves as %s", oreName, itemStack));
-				}
-			}
+		Tag<Block> blockTagCollection = BlockTags.getCollection().get(new ResourceLocation("forge", "ores"));
+		if ( blockTagCollection != null
+		  && !blockTagCollection.getAllElements().isEmpty() ) {
+			BLOCKS_ORES.addAll(blockTagCollection.getAllElements());
+		}
+		blockTagCollection = BlockTags.getCollection().get(new ResourceLocation("minecraft", "logs"));
+		if ( blockTagCollection != null
+		  && !blockTagCollection.getAllElements().isEmpty() ) {
+			BLOCKS_LOGS.addAll(blockTagCollection.getAllElements());
+		}
+		blockTagCollection = BlockTags.getCollection().get(new ResourceLocation("minecraft", "leaves"));
+		if ( blockTagCollection != null
+		  && !blockTagCollection.getAllElements().isEmpty() ) {
+			BLOCKS_LEAVES.addAll(blockTagCollection.getAllElements());
 		}
 		
 		// apply tagged blocks

@@ -1,0 +1,6 @@
+{
+	"parent": "item/generated",
+	"textures": {
+		"layer0": "warpdrive:item/tool/ship_token-1"
+	}
+}

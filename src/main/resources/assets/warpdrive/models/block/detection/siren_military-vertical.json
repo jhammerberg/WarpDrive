@@ -2,9 +2,9 @@
 	"credit": "Made with Blockbench",
 	"parent": "block/cube_all",
 	"textures": {
-		"particle": "warpdrive:blocks/detection/siren_military-base_connection",
-		"base": "warpdrive:blocks/detection/siren_military-base",
-		"connection": "warpdrive:blocks/detection/siren_military-base_connection"
+		"particle": "warpdrive:block/detection/siren_military-base_connection",
+		"base": "warpdrive:block/detection/siren_military-base",
+		"connection": "warpdrive:block/detection/siren_military-base_connection"
 	},
 	"elements": [
 		{
