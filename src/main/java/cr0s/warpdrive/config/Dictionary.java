@@ -63,11 +63,13 @@ public class Dictionary {
 	private static HashSet<ResourceLocation> ENTITIES_LEFTBEHIND = null;
 	private static HashSet<ResourceLocation> ENTITIES_NONLIVINGTARGET = null;
 	private static HashSet<ResourceLocation> ENTITIES_LIVING_WITHOUT_AIR = null;
+	private static HashSet<ResourceLocation> ENTITIES_NO_REVEAL = null;
 	
 	// Items dictionary
 	public static HashSet<Item> ITEMS_FLYINSPACE = null;
 	public static HashSet<Item> ITEMS_NOFALLDAMAGE = null;
 	public static HashSet<Item> ITEMS_BREATHING_HELMET = null;
+	public static HashSet<Item> ITEMS_EXCLUDED_AVATAR = null;
 	
 	public static void loadConfig(@Nonnull final Configuration config) {
 		
@@ -329,6 +331,7 @@ public class Dictionary {
 					+ "In case of conflicts, the latest tag overwrite the previous ones.\n" + "- Anchor: ship can't move with this entity aboard (default: none).\n"
 					+ "- NoMass: this entity doesn't count when calculating ship volume/mass (default: boats, frames, carts).\n"
 					+ "- LeftBehind: this entity won't move with your ship nor transporter (default: particle effects).\n"
+					+ "- NoReveal: this entity won't be revealed when uncloaking. Applies to buggy entity with no network packets. (default: SGCraft Iris).\n"
 //					+ "- NoTransport: this entity is ignored by the transporter (default: -none-).\n"
 					+ "- NonLivingTarget: this non-living entity can be targeted/removed by weapons (default: ItemFrame, Painting).\n"
 					+ "- LivingWithoutAir: this living entity doesn't need air to live (default: vanilla zombies and skeletons).");
@@ -350,11 +353,11 @@ public class Dictionary {
 			config.get("entity_tags", "minecraft:arrow"                        , "NoMass NonLivingTarget").getString();
 			
 			config.get("entity_tags", "ic2:carbon_boat"                        , "NoMass NonLivingTarget").getString(); // IC2 Experimental
-			config.get("entity_tags", "ic2:carbonboat"                        , "NoMass NonLivingTarget").getString(); // IC2 Classic
+			config.get("entity_tags", "ic2:carbonboat"                         , "NoMass NonLivingTarget").getString(); // IC2 Classic
 			config.get("entity_tags", "ic2:rubber_boat"                        , "NoMass NonLivingTarget").getString(); // IC2 Experimental
-			config.get("entity_tags", "ic2:rubberboat"                        , "NoMass NonLivingTarget").getString(); // IC2 Classic
+			config.get("entity_tags", "ic2:rubberboat"                         , "NoMass NonLivingTarget").getString(); // IC2 Classic
 			config.get("entity_tags", "ic2:electric_boat"                      , "NoMass NonLivingTarget").getString(); // IC2 Experimental
-			config.get("entity_tags", "ic2:electricboat"                      , "NoMass NonLivingTarget").getString(); // IC2 Classic
+			config.get("entity_tags", "ic2:electricboat"                       , "NoMass NonLivingTarget").getString(); // IC2 Classic
 			config.get("entity_tags", "ic2:nuke"                               , "NoMass NonLivingTarget").getString(); // IC2 Experimental & Classic
 			config.get("entity_tags", "ic2:itnt"                               , "NoMass NonLivingTarget").getString(); // IC2 Experimental & Classic
 			config.get("entity_tags", "ic2:sticky_dynamite"                    , "NoMass NonLivingTarget").getString(); // IC2 Experimental
@@ -375,6 +378,21 @@ public class Dictionary {
 			config.get("entity_tags", "minecraft:zombie_villager"              , "LivingWithoutAir").getString();
 			
 			// config.get("entity_tags", "BuildCraft|Robotics.bcRobot"                        , "LivingWithoutAir").getString(); @TODO MC1.12 BuildCraft robots not implemented yet
+			config.get("entity_tags", "extraplanets:extraplanets.evolvedmagmacubeboss"  , "LivingWithoutAir").getString();
+			config.get("entity_tags", "extraplanets:extraplanets.evolvedfirebatboss"    , "LivingWithoutAir").getString();
+			config.get("entity_tags", "extraplanets:extraplanets.evolvedghastboss"      , "LivingWithoutAir").getString();
+			config.get("entity_tags", "extraplanets:extraplanets.evolvediceslimeboss"   , "LivingWithoutAir").getString();
+			config.get("entity_tags", "extraplanets:extraplanets.evolvedsnowmanboss"    , "LivingWithoutAir").getString();
+			config.get("entity_tags", "extraplanets:extraplanets.evolvedspacemanboss"   , "LivingWithoutAir").getString();
+			config.get("entity_tags", "extraplanets:extraplanets.evolvedgiantzombieboss", "LivingWithoutAir").getString();
+			config.get("entity_tags", "galacticraftcore:evolved_zombie"        , "LivingWithoutAir").getString();
+			config.get("entity_tags", "galacticraftcore:evolved_spider"        , "LivingWithoutAir").getString();
+			config.get("entity_tags", "galacticraftcore:evolved_creeper"       , "LivingWithoutAir").getString();
+			config.get("entity_tags", "galacticraftcore:evolved_skeleton"      , "LivingWithoutAir").getString();
+			config.get("entity_tags", "galacticraftcore:evolved_skeleton_boss" , "LivingWithoutAir").getString();
+			config.get("entity_tags", "galacticraftcore:evolved_enderman"      , "LivingWithoutAir").getString();
+			config.get("entity_tags", "galacticraftcore:evolved_witch"         , "LivingWithoutAir").getString();
+			config.get("entity_tags", "galacticraftplanets:creeper_boss"       , "LivingWithoutAir").getString();
 			config.get("entity_tags", "icbmclassic:skeleton.xmas.elf"          , "LivingWithoutAir").getString();
 			config.get("entity_tags", "icbmclassic:skeleton.xmas.snowman"      , "LivingWithoutAir").getString();
 			config.get("entity_tags", "icbmclassic:skeleton.xmas.boss"         , "LivingWithoutAir").getString();
@@ -399,6 +417,9 @@ public class Dictionary {
 			config.get("entity_tags", "twilightforest.skeleton_druid"          , "LivingWithoutAir").getString();
 			config.get("entity_tags", "warpdrive:entity_offline_avatar"        , "LivingWithoutAir").getString();
 			
+			// buggy entities
+			config.get("entity_tags", "sgcraft:stargate_iris"                  , "NoReveal").getString();
+			
 			// *** read actual values
 			final String[] taggedEntitiesName = categoryEntityTags.getValues().keySet().toArray(new String[0]);
 			taggedEntities = new HashMap<>(taggedEntitiesName.length);
@@ -415,7 +436,8 @@ public class Dictionary {
 					+ "Tags shall be separated by at least one space, comma or tabulation.\n" + "Invalid tags will be ignored silently. Tags and block names are case sensitive.\n"
 					+ "In case of conflicts, the latest tag overwrite the previous ones.\n" + "- FlyInSpace: player can move without gravity effect while wearing this item (default: jetpacks).\n"
 					+ "- NoFallDamage: player doesn't take fall damage while wearing this armor item (default: IC2 rubber boots).\n"
-					+ "- BreathingHelmet: player can breath from WarpDrive air canister or IC2 compressed air while wearing this armor item (default: IC2 nano helmet and Cie).\n");
+					+ "- BreathingHelmet: player can breath from WarpDrive air canister or IC2 compressed air while wearing this armor item (default: IC2 nano helmet and Cie).\n"
+			        + "- ExcludedAvatar: offline avatars can't wear nor hold this item (default: SimplyJetpacks).\n");
 			
 			final ConfigCategory categoryItemTags = config.getCategory("item_tags");
 			// *** enforce default values
@@ -473,6 +495,8 @@ public class Dictionary {
 			config.get("item_tags", "warpdrive:warp_armor.superior.leggings"       , "NoFallDamage").getString();
 			config.get("item_tags", "warpdrive:warp_armor.superior.boots"          , "NoFallDamage").getString();
 			
+			config.get("item_tags", "simplyjetpacks:itemjetpack"                   , "ExcludedAvatar").getString();
+			
 			// *** read actual values
 			final String[] taggedItemsName = categoryItemTags.getValues().keySet().toArray(new String[0]);
 			taggedItems = new HashMap<>(taggedItemsName.length);
@@ -494,7 +518,7 @@ public class Dictionary {
 		final String[] oreNames = OreDictionary.getOreNames();
 		for (final String oreName : oreNames) {
 			final String lowerOreName = oreName.toLowerCase();
-			if (oreName.length() > 4 && oreName.substring(0, 3).equals("ore")) {
+			if (oreName.length() > 4 && oreName.startsWith("ore")) {
 				final List<ItemStack> itemStacks = OreDictionary.getOres(oreName);
 				for (final ItemStack itemStack : itemStacks) {
 					BLOCKS_ORES.add(Block.getBlockFromItem(itemStack.getItem()));
@@ -570,6 +594,7 @@ public class Dictionary {
 		ENTITIES_LEFTBEHIND = new HashSet<>(taggedEntities.size());
 		ENTITIES_NONLIVINGTARGET = new HashSet<>(taggedEntities.size());
 		ENTITIES_LIVING_WITHOUT_AIR = new HashSet<>(taggedEntities.size());
+		ENTITIES_NO_REVEAL = new HashSet<>(taggedEntities.size());
 		for (final Entry<String, String> taggedEntity : taggedEntities.entrySet()) {
 			final ResourceLocation resourceLocation = new ResourceLocation(taggedEntity.getKey());
 			if (ForgeRegistries.ENTITIES.getValue(resourceLocation) == null) {
@@ -584,6 +609,7 @@ public class Dictionary {
 				case "LeftBehind"      : ENTITIES_LEFTBEHIND.add(resourceLocation); break;
 				case "NonLivingTarget" : ENTITIES_NONLIVINGTARGET.add(resourceLocation); break;
 				case "LivingWithoutAir": ENTITIES_LIVING_WITHOUT_AIR.add(resourceLocation); break;
+				case "NoReveal"        : ENTITIES_NO_REVEAL.add(resourceLocation); break;
 				default:
 					WarpDrive.logger.error(String.format("Unsupported tag %s for entity %s",
 					                                     tag, resourceLocation ));
@@ -596,6 +622,7 @@ public class Dictionary {
 		ITEMS_FLYINSPACE = new HashSet<>(taggedItems.size());
 		ITEMS_NOFALLDAMAGE = new HashSet<>(taggedItems.size());
 		ITEMS_BREATHING_HELMET = new HashSet<>(taggedItems.size());
+		ITEMS_EXCLUDED_AVATAR = new HashSet<>(taggedItems.size());
 		for (final Entry<String, String> taggedItem : taggedItems.entrySet()) {
 			final String itemId = taggedItem.getKey();
 			final Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemId));
@@ -608,6 +635,7 @@ public class Dictionary {
 				case "FlyInSpace"     : ITEMS_FLYINSPACE.add(item); break;
 				case "NoFallDamage"   : ITEMS_NOFALLDAMAGE.add(item); break;
 				case "BreathingHelmet": ITEMS_BREATHING_HELMET.add(item); break;
+				case "ExcludedAvatar" : ITEMS_EXCLUDED_AVATAR.add(item); break;
 				default:
 					WarpDrive.logger.error(String.format("Unsupported tag %s for item %s", tag, item));
 					break;
@@ -642,12 +670,14 @@ public class Dictionary {
 		WarpDrive.logger.info(String.format("- %s with LeftBehind tag: %s"      , ENTITIES_LEFTBEHIND.size(), getHashMessage(ENTITIES_LEFTBEHIND)));
 		WarpDrive.logger.info(String.format("- %s with NonLivingTarget tag: %s" , ENTITIES_NONLIVINGTARGET.size(), getHashMessage(ENTITIES_NONLIVINGTARGET)));
 		WarpDrive.logger.info(String.format("- %s with LivingWithoutAir tag: %s", ENTITIES_LIVING_WITHOUT_AIR.size(), getHashMessage(ENTITIES_LIVING_WITHOUT_AIR)));
+		WarpDrive.logger.info(String.format("- %s with NoReveal tag: %s"        , ENTITIES_NO_REVEAL.size(), getHashMessage(ENTITIES_NO_REVEAL)));
 		
 		// print tagged items
 		WarpDrive.logger.info("Active items dictionary:");
 		WarpDrive.logger.info(String.format("- %s allowing fly in space: %s" , ITEMS_FLYINSPACE.size(), getHashMessage(ITEMS_FLYINSPACE)));
 		WarpDrive.logger.info(String.format("- %s absorbing fall damages: %s", ITEMS_NOFALLDAMAGE.size(), getHashMessage(ITEMS_NOFALLDAMAGE)));
 		WarpDrive.logger.info(String.format("- %s allowing breathing air: %s", ITEMS_BREATHING_HELMET.size(), getHashMessage(ITEMS_BREATHING_HELMET)));
+		WarpDrive.logger.info(String.format("- %s excluded avatar items: %s" , ITEMS_EXCLUDED_AVATAR.size(), getHashMessage(ITEMS_EXCLUDED_AVATAR)));
 	}
 	
 	private static void adjustHardnessAndResistance() {
@@ -864,5 +894,15 @@ public class Dictionary {
 	public static boolean isNonLivingTarget(final Entity entity) {
 		final ResourceLocation resourceLocation = entity.getType().getRegistryName();
 		return ENTITIES_NONLIVINGTARGET.contains(resourceLocation);
+	}
+	
+	public static boolean isNoReveal(final Entity entity) {
+		final ResourceLocation resourceLocation = entity.getType().getRegistryName();
+		return ENTITIES_NO_REVEAL.contains(resourceLocation);
+	}
+	
+	public static boolean addToNoReveal(final Entity entity) {
+		final ResourceLocation resourceLocation = entity.getType().getRegistryName();
+		return ENTITIES_NO_REVEAL.add(resourceLocation);
 	}
 }

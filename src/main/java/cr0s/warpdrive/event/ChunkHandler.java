@@ -7,6 +7,7 @@ import cr0s.warpdrive.api.ExceptionChunkNotLoaded;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.CelestialObjectManager;
 import cr0s.warpdrive.data.ChunkData;
+import cr0s.warpdrive.data.ForceFieldRegistry;
 import cr0s.warpdrive.data.GlobalRegionManager;
 import cr0s.warpdrive.data.OfflineAvatarManager;
 import cr0s.warpdrive.data.StateAir;
@@ -68,6 +69,7 @@ public class ChunkHandler {
 			                                      ((ServerWorld) event.getWorld()).getSaveHandler().getWorldDirectory().getPath(),
 			                                      WarpDrive.MODID );
 			final CompoundNBT tagCompound = Commons.readNBTFromFile(filename);
+			ForceFieldRegistry.readFromNBT(tagCompound);
 			GlobalRegionManager.read(tagCompound);
 			OfflineAvatarManager.read(tagCompound);
 			
@@ -97,7 +99,7 @@ public class ChunkHandler {
 		assert chunkData != null;
 		// (world can load a non-generated chunk, or the chunk be regenerated, so we reset only as needed)
 		if (!chunkData.isLoaded()) { 
-			chunkData.load(new CompoundNBT());
+			chunkData.load(new CompoundNBT(), world);
 		}
 	}
 	
@@ -114,7 +116,7 @@ public class ChunkHandler {
 		final ChunkData chunkData = getChunkData(event.getWorld().isRemote(), event.getWorld().getDimension().getType(),
 		                                         event.getChunk().getPos().x, event.getChunk().getPos().z, true);
 		assert chunkData != null;
-		chunkData.load(event.getData());
+		chunkData.load(event.getData(), event.getWorld());
 	}
 	
 	// (called after data loading, or before a late generation, or on client side) 
@@ -131,7 +133,7 @@ public class ChunkHandler {
 		                                         event.getChunk().getPos().x, event.getChunk().getPos().z, true);
 		assert chunkData != null;
 		if (!chunkData.isLoaded()) {
-			chunkData.load(new CompoundNBT());
+			chunkData.load(new CompoundNBT(), event.getWorld());
 		}
 	}
 	/*
@@ -190,6 +192,7 @@ public class ChunkHandler {
 		                                      ((ServerWorld) event.getWorld()).getSaveHandler().getWorldDirectory().getPath(),
 		                                      WarpDrive.MODID );
 		final CompoundNBT tagCompound = new CompoundNBT();
+		ForceFieldRegistry.writeToNBT(tagCompound);
 		GlobalRegionManager.write(tagCompound);
 		OfflineAvatarManager.write(tagCompound);
 		Commons.writeNBTToFile(filename, tagCompound);
@@ -365,6 +368,11 @@ public class ChunkHandler {
 	/* commons */
 	public static boolean isLoaded(@Nonnull final World world, final int x, final int y, final int z) {
 		final ChunkData chunkData = getChunkData(world.isRemote(), world.getDimension().getType(), x, y, z);
+		return chunkData != null && chunkData.isLoaded();
+	}
+	
+	public static boolean isLoaded(@Nonnull final World world, final int xChunk, final int zChunk) {
+		final ChunkData chunkData = getChunkData(world.isRemote, world.getDimension().getType(), xChunk, zChunk, false);
 		return chunkData != null && chunkData.isLoaded();
 	}
 	

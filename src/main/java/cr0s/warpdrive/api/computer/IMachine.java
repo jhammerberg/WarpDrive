@@ -6,6 +6,8 @@ public interface IMachine extends IInterfaced {
 	
 	String[] name(@Nonnull final Object[] arguments);
 	
+	boolean getIsEnabled();
+	
 	Object[] enable(@Nonnull final Object[] arguments);
 	
 	Object[] getAssemblyStatus();

@@ -112,7 +112,7 @@ public abstract class BlockAbstractContainer extends ContainerBlock implements I
 		super.onBlockAdded(blockStateNew, world, blockPos, blockStateOld, isMoving);
 		final TileEntity tileEntity = world.getTileEntity(blockPos);
 		if (tileEntity instanceof IBlockUpdateDetector) {
-			((IBlockUpdateDetector) tileEntity).onBlockUpdateDetected();
+			((IBlockUpdateDetector) tileEntity).onBlockUpdateDetected(blockPos);
 		}
 	}
 	
@@ -310,7 +310,7 @@ public abstract class BlockAbstractContainer extends ContainerBlock implements I
 			return;
 		}
 		if (tileEntity instanceof IBlockUpdateDetector) {
-			((IBlockUpdateDetector) tileEntity).onBlockUpdateDetected();
+			((IBlockUpdateDetector) tileEntity).onBlockUpdateDetected(blockPosUpdated);
 		}
 	}
 	

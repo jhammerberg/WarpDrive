@@ -22,6 +22,7 @@ import cr0s.warpdrive.data.EnumShipMovementType;
 import cr0s.warpdrive.data.GlobalRegionManager;
 import cr0s.warpdrive.data.SoundEvents;
 import cr0s.warpdrive.data.GlobalRegion;
+import cr0s.warpdrive.data.Transformation;
 import cr0s.warpdrive.data.Vector3;
 import cr0s.warpdrive.data.VectorI;
 import cr0s.warpdrive.event.JumpSequencer;
@@ -29,6 +30,7 @@ import cr0s.warpdrive.render.EntityFXBoundingBox;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -42,6 +44,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.NBTUtil;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
 import net.minecraft.network.NetworkManager;
@@ -92,6 +95,9 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	public int shipMass;
 	public int shipVolume;
 	private BlockPos posSecurityStation = null;
+	private WeakReference<TileEntitySecurityStation> weakTileEntitySecurityStation = null;
+	private boolean isShipScanValid = false;
+	protected WarpDriveText textShipScanIssues = VALIDITY_ISSUES_UNKNOWN;
 	
 	private EnumShipMovementType shipMovementType;
 	private ShipMovementCosts shipMovementCosts;
@@ -118,20 +124,76 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	
 	@OnlyIn(Dist.CLIENT)
 	private void doShowBoundingBox() {
+		if (world == null) {
+			return;
+		}
 		ticksBoundingBoxUpdate--;
 		if (ticksBoundingBoxUpdate > 0) {
 			return;
 		}
 		ticksBoundingBoxUpdate = BOUNDING_BOX_INTERVAL_TICKS;
 		
+		// core coordinates
 		final Vector3 vector3 = new Vector3(this);
 		vector3.translate(0.5D);
 		
+		// bounding box
+		final Vector3 vMin = new Vector3(minX - 0.0D, minY - 0.0D, minZ - 0.0D);
+		final Vector3 vMax = new Vector3(maxX + 1.0D, maxY + 1.0D, maxZ + 1.0D);
 		Minecraft.getInstance().particles.addEffect(
 				new EntityFXBoundingBox(world, vector3,
-				                        new Vector3(minX - 0.0D, minY - 0.0D, minZ - 0.0D),
-				                        new Vector3(maxX + 1.0D, maxY + 1.0D, maxZ + 1.0D),
+				                        vMin,
+				                        vMax,
 				                        1.0F, 0.8F, 0.3F, BOUNDING_BOX_INTERVAL_TICKS + 1));
+		
+		// security station
+		if (posSecurityStation != null) {
+			Minecraft.getInstance().particles.addEffect(
+					new EntityFXBoundingBox(world, vector3,
+					                        new Vector3(posSecurityStation.getX() - 0.0D, posSecurityStation.getY() - 0.0D, posSecurityStation.getZ() - 0.0D),
+					                        new Vector3(posSecurityStation.getX() + 1.0D, posSecurityStation.getY() + 1.0D, posSecurityStation.getZ() + 1.0D),
+					                        1.0F, 0.2F, 0.9F, BOUNDING_BOX_INTERVAL_TICKS + 1) );
+		}
+		
+		// target location
+		final VectorI vMovement = getMovement();
+		if (vMovement.getMagnitudeSquared() > 0) {
+			final VectorI movement = getMovement();
+			final VectorI shipSize = new VectorI(getFront() + 1 + getBack(),
+			                                     getUp()    + 1 + getDown(),
+			                                     getRight() + 1 + getLeft());
+			final int maxDistance = 256;
+			if (Math.abs(movement.x) - shipSize.x > maxDistance) {
+				movement.x = (int) Math.signum(movement.x) * (shipSize.x + maxDistance);
+			}
+			if (Math.abs(movement.y) - shipSize.y > maxDistance) {
+				movement.y = (int) Math.signum(movement.y) * (shipSize.y + maxDistance);
+			}
+			if (Math.abs(movement.z) - shipSize.z > maxDistance) {
+				movement.z = (int) Math.signum(movement.z) * (shipSize.z + maxDistance);
+			}
+			final BlockState blockState = world.getBlockState(pos);
+			if (!(blockState.getBlock() instanceof BlockShipCore)) {
+				if (Commons.throttleMe("InvalidBlockToRenderBondingBox")) {
+					WarpDrive.logger.warn(String.format("Invalid block %s while trying to render ship bounding box with tile entity %s", blockState, this));
+				}
+				showBoundingBox = false;
+				return;
+			}
+			facing = blockState.get(BlockProperties.FACING_HORIZONTAL);
+			final int moveX = facing.getXOffset() * movement.x - facing.getZOffset() * movement.z;
+			final int moveY = movement.y;
+			final int moveZ = facing.getZOffset() * movement.x + facing.getXOffset() * movement.z;
+			final Transformation transformation = new Transformation(this, moveX, moveY, moveZ, getRotationSteps());
+			final Vec3d vMinTarget = transformation.apply(vMin.x, vMin.y, vMin.z);
+			final Vec3d vMaxTarget = transformation.apply(vMax.x, vMax.y, vMax.z);
+			
+			Minecraft.getInstance().particles.addEffect(
+					new EntityFXBoundingBox(world, vector3,
+					                        new Vector3(Math.min(vMinTarget.x, vMaxTarget.x), Math.min(vMinTarget.y, vMaxTarget.y), Math.min(vMinTarget.z, vMaxTarget.z)),
+					                        new Vector3(Math.max(vMinTarget.x, vMaxTarget.x), Math.max(vMinTarget.y, vMaxTarget.y), Math.max(vMinTarget.z, vMaxTarget.z)),
+					                        0.3F, 0.8F, 1.0F, BOUNDING_BOX_INTERVAL_TICKS + 1) );
+		}
 	}
 	
 	@Override
@@ -184,6 +246,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		  || ( isCommandConfirmed
 		    && enumShipCommand == EnumShipCommand.OFFLINE ) ) {
 			stateCurrent = EnumShipCoreState.IDLE;
+			commandCurrent = EnumShipCommand.OFFLINE;
 		}
 		
 		// periodically log the ship state
@@ -202,7 +265,8 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		}
 		
 		// refresh rendering
-		final boolean isActive = commandCurrent != EnumShipCommand.OFFLINE;
+		final boolean isActive = isEnabled
+		                      && enumShipCommand != EnumShipCommand.OFFLINE;
 		updateBlockState(null, BlockProperties.ACTIVE, isActive);
 		
 		// scan ship content progressively
@@ -213,20 +277,20 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			if ( getBack() == 0 && getFront() == 0
 			  && getLeft() == 0 && getRight() == 0
 			  && getDown() == 0 && getUp() == 0 ) {
-				textValidityIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.no_dimension_set");
-				isAssemblyValid = false;
+				textShipScanIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.no_dimension_set");
+				isShipScanValid = false;
 				return;
 			}
 			if ( (getBack() + getFront()) > WarpDriveConfig.SHIP_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()]
 			  || (getLeft() + getRight()) > WarpDriveConfig.SHIP_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()]
 			  || (getDown() + getUp()   ) > WarpDriveConfig.SHIP_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()] ) {
-				textValidityIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.too_large_side_for_tier",
+				textShipScanIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.too_large_side_for_tier",
 				                                       WarpDriveConfig.SHIP_SIZE_MAX_PER_SIDE_BY_TIER[enumTier.getIndex()]);
-				isAssemblyValid = false;
+				isShipScanValid = false;
 				return;
 			}
 			
-			shipScanner = new ShipScanner(world, minX, minY, minZ, maxX, maxY, maxZ);
+			shipScanner = new ShipScanner(world, pos, minX, minY, minZ, maxX, maxY, maxZ);
 			if (WarpDriveConfig.LOGGING_JUMPBLOCKS) {
 				WarpDrive.logger.info(String.format("%s scanning started",
 				                                    this));
@@ -240,11 +304,14 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			
 			shipMass = shipScanner.mass;
 			shipVolume = shipScanner.volume;
-			posSecurityStation = shipScanner.posSecurityStation;
+			if (posSecurityStation != shipScanner.posSecurityStation) {
+				posSecurityStation = shipScanner.posSecurityStation;
+				weakTileEntitySecurityStation = null;
+			}
 			shipScanner = null;
 			if (WarpDriveConfig.LOGGING_JUMPBLOCKS) {
-				WarpDrive.logger.info(String.format("%s scanning done: mass %d, volume %d",
-				                                    this, shipMass, shipVolume));
+				WarpDrive.logger.info(String.format("%s scanning done: mass %d, volume %d, security station %s",
+				                                    this, shipMass, shipVolume, posSecurityStation ));
 			}
 			
 			// validate results
@@ -264,45 +331,45 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			if (!isUnlimited) {
 				if ( shipMass > WarpDriveConfig.SHIP_MASS_MAX_ON_PLANET_SURFACE
 				  && CelestialObjectManager.isPlanet(world, pos.getX(), pos.getZ()) ) {
-					textValidityIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.too_much_mass_for_planet",
+					textShipScanIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.too_much_mass_for_planet",
 					                                       WarpDriveConfig.SHIP_MASS_MAX_ON_PLANET_SURFACE, shipMass );
-					isAssemblyValid = false;
+					isShipScanValid = false;
 					if (isEnabled) {
-						commandDone(false, textValidityIssues);
+						commandDone(false, textShipScanIssues);
 					}
 					return;
 				}
 				if ( shipMass < WarpDriveConfig.SHIP_MASS_MIN_FOR_HYPERSPACE
 				  && CelestialObjectManager.isInHyperspace(world, pos.getX(), pos.getZ()) ) {
-					textValidityIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.insufficient_mass_for_hyperspace",
+					textShipScanIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.insufficient_mass_for_hyperspace",
 					                                       WarpDriveConfig.SHIP_MASS_MIN_FOR_HYPERSPACE, shipMass );
-					isAssemblyValid = false;
+					isShipScanValid = false;
 					if (isEnabled) {
-						commandDone(false, textValidityIssues);
+						commandDone(false, textShipScanIssues);
 					}
 					return;
 				}
 				if (shipMass < WarpDriveConfig.SHIP_MASS_MIN_BY_TIER[enumTier.getIndex()]) {
-					textValidityIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.insufficient_mass_for_tier",
+					textShipScanIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.insufficient_mass_for_tier",
 					                                       WarpDriveConfig.SHIP_MASS_MIN_BY_TIER[enumTier.getIndex()], shipMass );
-					isAssemblyValid = false;
+					isShipScanValid = false;
 					if (isEnabled) {
-						commandDone(false, textValidityIssues);
+						commandDone(false, textShipScanIssues);
 					}
 					return;
 				}
 				if (shipMass > WarpDriveConfig.SHIP_MASS_MAX_BY_TIER[enumTier.getIndex()]) {
-					textValidityIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.too_much_mass_for_tier",
+					textShipScanIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.too_much_mass_for_tier",
 					                                       WarpDriveConfig.SHIP_MASS_MAX_BY_TIER[enumTier.getIndex()], shipMass );
-					isAssemblyValid = false;
+					isShipScanValid = false;
 					if (isEnabled) {
-						commandDone(false, textValidityIssues);
+						commandDone(false, textShipScanIssues);
 					}
 					return;
 				}
 			}
-			textValidityIssues = new WarpDriveText();
-			isAssemblyValid = true;
+			textShipScanIssues = new WarpDriveText();
+			isShipScanValid = true;
 		}
 		
 		// skip state handling while cooling down
@@ -314,20 +381,15 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		
 		switch (stateCurrent) {
 		case IDLE:
-			if ( isCommandConfirmed
+			if ( isEnabled
+			  && isCommandConfirmed
 			  && enumShipCommand.isMovement() ) {
 				commandCurrent = enumShipCommand;
-				stateCurrent = EnumShipCoreState.ONLINE;
-				/*
-				if (WarpDriveConfig.LOGGING_JUMPBLOCKS) {
-					WarpDrive.logger.info(String.format("%s state IDLE -> ONLINE",
-					                                    this));
-				}
-				/**/
+				stateCurrent = EnumShipCoreState.EXECUTE;
 			}
 			break;
 		
-		case ONLINE:
+		case EXECUTE:
 			// (disabling will switch back to IDLE and clear variables)
 			
 			switch (commandCurrent) {
@@ -343,7 +405,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 				// compute distance
 				distanceSquared = getMovement().getMagnitudeSquared();
 				// rescan ship mass/volume if it's too old
-				if (timeLastShipScanDone + WarpDriveConfig.SHIP_VOLUME_SCAN_AGE_TOLERANCE_SECONDS * 20 < world.getGameTime()) {
+				if (timeLastShipScanDone + WarpDriveConfig.SHIP_VOLUME_SCAN_AGE_TOLERANCE_SECONDS * 20L < world.getGameTime()) {
 					timeLastShipScanDone = -1;
 					break;
 				}
@@ -451,11 +513,6 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 				return;
 			}
 			
-			if (WarpDrive.cloaks.isCloaked(world.getDimension().getType(), pos)) {
-				commandDone(false, new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.cloaking_field_overlapping"));
-				return;
-			}
-			
 			doJump();
 			setCooldown(shipMovementCosts.cooldown_seconds * 20);
 			commandDone(true, new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.ship.guide.pre_jump_success"));
@@ -470,11 +527,13 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	}
 	
 	public boolean isOffline() {
-		return enumShipCommand == EnumShipCommand.OFFLINE;
+		return !isEnabled
+		    || enumShipCommand == EnumShipCommand.OFFLINE;
 	}
 	
 	public boolean isUnderMaintenance() {
-		return enumShipCommand == EnumShipCommand.MAINTENANCE;
+		return isEnabled
+		    && enumShipCommand == EnumShipCommand.MAINTENANCE;
 	}
 	
 	public boolean isBusy() {
@@ -545,7 +604,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		}
 		assert world != null;
 		for (final BlockPos blockPos : blockPosShipControllers) {
-			if (!world.isBlockLoaded(blockPos)) {
+			if (!world.isAreaLoaded(blockPos, 0)) {
 				continue;
 			}
 			final TileEntity tileEntity = world.getTileEntity(blockPos);
@@ -561,24 +620,32 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	}
 	
 	public String getFirstOnlineCrew() {
-		if (posSecurityStation == null) {// no crew defined
+		final TileEntitySecurityStation tileEntitySecurityStation = getSecurityStation();
+		if (tileEntitySecurityStation == null) {
 			return null;
 		}
-		
-		assert world != null;
-		final TileEntity tileEntity = world.getTileEntity(posSecurityStation);
-		if ( !(tileEntity instanceof TileEntitySecurityStation)
-		  || tileEntity.isRemoved() ) {// we're desync
-			// force a refresh
-			timeLastShipScanDone = -1;
+		if (tileEntitySecurityStation == TileEntitySecurityStation.DUMMY) {
 			return "-busy-";
 		}
-		return ((TileEntitySecurityStation) tileEntity).getFirstOnlinePlayer();
+		return tileEntitySecurityStation.getFirstOnlinePlayer();
+	}
+	
+	public boolean isCrewMember(final PlayerEntity entityPlayer) {
+		final TileEntitySecurityStation tileEntitySecurityStation = getSecurityStation();
+		if (tileEntitySecurityStation == null) {
+			return true;
+		}
+		if (tileEntitySecurityStation == TileEntitySecurityStation.DUMMY) {
+			return false;
+		}
+		return tileEntitySecurityStation.isAttachedPlayer(entityPlayer);
 	}
 	
 	@Override
 	protected boolean doScanAssembly(final boolean isDirty, final WarpDriveText textReason) {
-		final boolean isValid = super.doScanAssembly(isDirty, textReason);
+		final boolean isValid = super.doScanAssembly(isDirty, textReason)
+		                     && isShipScanValid;
+		textReason.append(textShipScanIssues);
 		
 		// refresh cache
 		assert world != null;
@@ -622,7 +689,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		}
 		if (legacy_isolationRate != isolationRate) {
 			markDirtyGlobalRegion();
-			if (WarpDriveConfig.LOGGING_RADAR && WarpDrive.isDev) {
+			if (WarpDrive.isDev && WarpDriveConfig.LOGGING_RADAR) {
 				WarpDrive.logger.info(String.format("%s Isolation updated to %d (%.1f%%)",
 				                                    this, isolationBlocksCount , isolationRate * 100.0));
 			}
@@ -704,8 +771,38 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		}
 	}
 	
-	private TileEntitySecurityStation findSecurityStation() {// @TODO
-		return null;
+	@Nullable
+	private TileEntitySecurityStation getSecurityStation() {
+		if ( world == null
+		  || posSecurityStation == null ) {// no crew defined
+			return null;
+		}
+		
+		// cache the tile entity to avoid slow access to world object
+		TileEntity tileEntity = weakTileEntitySecurityStation == null ? null : weakTileEntitySecurityStation.get();
+		if ( tileEntity == null
+		  || tileEntity.isRemoved()
+		  || !posSecurityStation.equals(tileEntity.getPos()) ) {
+			tileEntity = world.getTileEntity(posSecurityStation);
+			weakTileEntitySecurityStation = null;
+		}
+		if ( !(tileEntity instanceof TileEntitySecurityStation)
+		  || tileEntity.isRemoved() ) {// we're desync
+			if (Commons.throttleMe("SecurityStationDesync")) {
+				WarpDrive.logger.warn(String.format("%s: Security station %s has invalid tile entity: %s",
+				                                    this, posSecurityStation, tileEntity ));
+			}
+			// force a refresh
+			timeLastShipScanDone = -1;
+			return TileEntitySecurityStation.DUMMY;
+		}
+		if (weakTileEntitySecurityStation == null) {
+			weakTileEntitySecurityStation = new WeakReference<>((TileEntitySecurityStation) tileEntity);
+		}
+		if (!((TileEntitySecurityStation) tileEntity).getIsEnabled()) {// disabled
+			return null;
+		}
+		return (TileEntitySecurityStation) tileEntity;
 	}
 	
 	public boolean summonOwnerOnDeploy(final ServerPlayerEntity entityServerPlayer) {
@@ -720,10 +817,11 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			return false;
 		}
 		
-		final TileEntitySecurityStation tileEntitySecurityStation = findSecurityStation();
-		if (tileEntitySecurityStation != null) {
-			tileEntitySecurityStation.players.clear();
-			tileEntitySecurityStation.players.add(entityServerPlayer.getName().getUnformattedComponentText());
+		final TileEntitySecurityStation tileEntitySecurityStation = getSecurityStation();
+		if ( tileEntitySecurityStation != null
+		  && tileEntitySecurityStation != TileEntitySecurityStation.DUMMY ) {
+			tileEntitySecurityStation.removeAllAttachedPlayers();
+			tileEntitySecurityStation.attachPlayer(entityServerPlayer);
 		}
 		
 		final AxisAlignedBB aabb = new AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
@@ -1174,6 +1272,10 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	public CompoundNBT getUpdateTag() {
 		final CompoundNBT tagCompound = super.getUpdateTag();
 		
+		if (posSecurityStation != null) {
+			tagCompound.put("posSecurityStation", NBTUtil.writeBlockPos(posSecurityStation));
+		}
+		
 		tagCompound.putInt("minX", minX);
 		tagCompound.putInt("maxX", maxX);
 		tagCompound.putInt("minY", minY);
@@ -1189,6 +1291,13 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 		super.onDataPacket(networkManager, packet);
 		
 		final CompoundNBT tagCompound = packet.getNbtCompound();
+		
+		if (tagCompound.contains("posSecurityStation")) {
+			posSecurityStation = NBTUtil.readBlockPos(tagCompound.getCompound("posSecurityStation"));
+		} else {
+			posSecurityStation = null;
+		}
+		weakTileEntitySecurityStation = null;
 		
 		minX = tagCompound.getInt("minX");
 		maxX = tagCompound.getInt("maxX");
@@ -1277,5 +1386,17 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			return new Object[] { false, reason.toString() };
 		}
 		return new Object[] { true, maximumDistance_blocks };
+	}
+	
+	@Override
+	public Object[] state() {
+		final String units = energy_getDisplayUnits();
+		final long energy = EnergyWrapper.convert(energy_getEnergyStored(), units);
+		final String status = getStatusHeaderInPureText();
+		final String stringState = isOffline() ? "OFFLINE"
+		                         : isUnderMaintenance() ? "MAINTENANCE"
+		                         : isCooling() ? "COOLING"
+		                         : enumShipCommand.name();
+		return new Object[] { status, isEnabled, stringState, energy };
 	}
 }

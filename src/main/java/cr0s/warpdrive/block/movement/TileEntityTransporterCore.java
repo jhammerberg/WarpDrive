@@ -21,7 +21,6 @@ import cr0s.warpdrive.data.EnergyWrapper;
 import cr0s.warpdrive.data.EnumComponentType;
 import cr0s.warpdrive.data.EnumGlobalRegionType;
 import cr0s.warpdrive.data.EnumTransporterState;
-import cr0s.warpdrive.data.ForceFieldRegistry;
 import cr0s.warpdrive.data.ForceFieldSetup;
 import cr0s.warpdrive.data.GlobalPosition;
 import cr0s.warpdrive.data.GlobalRegionManager;
@@ -92,7 +91,6 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	                                                                    WarpDriveConfig.TRANSPORTER_RANGE_UPGRADE_MAX_QUANTITY );
 	
 	// persistent properties
-	private UUID uuid = null;
 	private ArrayList<BlockPos> vLocalScanners = null;
 	private int beamFrequency = -1;
 	private boolean isLockRequested = false;
@@ -501,9 +499,6 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		if ( beamFrequency != parBeamFrequency
 		  && IBeamFrequency.isValid(parBeamFrequency) ) {
 			final int beamFrequencyOld = beamFrequency;
-			if (hasWorld()) {
-				ForceFieldRegistry.removeFromRegistry(this);
-			}
 			beamFrequency = parBeamFrequency;
 			markDirtyParameters();
 			if (WarpDriveConfig.LOGGING_VIDEO_CHANNEL) {
@@ -931,11 +926,11 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		}
 	}
 	
-	boolean updateBeacon(final TileEntity tileEntity, final UUID uuid) {
+	boolean updateBeacon(final TileEntity tileEntity, final UUID uuidTransporterCore) {
 		if ( tileEntity == null
-		  || !this.uuid.equals(uuid) ) {
+		  || !this.uuid.equals(uuidTransporterCore) ) {
 			WarpDrive.logger.error(String.format("%s Invalid parameters in beacon call to transporter as %s, %s",
-			                                     this, tileEntity, uuid));
+			                                     this, tileEntity, uuidTransporterCore));
 			// just ignore it
 			return false;
 		}

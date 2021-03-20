@@ -539,6 +539,11 @@ public class JumpBlock {
 			tagCompound.remove("oc:node");
 		}
 		
+		// WarpDrive ship jump count
+		if (tagCompound.contains("jumpCount")) {
+			tagCompound.remove("jumpCount");
+		}
+		
 		// OpenComputers case
 		if (tagCompound.contains("oc:computer")) {
 			final CompoundNBT tagComputer = tagCompound.getCompound("oc:computer");

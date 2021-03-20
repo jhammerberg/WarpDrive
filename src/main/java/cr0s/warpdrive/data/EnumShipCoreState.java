@@ -8,7 +8,7 @@ import net.minecraft.util.IStringSerializable;
 public enum EnumShipCoreState implements IStringSerializable {
 	
 	IDLE          ("idle"),           // Ready for next command
-	ONLINE        ("online"),         // Computing parameters
+	EXECUTE        ("execute"),         // Computing parameters
 	WARMING_UP    ("warming_up");     // Warm up phase
 	
 	private final String name;

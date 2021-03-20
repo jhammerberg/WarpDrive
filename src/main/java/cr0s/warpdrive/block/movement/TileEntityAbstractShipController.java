@@ -17,6 +17,8 @@ import li.cil.oc.api.machine.Context;
 import javax.annotation.Nonnull;
 
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.play.server.SUpdateTileEntityPacket;
 import net.minecraft.tileentity.TileEntityType;
 
 public abstract class TileEntityAbstractShipController extends TileEntityAbstractEnergyCoreOrController implements IShipController {
@@ -48,6 +50,7 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 				"getMaxJumpDistance",
 				"movement",
 				"rotationSteps",
+				"state",
 				"targetName",
 				});
 	}
@@ -96,6 +99,32 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 		tagCompound.putBoolean("commandConfirmed", isCommandConfirmed);
 		
 		return tagCompound;
+	}
+	
+	@Nonnull
+	@Override
+	public CompoundNBT getUpdateTag() {
+		final CompoundNBT tagCompound = super.getUpdateTag();
+		
+		tagCompound.putInt("moveFront", moveFront);
+		tagCompound.putInt("moveUp", moveUp);
+		tagCompound.putInt("moveRight", moveRight);
+		tagCompound.putByte("rotationSteps", rotationSteps);
+		
+		return tagCompound;
+	}
+	
+	@Override
+	public void onDataPacket(@Nonnull final NetworkManager networkManager, @Nonnull final SUpdateTileEntityPacket packet) {
+		super.onDataPacket(networkManager, packet);
+		
+		final CompoundNBT tagCompound = packet.getNbtCompound();
+		
+		setMovement(
+				tagCompound.getInt("moveFront"),
+				tagCompound.getInt("moveUp"),
+				tagCompound.getInt("moveRight") );
+		setRotationSteps(tagCompound.getByte("rotationSteps"));
 	}
 	
 	@Override
@@ -341,6 +370,9 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	}
 	
 	@Override
+	abstract public Object[] state();
+	
+	@Override
 	public Object[] targetName(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && arguments[0] != null) {
 			this.nameTarget = (String) arguments[0];
@@ -405,6 +437,12 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 	}
 	
 	@Callback(direct = true)
+	public Object[] state(final Context context, final Arguments arguments) {
+		OC_convertArgumentsAndLogCall(context, arguments);
+		return state();
+	}
+	
+	@Callback(direct = true)
 	public Object[] targetName(final Context context, final Arguments arguments) {
 		return targetName(OC_convertArgumentsAndLogCall(context, arguments));
 	}
@@ -442,6 +480,9 @@ public abstract class TileEntityAbstractShipController extends TileEntityAbstrac
 		
 		case "rotationSteps":
 			return rotationSteps(arguments);
+		
+		case "state":
+			return state();
 		
 		case "targetName":
 			return targetName(arguments);

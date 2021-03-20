@@ -27,6 +27,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.dimension.DimensionType;
 
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.LogicalSidedProvider;
@@ -35,7 +36,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class CloakedArea {
 	
-	public ResourceLocation dimensionId;
+	public DimensionType dimensionType;
 	public BlockPos blockPosCore;
 	public int minX, minY, minZ;
 	public int maxX, maxY, maxZ;
@@ -44,10 +45,10 @@ public class CloakedArea {
 	public BlockState blockStateFog;
 	
 	public CloakedArea(@Nullable final World world,
-	                   @Nonnull final ResourceLocation dimensionId, @Nonnull final BlockPos blockPosCore, final boolean isFullyTransparent,
+	                   @Nonnull final DimensionType dimensionType, @Nonnull final BlockPos blockPosCore, final boolean isFullyTransparent,
 	                   final int minX, final int minY, final int minZ,
 	                   final int maxX, final int maxY, final int maxZ) {
-		this.dimensionId = dimensionId;
+		this.dimensionType = dimensionType;
 		this.blockPosCore = blockPosCore;
 		this.isFullyTransparent = isFullyTransparent;
 		
@@ -106,7 +107,7 @@ public class CloakedArea {
 	// Sending only if field changes: sets up or collapsing
 	public void sendCloakPacketToPlayersEx(final boolean isUncloaking) {
 		if (WarpDriveConfig.LOGGING_CLOAKING) {
-			WarpDrive.logger.info(String.format("sendCloakPacketToPlayersEx %s", isUncloaking));
+			WarpDrive.logger.info(String.format("sendCloakPacketToPlayersEx isUncloaking %s", isUncloaking));
 		}
 		final int RADIUS = 250;
 		
@@ -116,7 +117,7 @@ public class CloakedArea {
 		
 		final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
 		for (final ServerPlayerEntity entityServerPlayer : server.getPlayerList().getPlayers()) {
-			if (dimensionId.equals(entityServerPlayer.dimension.getRegistryName())) {
+			if (dimensionType == entityServerPlayer.dimension) {
 				final double dX = midX - entityServerPlayer.getPosX();
 				final double dY = midY - entityServerPlayer.getPosY();
 				final double dZ = midZ - entityServerPlayer.getPosZ();
@@ -154,14 +155,16 @@ public class CloakedArea {
 				}
 				removePlayer(entityServerPlayer.getUniqueID());
 				final IPacket<?> packetToSend = entityServerPlayer.createSpawnPacket();
-				final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
-				server.getPlayerList()
-				                .sendToAllNearExcept(
+				if (packetToSend != null) {
+                    final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
+				    server.getPlayerList()
+				          .sendToAllNearExcept(
 						                entityServerPlayer,
 						                entityServerPlayer.getPosX(), entityServerPlayer.getPosY(), entityServerPlayer.getPosZ(),
 						                100,
 						                entityServerPlayer.world.getDimension().getType(),
 						                packetToSend);
+				}
 				PacketHandler.sendCloakPacket(entityServerPlayer, this, false);
 			}
 		}
@@ -216,25 +219,18 @@ public class CloakedArea {
 	}
 	
 	@OnlyIn(Dist.CLIENT)
-	public void clientCloak() {
+	public void clientCloak(@Nonnull final ClientPlayerEntity player) {
 		assert Commons.isSafeThread();
-		final ClientPlayerEntity player = Minecraft.getInstance().player;
-		assert player != null;
 		
 		// Hide the blocks within area
 		if (WarpDriveConfig.LOGGING_CLOAKING) { WarpDrive.logger.info("Refreshing cloaked blocks..."); }
 		final World world = player.getEntityWorld();
 		final int minY_clamped = Math.max(0, minY);
 		final int maxY_clamped = Math.min(255, maxY);
-		for (int y = minY_clamped; y <= maxY_clamped; y++) {
-			for (int x = minX; x <= maxX; x++) {
-				for (int z = minZ; z <= maxZ; z++) {
-					final BlockPos blockPos = new BlockPos(x, y, z);
-					final BlockState blockState = world.getBlockState(blockPos);
-					if (blockState.getBlock() != Blocks.AIR) {
-						world.setBlockState(blockPos, blockStateFog, 4);
-					}
-				}
+		for (final BlockPos mutableBlockPos : BlockPos.Mutable.getAllInBoxMutable(minX, minY_clamped, minZ, maxX, maxY_clamped, maxZ)) {
+			final BlockState blockState = world.getBlockState(mutableBlockPos);
+			if (blockState.getBlock() != Blocks.AIR) {
+				world.setBlockState(mutableBlockPos, blockStateFog, 4);
 			}
 		}
 		
@@ -284,7 +280,7 @@ public class CloakedArea {
 	@Override
 	public String toString() {
 		return String.format("%s @ %s (%d %d %d) (%d %d %d) -> (%d %d %d)",
-			getClass().getSimpleName(), dimensionId,
+			getClass().getSimpleName(), dimensionType.getRegistryName(),
 			blockPosCore.getX(), blockPosCore.getY(), blockPosCore.getZ(),
 			minX, minY, minZ,
 			maxX, maxY, maxZ);

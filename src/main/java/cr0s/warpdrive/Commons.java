@@ -978,8 +978,8 @@ public class Commons {
 	
 	public static void writeNBTToFile(@Nonnull final String fileName, @Nonnull final CompoundNBT tagCompound) {
 		if (WarpDrive.isDev) {
-			WarpDrive.logger.info(String.format("writeNBTToFile %s",
-			                                    fileName));
+			WarpDrive.logger.debug(String.format("writeNBTToFile %s",
+			                                     fileName));
 		}
 		
 		try {
@@ -1001,7 +1001,8 @@ public class Commons {
 	
 	public static CompoundNBT readNBTFromFile(@Nonnull final String fileName) {
 		if (WarpDrive.isDev) {
-			WarpDrive.logger.info(String.format("readNBTFromFile %s", fileName));
+			WarpDrive.logger.debug(String.format("readNBTFromFile %s",
+			                                     fileName));
 		}
 		
 		try {
@@ -1296,7 +1297,7 @@ public class Commons {
 			}
 			// other mods camouflage blocks
 			for (final IUnlistedProperty<?> property : extendedBlockState.getUnlistedNames()) {
-				if (property.getType().toString().contains("IBlockState")) {// failed: add it to the fast check
+				if (property.getType().toString().contains("BlockState")) {// failed: add it to the fast check
 					WarpDrive.logger.error(String.format("Suspicious camouflage block detected for block state %s, updating dictionary with %s = NOCAMOUFLAGE to prevent further errors",
 					                                     blockState,
 					                                     blockState.getBlock().getRegistryName()));

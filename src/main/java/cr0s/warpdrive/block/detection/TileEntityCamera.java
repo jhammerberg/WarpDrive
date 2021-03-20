@@ -5,11 +5,15 @@ import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IVideoChannel;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.block.TileEntityAbstractMachine;
+import cr0s.warpdrive.block.movement.TileEntityShipCore;
 import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.BlockProperties;
 import cr0s.warpdrive.data.EnumCameraType;
 import cr0s.warpdrive.data.EnumComponentType;
+import cr0s.warpdrive.data.EnumGlobalRegionType;
+import cr0s.warpdrive.data.GlobalRegion;
+import cr0s.warpdrive.data.GlobalRegionManager;
 import cr0s.warpdrive.data.Vector3;
 import cr0s.warpdrive.item.ItemComponent;
 import cr0s.warpdrive.network.PacketHandler;
@@ -20,6 +24,7 @@ import li.cil.oc.api.machine.Context;
 
 import javax.annotation.Nonnull;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -32,6 +37,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.INBT;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -75,26 +81,29 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 		public String type;
 		public UUID uniqueId;
 		public String name;
+		public boolean isCrewMember;
 		private boolean isUpdated;
 		
 		Result(@Nonnull final Vector3 position, @Nonnull final Vector3 motion, @Nonnull final String type,
-		       @Nonnull final UUID uniqueId, @Nonnull final String name) {
+		       @Nonnull final UUID uniqueId, @Nonnull final String name, final boolean isCrewMember) {
 			this.position = position;
 			this.motion = motion;
 			this.type = type;
 			this.uniqueId = uniqueId;
 			this.name = name;
+			this.isCrewMember = isCrewMember;
 			this.isUpdated = false;
 		}
 		
-		Result(@Nonnull final Entity entity) {
+		Result(@Nonnull final Entity entity, final boolean isCrewMember) {
 			this(new Vector3(entity.getPosX(),
 			                 entity.getPosY() + entity.getEyeHeight(),
 			                 entity.getPosZ() ),
 			     new Vector3(entity.getMotion()),
 			     Dictionary.getId(entity),
 			     entity.getUniqueID(),
-			     entity.getName().getUnformattedComponentText() );
+			     entity.getName().getUnformattedComponentText(),
+			     isCrewMember );
 			// seen it was created from an entity, it's already updated
 			isUpdated = true;
 		}
@@ -233,7 +242,8 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 					// add new result
 					if (isNew) {
 						countAdded++;
-						results.add(new Result(entity));
+						final boolean isCrewMember = getCrewStatus(entity);
+						results.add(new Result(entity, isCrewMember));
 					}
 				}
 				
@@ -248,6 +258,44 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 				}
 			}
 		}
+	}
+	
+	private boolean getCrewStatus(final Entity entity) {
+		if (!(entity instanceof PlayerEntity)) {
+			return false;
+		}
+		final ArrayList<GlobalRegion> globalRegions = GlobalRegionManager.getContainers(EnumGlobalRegionType.SHIP, world, pos);
+		final ArrayList<TileEntityShipCore> tileEntityShipCores = new ArrayList<>(globalRegions.size());
+		if (globalRegions.isEmpty()) {
+			return false;
+		}
+		for (final GlobalRegion globalRegion : globalRegions) {
+			// abort on invalid ship cores
+			final TileEntity tileEntity = world.getTileEntity(globalRegion.getBlockPos());
+			if (!(tileEntity instanceof TileEntityShipCore)) {
+				if (Commons.throttleMe("cameraGetCrewStatus-InvalidInstance")) {
+					WarpDrive.logger.error(String.format("Unable to get crew status due to invalid tile entity for global region, expecting TileEntityShipCore, got %s",
+					                                     tileEntity ));
+				}
+				return false;
+			}
+			final TileEntityShipCore tileEntityShipCore = (TileEntityShipCore) tileEntity;
+			if (!tileEntityShipCore.isAssemblyValid()) {
+				if (Commons.throttleMe("cameraGetCrewStatus-InvalidAssembly")) {
+					WarpDrive.logger.error(String.format("Unable to get crew status due to invalid ship assembly for %s",
+					                                     tileEntity ));
+				}
+				return false;
+			}
+			tileEntityShipCores.add(tileEntityShipCore);
+		}
+		
+		boolean isCrewMember = true;
+		for (final TileEntityShipCore tileEntityShipCore : tileEntityShipCores) {
+			isCrewMember &= tileEntityShipCore.isCrewMember((PlayerEntity) entity);
+		}
+		
+		return isCrewMember;
 	}
 	
 	@Override
@@ -336,7 +384,8 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 						new Vector3(tagCompoundResult.getDouble("motionX"), tagCompoundResult.getDouble("motionY"), tagCompoundResult.getDouble("motionZ")),
 						tagCompoundResult.getString("type"),
 						Objects.requireNonNull(tagCompoundResult.getUniqueId("uniqueId")),
-						tagCompoundResult.getString("name") );
+						tagCompoundResult.getString("name"),
+						tagCompoundResult.getBoolean("isCrewMember") );
 				results.add(result);
 			} catch (final Exception exception) {
 				WarpDrive.logger.error(String.format("%s Exception while reading previous result %s",
@@ -373,6 +422,7 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 				if (result.name != null) {
 					tagCompoundResult.putString("name", result.name);
 				}
+				tagCompoundResult.putBoolean("isCrewMember", result.isCrewMember);
 				tagList.add(tagCompoundResult);
 			}
 			tagCompound.put("results", tagList);
@@ -426,7 +476,8 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 					result.type,
 					result.name == null ? "" : result.name,
 					result.position.x, result.position.y, result.position.z,
-					result.motion.x, result.motion.y, result.motion.z };
+					result.motion.x, result.motion.y, result.motion.z,
+					result.isCrewMember };
 		}
 		return objectResults;
 	}
@@ -444,7 +495,7 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 			try {
 				index = Commons.toInt(arguments[0]);
 			} catch(final Exception exception) {
-				return new Object[] { false, COMPUTER_ERROR_TAG, COMPUTER_ERROR_TAG, 0, 0, 0, 0, 0, 0 };
+				return new Object[] { false, COMPUTER_ERROR_TAG, COMPUTER_ERROR_TAG, 0, 0, 0, 0, 0, 0, false };
 			}
 			if (index >= 0 && index < results.size()) {
 				final Result result = results.get(index);
@@ -454,11 +505,12 @@ public class TileEntityCamera extends TileEntityAbstractMachine implements IVide
 							result.type,
 							result.name == null ? "" : result.name,
 							result.position.x, result.position.y, result.position.z,
-							result.motion.x, result.motion.y, result.motion.z };
+							result.motion.x, result.motion.y, result.motion.z,
+							result.isCrewMember };
 				}
 			}
 		}
-		return new Object[] { false, COMPUTER_ERROR_TAG, COMPUTER_ERROR_TAG, 0, 0, 0, 0, 0, 0 };
+		return new Object[] { false, COMPUTER_ERROR_TAG, COMPUTER_ERROR_TAG, 0, 0, 0, 0, 0, 0, false };
 	}
 	
 	// OpenComputers callback methods

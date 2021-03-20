@@ -101,17 +101,6 @@ import cr0s.warpdrive.block.weapon.TileEntityWeaponController;
 import cr0s.warpdrive.client.ClientProxy;
 import cr0s.warpdrive.client.ItemGroupHull;
 import cr0s.warpdrive.client.ItemGroupMain;
-import cr0s.warpdrive.command.CommandDebug;
-import cr0s.warpdrive.command.CommandDump;
-import cr0s.warpdrive.command.CommandEntity;
-import cr0s.warpdrive.command.CommandFind;
-import cr0s.warpdrive.command.CommandGenerate;
-import cr0s.warpdrive.command.CommandBed;
-import cr0s.warpdrive.command.CommandInvisible;
-import cr0s.warpdrive.command.CommandNPC;
-import cr0s.warpdrive.command.CommandReload;
-import cr0s.warpdrive.command.CommandRender;
-import cr0s.warpdrive.command.CommandSpace;
 import cr0s.warpdrive.config.Recipes;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.damage.DamageAsphyxia;
@@ -221,6 +210,7 @@ import javax.annotation.Nullable;
 public class WarpDrive {
 	public static final String MODID = "warpdrive";
 	public static final String MOD_VERSION = "@version@";
+	public static final Integer[] MOD_VERSION_NUMBERS;
 	public static final String PROTOCOL_VERSION = "@version@";
 	@SuppressWarnings("ConstantConditions")
 	public static final boolean isDev = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0
@@ -365,6 +355,31 @@ public class WarpDrive {
 	public static LoggerPrintStream printStreamError;
 	public static LoggerPrintStream printStreamWarn;
 	public static LoggerPrintStream printStreamInfo;
+	
+	static {
+		// pre-calculate and sanitize the version numbers
+		String[] strings = WarpDrive.MOD_VERSION.split("-");
+		if (strings.length < 2) {
+			strings = "0.0.0-0.0.0".split("-");
+		}
+		if (WarpDrive.isDev && strings[strings.length - 1].contains("dev")) {
+			strings = strings[strings.length - 2].split("\\.");
+		} else {
+			strings = strings[strings.length - 1].split("\\.");
+		}
+		final ArrayList<Integer> integers = new ArrayList<>(strings.length);
+		for (final String string : strings) {
+			try {
+				integers.add(Integer.parseInt(string));
+			} catch (final NumberFormatException exception) {
+				// ignore
+			}
+		}
+		while (integers.size() < 3) {
+			integers.add(0);
+		}
+		MOD_VERSION_NUMBERS = integers.toArray(new Integer[0]);
+	}
 	
 	public WarpDrive() {
 		logger = LogManager.getLogger(MODID);

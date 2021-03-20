@@ -341,6 +341,14 @@ public class Recipes {
 		                                       'm', ItemComponent.getItemStack(EnumComponentType.LASER_MEDIUM_EMPTY),
 		                                       'r', "blockRedstone",
 		                                       'l', "blockLapis"));
+		
+		// *** Security Station
+		WarpDrive.register(new ShapedOreRecipe(groupMachines,
+		                                       new ItemStack(WarpDrive.blockSecurityStation), "ede", "eme", "eMe",
+		                                       'd', ItemComponent.getItemStack(EnumComponentType.DIAMOND_CRYSTAL),
+		                                       'e', ItemComponent.getItemStack(EnumComponentType.ENDER_COIL),
+		                                       'M', ItemComponent.getItemStack(EnumComponentType.MEMORY_CRYSTAL),
+		                                       'm', itemStackMachineCasings[0] ));
 	}
 	
 	private static void initComponents() {
@@ -828,6 +836,16 @@ public class Recipes {
 		WarpDrive.register(new RecipeTuningDriver(groupTools, "_control_channel",
 		                                          new ItemStack(WarpDrive.itemTuningDriver, 1, ItemTuningDriver.MODE_CONTROL_CHANNEL),
 		                                          new ItemStack(Items.REDSTONE), 7, "_control_channel2"));
+		
+		// User manual
+		final ItemStack itemStackManual = WarpDriveConfig.getItemStackOrFire("patchouli:guide_book", 0, "{\"patchouli:book\": \"warpdrive:warpdrive_manual\"}");
+		if (!itemStackManual.isEmpty()) {
+			WarpDrive.register(new ShapedOreRecipe(groupTools,
+			                                       itemStackManual, false, " g ", "ibi", " i ",
+			                                       'g', "nuggetGold",
+			                                       'i', "nuggetIron",
+			                                       'b', Items.BOOK ));
+		}
 	}
 	
 	public static void initDynamic() {

@@ -157,6 +157,9 @@ public class GlobalRegionManager {
 	
 	@Nullable
 	public static GlobalRegion getByUUID(final EnumGlobalRegionType enumGlobalRegionType, final UUID uuid) {
+		if (uuid == null) {
+			return null;
+		}
 		for (final ResourceLocation dimensionId : registry.keySet()) {
 			final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(dimensionId);
 			if (setGlobalRegions == null) {
@@ -251,8 +254,8 @@ public class GlobalRegionManager {
 		double distanceSquared_min = Double.MAX_VALUE;
 		GlobalRegion result = null;
 		for (final GlobalRegion globalRegion : setGlobalRegions) {
-			if (enumGlobalRegionType != null
-			    && globalRegion.type != enumGlobalRegionType) {
+			if ( enumGlobalRegionType != null
+			  && globalRegion.type != enumGlobalRegionType ) {
 				continue;
 			}
 			
@@ -270,6 +273,30 @@ public class GlobalRegionManager {
 		return result;
 	}
 	
+	@Nonnull
+	public static ArrayList<GlobalRegion> getContainers(final EnumGlobalRegionType enumGlobalRegionType, @Nonnull final World world, @Nonnull final BlockPos blockPos) {
+		final CopyOnWriteArraySet<GlobalRegion> setGlobalRegions = registry.get(world.getDimension().getType().getRegistryName());
+		if (setGlobalRegions == null) {
+			return new ArrayList<>(0);
+		}
+		
+		final ArrayList<GlobalRegion> listContainers = new ArrayList<>(5);
+		for (final GlobalRegion globalRegion : setGlobalRegions) {
+			if ( enumGlobalRegionType != null
+			  && globalRegion.type != enumGlobalRegionType ) {
+				continue;
+			}
+			
+			if (!globalRegion.contains(blockPos)) {
+				continue;
+			}
+			
+			listContainers.add(globalRegion);
+		}
+		
+		return listContainers;
+	}
+	
 	public static boolean onBlockUpdating(@Nullable final Entity entity, @Nonnull final IWorld world, @Nonnull final BlockPos blockPos, final BlockState blockState) {
 		if (!Commons.isSafeThread()) {
 			WarpDrive.logger.error(String.format("Non-threadsafe call to GlobalRegionManager:onBlockUpdating outside main thread, for %s %s",
@@ -282,7 +309,8 @@ public class GlobalRegionManager {
 		}
 		boolean isAllowed = true;
 		for (final GlobalRegion registryItem : setGlobalRegions) {
-			if (registryItem.contains(blockPos)) {
+			if ( registryItem.contains(blockPos)
+			  && !registryItem.getBlockPos().equals(blockPos) ) {
 				final TileEntity tileEntity = world.getTileEntity(registryItem.getBlockPos());
 				if (tileEntity instanceof IGlobalRegionProvider) {
 					isAllowed = isAllowed && ((IGlobalRegionProvider) tileEntity).onBlockUpdatingInArea(entity, blockPos, blockState);
@@ -408,6 +436,7 @@ public class GlobalRegionManager {
 		}
 	}
 	
+	@Nullable
 	public static TileEntityShipCore getIntersectingShipCore(@Nonnull final TileEntityShipCore shipCore1) {
 		cleanup();
 		
@@ -512,9 +541,9 @@ public class GlobalRegionManager {
 					}
 					// skip unloaded chunks
 					if (!isLoaded) {
-						if (WarpDrive.isDev) {
-							WarpDrive.logger.info(String.format("Skipping non-loaded GlobalRegion %s",
-							                                    registryItem));
+						if (WarpDrive.isDev && WarpDriveConfig.LOGGING_GLOBAL_REGION_REGISTRY) {
+							WarpDrive.logger.debug(String.format("Skipping non-loaded GlobalRegion %s",
+							                                     registryItem));
 						}
 						continue;
 					}

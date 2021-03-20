@@ -2,6 +2,7 @@ package cr0s.warpdrive.network;
 
 import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.CelestialObject;
 import cr0s.warpdrive.data.CloakedArea;
@@ -33,6 +34,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSidedProvider;
 import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkEvent.Context;
 import net.minecraftforge.fml.network.NetworkRegistry;
@@ -139,9 +142,16 @@ public class PacketHandler {
 		
 		final MessageBeamEffect messageBeamEffect = new MessageBeamEffect(source, target, red, green, blue, age);
 		// Send packet to all players within cloaked area
-		final List<ServerPlayerEntity> entityServerPlayers = world.getEntitiesWithinAABB(ServerPlayerEntity.class, aabb);
+		final MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
+		assert server != null;
+		final List<ServerPlayerEntity> entityServerPlayers = server.getPlayerList().getPlayers();
+		final DimensionType dimensionType = world.getDimension().getType();
 		for (final ServerPlayerEntity entityServerPlayer : entityServerPlayers) {
-			sendToPlayer(messageBeamEffect, entityServerPlayer);
+			if (entityServerPlayer.dimension == dimensionType) {
+				if (aabb.intersects(entityServerPlayer.getBoundingBox())) {
+					sendToPlayer(messageBeamEffect, entityServerPlayer);
+				}
+			}
 		}
 	}
 	
@@ -255,6 +265,23 @@ public class PacketHandler {
 		sendToPlayer(messageClientSync, entityServerPlayer);
 	}
 	
+	public static IPacket<?> getPacketForThisEntity(final Entity entity) {
+		// skip buggy entities
+		if (Dictionary.isNoReveal(entity)) {
+			return null;
+		}
+		
+		try {
+            return entity.createSpawnPacket();
+		} catch (final Exception exception) {
+			exception.printStackTrace(WarpDrive.printStreamError);
+		}
+		WarpDrive.logger.error(String.format("Unable to get packet for entity %s, consider adding the NoReveal tag to entities with id %s.",
+		                                     entity, Dictionary.getId(entity) ));
+		Dictionary.addToNoReveal(entity);
+		return null;
+	}
+	
 	public static void revealEntityToPlayer(final Entity entity, final ServerPlayerEntity entityServerPlayer) {
 		try {
 			if (entityServerPlayer.connection == null) {
@@ -262,7 +289,11 @@ public class PacketHandler {
 				                                    entity, entityServerPlayer));
 				return;
 			}
-			final IPacket<?> packet = entity.createSpawnPacket();
+			final IPacket<?> packet = getPacketForThisEntity(entity);
+			if (packet == null) {
+				// note: error is already logged by getPacketForThisEntity()
+				return;
+			}
 			if (WarpDriveConfig.LOGGING_CLOAKING) {
 				WarpDrive.logger.info(String.format("Revealing entity %s with patcket %s",
 				                                    entity, packet));

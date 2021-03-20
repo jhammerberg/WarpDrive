@@ -150,7 +150,7 @@ public class WorldHandler {
 			blockStateBefore = blockEvent.getWorld().getBlockState(blockEvent.getPos());
 			blockStatePlaced = blockEvent.getState();
 		}
-		if (WarpDriveConfig.LOGGING_BREAK_PLACE && WarpDrive.isDev) {
+		if (WarpDrive.isDev && WarpDriveConfig.LOGGING_BREAK_PLACE) {
 			if (blockStateBefore != blockStatePlaced) {
 				WarpDrive.logger.info(String.format("onBlockEvent %s %s -> %s %s by %s",
 				                                    blockEvent.getClass().getSimpleName(),
@@ -180,6 +180,10 @@ public class WorldHandler {
 			isAllowed = isAllowed && CelestialObjectManager.onOpeningNetherPortal(blockEvent.getWorld(), blockEvent.getPos());
 		} else {
 			isAllowed = isAllowed && GlobalRegionManager.onBlockUpdating(entity, blockEvent.getWorld(), blockEvent.getPos(), blockEvent.getState());
+		}
+		if ( blockEvent instanceof BlockEvent.BreakEvent
+		  && entity instanceof PlayerEntity ) {
+			isAllowed = isAllowed && PlayerHandler.checkMaintenanceAndCrew(blockEvent, (PlayerEntity) entity, blockEvent.getPos(), blockStateBefore);
 		}
 		if (!isAllowed) {
 			if (blockEvent.isCancelable()) {

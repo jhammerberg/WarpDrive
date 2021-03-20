@@ -5,11 +5,12 @@ import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.network.PacketHandler;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.client.Minecraft;
 import net.minecraft.block.Blocks;
@@ -28,20 +29,19 @@ public class CloakManager {
 	
 	public CloakManager() { }
 	
-	public boolean isCloaked(final DimensionType dimensionType, final BlockPos blockPos) {
+	public void onChunkLoaded(final ServerPlayerEntity player, final int chunkPosX, final int chunkPosZ) {
 		for (final CloakedArea area : cloaks) {
-			if (area.dimensionId.equals(dimensionType.getRegistryName())) {
+			// skip other dimensions
+			if (area.dimensionType != player.world.getDimension().getType()) {
 				continue;
 			}
 			
-			if ( area.minX <= blockPos.getX() && area.maxX >= blockPos.getX() 
-			  && area.minY <= blockPos.getY() && area.maxY >= blockPos.getY()
-			  && area.minZ <= blockPos.getZ() && area.maxZ >= blockPos.getZ() ) {
-				return true;
+			// force refresh if the chunk overlap the cloak
+			if ( area.minX <= (chunkPosX << 4 + 15) && area.maxX >= (chunkPosX << 4)
+			  && area.minZ <= (chunkPosZ << 4 + 15) && area.maxZ >= (chunkPosZ << 4) ) {
+				PacketHandler.sendCloakPacket(player, area, false);
 			}
 		}
-		
-		return false;
 	}
 	
 	public void onPlayerJoinWorld(final ServerPlayerEntity entityServerPlayer, final World world) {
@@ -50,7 +50,7 @@ public class CloakManager {
 		}
 		for (final CloakedArea area : cloaks) {
 			// skip other dimensions
-			if (!area.dimensionId.equals(world.getDimension().getType().getRegistryName())) {
+			if (area.dimensionType != world.getDimension().getType()) {
 				continue;
 			}
 			
@@ -72,12 +72,12 @@ public class CloakManager {
 			final int minX, final int minY, final int minZ,
 			final int maxX, final int maxY, final int maxZ) {
 		assert world.getDimension().getType().getRegistryName() != null;
-		final CloakedArea cloakedAreaNew = new CloakedArea(world, world.getDimension().getType().getRegistryName(), blockPosCore, isFullyTransparent,
+		final CloakedArea cloakedAreaNew = new CloakedArea(world, world.getDimension().getType(), blockPosCore, isFullyTransparent,
 		                                                   minX, minY, minZ, maxX, maxY, maxZ );
 		
 		// find existing one
 		for (final CloakedArea cloakedArea : cloaks) {
-			if ( cloakedArea.dimensionId.equals(world.getDimension().getType().getRegistryName())
+			if ( cloakedArea.dimensionType == world.getDimension().getType()
 			  && cloakedArea.blockPosCore.equals(blockPosCore) ) {
 				cloaks.remove(cloakedArea);
 				break;
@@ -95,17 +95,23 @@ public class CloakManager {
 	
 	@OnlyIn(Dist.CLIENT)
 	public void onClientTick() {
+		@Nullable
+		final ClientPlayerEntity player = Minecraft.getInstance().player;
+		if (player == null) {
+			// skip without clearing the cache while client world is loading
+			return;
+		}
 		final CloakedArea[] cloakedAreas = cloakToRefresh.toArray(new CloakedArea[0]);
 		cloakToRefresh.clear();
 		for (final CloakedArea cloakedArea : cloakedAreas) {
-			cloakedArea.clientCloak();
+			cloakedArea.clientCloak(player);
 		}
 	}
 	
-	public void removeCloakedArea(final ResourceLocation dimensionId, final BlockPos blockPos) {
+	public void removeCloakedArea(final DimensionType dimensionType, final BlockPos blockPos) {
 		for (final CloakedArea area : cloaks) {
 			if ( area.blockPosCore.equals(blockPos)
-			  && area.dimensionId.equals(dimensionId) ) {
+			  && area.dimensionType == dimensionType ) {
 				if (FMLEnvironment.dist == Dist.CLIENT) {
 					area.clientDecloak();
 				} else {
@@ -120,7 +126,7 @@ public class CloakManager {
 	public CloakedArea getCloakedArea(final World world, final BlockPos blockPos) {
 		for (final CloakedArea area : cloaks) {
 			if ( area.blockPosCore.equals(blockPos)
-			  && area.dimensionId.equals(world.getDimension().getType().getRegistryName()) ) {
+			  && area.dimensionType == world.getDimension().getType() ) {
 				return area;
 			}
 		}

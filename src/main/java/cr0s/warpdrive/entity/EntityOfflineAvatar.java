@@ -1,6 +1,7 @@
 package cr0s.warpdrive.entity;
 
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.GlobalPosition;
 import cr0s.warpdrive.data.OfflineAvatarManager;
@@ -15,6 +16,8 @@ import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
@@ -138,7 +141,7 @@ public class EntityOfflineAvatar extends MobEntity {
 		
 		final UUID uuidPlayer = tagCompound.getUniqueId("player");
 		final String namePlayer = tagCompound.getString("playerName");
-		if ( uuidPlayer == null
+		if ( (uuidPlayer.getLeastSignificantBits() == 0L && uuidPlayer.getMostSignificantBits() == 0L)
 		  || namePlayer.isEmpty() ) {
 			WarpDrive.logger.error(String.format("Removing on reading invalid offline avatar in %s",
 			                                     tagCompound ));
@@ -146,6 +149,14 @@ public class EntityOfflineAvatar extends MobEntity {
 			return;
 		}
 		setPlayer(uuidPlayer, namePlayer);
+		
+		for (final EquipmentSlotType entityEquipmentSlot : EquipmentSlotType.values()) {
+			final ItemStack itemStack = getItemStackFromSlot(entityEquipmentSlot);
+			if ( !itemStack.isEmpty()
+			  && Dictionary.ITEMS_EXCLUDED_AVATAR.contains(itemStack.getItem()) ) {
+				setItemStackToSlot(entityEquipmentSlot, ItemStack.EMPTY);
+			}
+		}
 	}
 	
 	@Override

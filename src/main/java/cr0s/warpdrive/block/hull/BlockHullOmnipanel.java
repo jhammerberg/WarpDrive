@@ -20,6 +20,8 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import net.minecraftforge.common.ToolType;
+
 public class BlockHullOmnipanel extends BlockAbstractOmnipanel implements IDamageReceiver {
 	
 	final int indexColor;
@@ -27,6 +29,8 @@ public class BlockHullOmnipanel extends BlockAbstractOmnipanel implements IDamag
 	public BlockHullOmnipanel(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final DyeColor enumDyeColor) {
 		super(getDefaultProperties(Material.GLASS, enumDyeColor.getMapColor())
 				.hardnessAndResistance(WarpDriveConfig.HULL_HARDNESS[enumTier.getIndex()], WarpDriveConfig.HULL_BLAST_RESISTANCE[enumTier.getIndex()])
+				.harvestTool(ToolType.PICKAXE)
+				.harvestLevel(WarpDriveConfig.HULL_HARVEST_LEVEL[enumTier.getIndex()])
 				.lightValue(10)
 				.sound(SoundType.GLASS),
 		      registryName, enumTier);

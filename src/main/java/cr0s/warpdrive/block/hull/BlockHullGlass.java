@@ -20,11 +20,15 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import net.minecraftforge.common.ToolType;
+
 public class BlockHullGlass extends BlockAbstractBase implements IDamageReceiver {
 	
 	public BlockHullGlass(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final MaterialColor materialColor) {
 		super(getDefaultProperties(Material.GLASS, materialColor)
 				.hardnessAndResistance(WarpDriveConfig.HULL_HARDNESS[enumTier.getIndex()], WarpDriveConfig.HULL_BLAST_RESISTANCE[enumTier.getIndex()])
+				.harvestTool(ToolType.PICKAXE)
+				.harvestLevel(WarpDriveConfig.HULL_HARVEST_LEVEL[enumTier.getIndex()])
 				.sound(SoundType.GLASS)
 				.lightValue(10),
 		      registryName, enumTier);

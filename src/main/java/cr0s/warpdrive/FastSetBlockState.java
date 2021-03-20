@@ -44,7 +44,7 @@ public class FastSetBlockState {
 				blockSnapshot = BlockSnapshot.getBlockSnapshot(world, blockPos, flags);
 				world.capturedBlockSnapshots.add(blockSnapshot);
 			}
-			final IBlockState blockStateOld = world.getBlockState(blockPos);
+			final BlockState blockStateOld = world.getBlockState(blockPos);
 			final int lightOld = blockStateOld.getLightValue(world, blockPos);
 			final int opacityOld = blockStateOld.getLightOpacity(world, blockPos);
 			/**/

@@ -57,11 +57,6 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 	protected void onFirstTick() {
 		super.onFirstTick();
 		
-		if (reactorFace == ReactorFace.UNKNOWN) {
-			// laser isn't linked yet, let's try to update nearby reactors
-			onBlockUpdateDetected();
-		}
-		
 		vLaser = new Vector3(this).translate(0.5);
 	}
 	
@@ -92,19 +87,6 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 		// always update cached signature name
 		reactorSignatureName = reactorCore != null ? reactorCore.getSignatureName() : "";
 		
-		// refresh blockstate
-		assert world != null;
-		final BlockState blockState_old = world.getBlockState(pos);
-		final BlockState blockState_new;
-		if (reactorFace.facingLaserProperty != null) {
-			blockState_new = blockState_old.with(BlockProperties.ACTIVE, true)
-			                               .with(BlockProperties.FACING, reactorFace.facingLaserProperty);
-		} else {
-			blockState_new = blockState_old.with(BlockProperties.ACTIVE, false)
-			                               .with(BlockProperties.FACING, Direction.DOWN);
-		}
-		updateBlockState(blockState_old, blockState_new);
-		
 		// skip if it's already set to save resources
 		if (this.reactorFace == reactorFace) {
 			return;
@@ -121,7 +103,8 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 			return null;
 		}
 		TileEntityEnanReactorCore reactorCore = weakReactorCore != null ? weakReactorCore.get() : null;
-		if (reactorCore == null) {
+		if ( reactorCore == null
+		  || reactorCore.isRemoved() ) {
 			assert world != null;
 			final BlockPos blockPos = pos.add(- reactorFace.x, - reactorFace.y, - reactorFace.z);
 			final TileEntity tileEntity = world.getTileEntity(blockPos);
@@ -129,47 +112,25 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 				reactorCore = (TileEntityEnanReactorCore) tileEntity;
 				weakReactorCore = new WeakReference<>(reactorCore);
 			} else {
-				WarpDrive.logger.error(String.format("%s Invalid TileEntityEnanReactorCore %s: %s",
-				                                     this,
-				                                     Commons.format(world, pos),
-				                                     tileEntity));
+				if (tileEntity != null) {
+					WarpDrive.logger.error(String.format("%s Invalid TileEntityEnanReactorCore %s: %s",
+					                                     this,
+					                                     Commons.format(world, pos),
+					                                     tileEntity));
+				}
 				reactorFace = ReactorFace.UNKNOWN;
+				weakReactorCore = null;
 			}
 		}
 		return reactorCore;
 	}
 	
 	@Override
-	public void onBlockUpdateDetected() {
-		super.onBlockUpdateDetected();
-		
-		final TileEntityEnanReactorCore reactorCore = getReactorCore();
-		if (reactorCore != null) {
-			reactorCore.onBlockUpdateDetected();
-		} else {
-			assert world != null;
-			final BlockPos.Mutable mutableBlockPos = new BlockPos.Mutable(pos);
-			for (final ReactorFace reactorFace : ReactorFace.getLasers()) {
-				if (reactorFace.indexStability < 0) {
-					continue;
-				}
-				
-				mutableBlockPos.setPos(pos.getX() - reactorFace.x,
-				                       pos.getY() - reactorFace.y,
-				                       pos.getZ() - reactorFace.z);
-				if (world.isBlockLoaded(mutableBlockPos)) {
-					final TileEntity tileEntity = world.getTileEntity(mutableBlockPos);
-					if (tileEntity instanceof TileEntityEnanReactorCore) {
-						((TileEntityEnanReactorCore) tileEntity).onBlockUpdateDetected();
-					}
-				}
-			}
-		}
-	}
-	
-	@Override
 	protected boolean doScanAssembly(final boolean isDirty, final WarpDriveText textReason) {
 		final boolean isValid = super.doScanAssembly(isDirty, textReason);
+		
+		// check if the reactor core is still there
+		getReactorCore();
 		
 		if (reactorFace == ReactorFace.UNKNOWN) {
 			textReason.append(Commons.getStyleWarning(), "warpdrive.enan_reactor.status_line.missing_reactor_core");
@@ -177,6 +138,23 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 		}
 		
 		return isValid;
+	}
+	
+	@Override
+	protected void doUpdateParameters(final boolean isDirty) {
+		super.doUpdateParameters(isDirty);
+		
+		// refresh blockstate
+		final BlockState blockState_old = world.getBlockState(pos);
+		final BlockState blockState_new;
+		if (reactorFace.facingLaserProperty != null) {
+			blockState_new = blockState_old.with(BlockProperties.ACTIVE, true)
+			                               .with(BlockProperties.FACING, reactorFace.facingLaserProperty);
+		} else {
+			blockState_new = blockState_old.with(BlockProperties.ACTIVE, false)
+			                               .with(BlockProperties.FACING, Direction.DOWN);
+		}
+		updateBlockState(blockState_old, blockState_new);
 	}
 	
 	protected int stabilize(final int energy) {

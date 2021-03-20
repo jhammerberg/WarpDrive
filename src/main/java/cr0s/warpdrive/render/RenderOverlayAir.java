@@ -1,7 +1,6 @@
 package cr0s.warpdrive.render;
 
 import cr0s.warpdrive.Commons;
-import cr0s.warpdrive.compat.CompatMatterOverdrive;
 import cr0s.warpdrive.BreathingManager;
 import cr0s.warpdrive.api.ExceptionChunkNotLoaded;
 import cr0s.warpdrive.block.breathing.BlockAirShield;
@@ -64,10 +63,12 @@ public class RenderOverlayAir {
 		}
 		
 		// bypass for androids
+		/* TODO MC1.15 Compatibility classes
 		if ( WarpDriveConfig.isMatterOverdriveLoaded
 		  && CompatMatterOverdrive.isAndroid(entityPlayer) ) {
 			return;
 		}
+		*/
 		
 		// get air stats
 		final int rangeToVoid = getRangeToVoid(entityPlayer, x, y, z);

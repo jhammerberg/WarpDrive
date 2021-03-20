@@ -1,8 +1,10 @@
 package cr0s.warpdrive.block;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.WarpDriveText;
 import cr0s.warpdrive.api.computer.ISecurityStation;
+import cr0s.warpdrive.data.PlayerIdName;
 
 import li.cil.oc.api.machine.Arguments;
 import li.cil.oc.api.machine.Callback;
@@ -10,11 +12,11 @@ import li.cil.oc.api.machine.Context;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
-import net.minecraft.nbt.StringNBT;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.DamageSource;
 
@@ -23,29 +25,47 @@ import net.minecraftforge.common.util.Constants;
 public class TileEntitySecurityStation extends TileEntityAbstractMachine implements ISecurityStation {
 	
 	public static TileEntityType<TileEntitySecurityStation> TYPE;
+	public static final TileEntitySecurityStation DUMMY = new TileEntitySecurityStation(true);
 	
 	// persistent properties
-	public final ArrayList<String> players = new ArrayList<>();
+	private final CopyOnWriteArraySet<PlayerIdName> playerIdNames = new CopyOnWriteArraySet<>();
 	
-	public TileEntitySecurityStation() {
+	// computer properties
+	private final boolean isDummy;
+	
+	private TileEntitySecurityStation(final boolean isDummy) {
 		super(TYPE);
 		
+		this.isDummy = isDummy;
 		peripheralName = "warpdriveSecurityStation";
 		addMethods(new String[] {
-				"getAttachedPlayers"
-				});
+				"getAttachedPlayers",
+				"removeAllAttachedPlayers",
+				"removeAttachedPlayer"
+		});
+	}
+	
+	public TileEntitySecurityStation() {
+		this(false);
 	}
 	
 	@Override
 	public void read(@Nonnull final CompoundNBT tagCompound) {
 		super.read(tagCompound);
 		
-		players.clear();
-		final ListNBT tagListPlayers = tagCompound.getList("players", Constants.NBT.TAG_STRING);
+		final ListNBT tagListPlayers = tagCompound.getList("players", Constants.NBT.TAG_COMPOUND);
+		final ArrayList<PlayerIdName> playerIdNames = new ArrayList<>(tagListPlayers.size());
 		for (int index = 0; index < tagListPlayers.size(); index++) {
-			final String namePlayer = tagListPlayers.getString(index);
-			players.add(namePlayer);
+			final CompoundNBT tagCompoundEntry = tagListPlayers.getCompound(index);
+			final PlayerIdName playerIdName = PlayerIdName.loadFromNBT(tagCompoundEntry);
+			if (playerIdName == null) {
+				WarpDrive.logger.warn(String.format("Skipping invalid PlayerIdName in %s: %s", this, tagCompoundEntry.toString()));
+				continue;
+			}
+			playerIdNames.add(playerIdName);
 		}
+		this.playerIdNames.clear();
+		this.playerIdNames.addAll(playerIdNames);
 	}
 	
 	@Nonnull
@@ -54,9 +74,8 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 		tagCompound = super.write(tagCompound);
 		
 		final ListNBT tagListPlayers = new ListNBT();
-		for (final String namePlayer : players) {
-			final StringNBT tagStringPlayer = StringNBT.valueOf(namePlayer);
-			tagListPlayers.add(tagStringPlayer);
+		for (final PlayerIdName playerIdName : playerIdNames) {
+			tagListPlayers.add(tagListPlayers.size(), playerIdName.writeToNBT(new CompoundNBT()));
 		}
 		tagCompound.put("players", tagListPlayers);
 		
@@ -80,50 +99,77 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 	}
 	
 	public WarpDriveText attachPlayer(final PlayerEntity entityPlayer) {
-		for (int i = 0; i < players.size(); i++) {
-			final String name = players.get(i);
-			
-			if (entityPlayer.getName().getUnformattedComponentText().equals(name)) {
-				players.remove(i);
-				WarpDriveText text = Commons.getChatPrefix(getBlockState());
+		if (isDummy) {
+			return new WarpDriveText(Commons.getStyleDisabled(), "-dummy-");
+		}
+		for (final PlayerIdName playerIdName : playerIdNames) {
+			if (entityPlayer.getUniqueID().equals(playerIdName.getUUID())) {
+				playerIdNames.remove(playerIdName);
+				final WarpDriveText text = Commons.getChatPrefix(getBlockState());
 				text.appendSibling(new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.security_station.guide.player_unregistered",
 				                                     getAttachedPlayersList()));
+				markDirty();
 				return text;
 			}
 		}
 		
 		entityPlayer.attackEntityFrom(DamageSource.GENERIC, 1);
-		players.add(entityPlayer.getName().getUnformattedComponentText());
-		WarpDriveText text = Commons.getChatPrefix(getBlockState());
+		playerIdNames.add(new PlayerIdName(entityPlayer));
+		final WarpDriveText text = Commons.getChatPrefix(getBlockState());
 		text.appendSibling(new WarpDriveText(Commons.getStyleCorrect(), "warpdrive.security_station.guide.player_registered",
 		                                     getAttachedPlayersList()));
+		markDirty();
 		return text;
 	}
 	
+	public boolean isAttachedPlayer(final PlayerEntity entityPlayer) {
+		if (isDummy) {
+			return false;
+		}
+		
+		for (final PlayerIdName playerIdName : playerIdNames) {
+			if (entityPlayer.getUniqueID().equals(playerIdName.getUUID())) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	protected String getAttachedPlayersList() {
-		if (players.isEmpty()) {
+		if (isDummy) {
+			return "<everyone>";
+		}
+		
+		if (playerIdNames.isEmpty()) {
 			return "<nobody>";
 		}
 		
-		final StringBuilder list = new StringBuilder();
+		final StringBuilder stringBuilderList = new StringBuilder();
 		
-		for (int i = 0; i < players.size(); i++) {
-			final String nick = players.get(i);
-			list.append(nick).append(((i == players.size() - 1) ? "" : ", "));
+		int index = 0;
+		for (final PlayerIdName playerIdName : playerIdNames) {
+			final String namePlayer = playerIdName.getName();
+			if (index > 0) {
+				stringBuilderList.append(", ");
+			}
+			stringBuilderList.append(namePlayer);
+			index++;
 		}
 		
-		return list.toString();
+		return stringBuilderList.toString();
 	}
 	
 	public String getFirstOnlinePlayer() {
-		if (players == null || players.isEmpty()) {// no crew defined
+		if (playerIdNames.isEmpty()) {// no crew defined
 			return null;
 		}
 		
-		for (final String namePlayer : players) {
-			final PlayerEntity entityPlayer = Commons.getOnlinePlayerByName(namePlayer);
+		for (final PlayerIdName playerIdName : playerIdNames) {
+			final PlayerEntity entityPlayer = Commons.getOnlinePlayerByUUID(playerIdName.getUUID());
 			if (entityPlayer != null) {// crew member is online
-				return namePlayer;
+				playerIdName.setName(entityPlayer.getName().getUnformattedComponentText());
+				return playerIdName.getName();
 			}
 		}
 		
@@ -134,16 +180,51 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 	// Common OC/CC methods
 	@Override
 	public Object[] getAttachedPlayers() {
-		final StringBuilder list = new StringBuilder();
+		final StringBuilder stringBuilderList = new StringBuilder();
+		final String[] namePlayers = new String[playerIdNames.size()];
 		
-		if (!players.isEmpty()) {
-			for (int i = 0; i < players.size(); i++) {
-				final String nick = players.get(i);
-				list.append(nick).append((i == players.size() - 1) ? "" : ",");
+		if (!playerIdNames.isEmpty()) {
+			int index = 0;
+			for (final PlayerIdName playerIdName : playerIdNames) {
+				final String namePlayer = playerIdName.getName();
+				if (index > 0) {
+					stringBuilderList.append(", ");
+				}
+				stringBuilderList.append(namePlayer);
+				namePlayers[index] = namePlayer;
+				index++;
 			}
 		}
 		
-		return new Object[] { list.toString(), players.toArray() };
+		return new Object[] { stringBuilderList.toString(), namePlayers };
+	}
+	
+	@Override
+	public Object[] removeAllAttachedPlayers() {
+		final int count = playerIdNames.size();
+		if (count == 0) {
+			return new Object[] { true, "Nothing to do as there's already no attached players." };
+		}
+		
+		playerIdNames.clear();
+		return new Object[] { true, String.format("Done, %d players have been removed.", count) };
+	}
+	
+	@Override
+	public Object[] removeAttachedPlayer(@Nonnull final Object[] arguments) {
+		if (arguments.length != 1 || !(arguments[0] instanceof String)) {
+			return new Object[] { false, "Invalid argument, expecting exactly one player name as string." };
+		}
+		
+		final String nameToRemove = (String) arguments[0];
+		for (final PlayerIdName playerIdName : playerIdNames) {
+			if (nameToRemove.equals(playerIdName.getName())) {
+				playerIdNames.remove(playerIdName);
+				return new Object[] { true, "Player removed successfully." };
+			}
+		}
+		
+		return new Object[] { false, "No player found with that name." };
 	}
 	
 	// OpenComputers callback methods
@@ -153,12 +234,29 @@ public class TileEntitySecurityStation extends TileEntityAbstractMachine impleme
 		return getAttachedPlayers();
 	}
 	
-	// ComputerCraft IDynamicPeripheral methods
+	@Callback(direct = true)
+	public Object[] removeAllAttachedPlayers(final Context context, final Arguments arguments) {
+		OC_convertArgumentsAndLogCall(context, arguments);
+		return removeAllAttachedPlayers();
+	}
+	
+	@Callback(direct = true)
+	public Object[] removeAttachedPlayer(final Context context, final Arguments arguments) {
+		return removeAttachedPlayer(OC_convertArgumentsAndLogCall(context, arguments));
+	}
+	
+	// ComputerCraft IPeripheral methods
 	@Override
 	protected Object[] CC_callMethod(@Nonnull final String methodName, @Nonnull final Object[] arguments) {
 		switch (methodName) {
 		case "getAttachedPlayers":
 			return getAttachedPlayers();
+			
+		case "removeAllAttachedPlayers":
+			return removeAllAttachedPlayers();
+			
+		case "removeAttachedPlayer":
+			return removeAttachedPlayer(arguments);
 			
 		default:
 			return super.CC_callMethod(methodName, arguments);

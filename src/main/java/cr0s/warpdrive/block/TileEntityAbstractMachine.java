@@ -22,7 +22,7 @@ import net.minecraft.util.math.AxisAlignedBB;
 
 public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterfaced implements IMachine {
 	
-	private static final WarpDriveText VALIDITY_ISSUES_UNKNOWN = new WarpDriveText(Commons.getStyleWarning(), "unknown");
+	protected static final WarpDriveText VALIDITY_ISSUES_UNKNOWN = new WarpDriveText(Commons.getStyleWarning(), "unknown");
 	
 	// persistent properties
 	public String name = "";
@@ -115,6 +115,14 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 	}
 	
 	public void markDirtyAssembly() {
+		
+		if (WarpDrive.isDev) {
+			WarpDrive.logger.info(String.format("%s markDirtyAssembly at %d", this, world.getGameTime()));
+			if (Commons.throttleMe("markDirtyAssembly")) {
+				new Exception().printStackTrace(WarpDrive.printStreamInfo);
+			}
+		}
+		
 		isDirtyAssembly = true;
 	}
 	
@@ -236,6 +244,7 @@ public abstract class TileEntityAbstractMachine extends TileEntityAbstractInterf
 		return stringBuilderResult.toString();
 	}
 	
+	@Override
 	public boolean getIsEnabled() {
 		return isEnabled;
 	}
