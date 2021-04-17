@@ -701,8 +701,9 @@
     "warpdrive.control_channel.status_line.invalid": "Le canal de contrôle %1$d est invalide.",
     "warpdrive.control_channel.status_line.undefined": "Le canal de contrôle est non défini.\\n§bUtilises un Diapason§r pour l'ajuster.",
     
-    "warpdrive.machine.is_enabled.set.enabled": "Allumé!",
+    "_comment": "When the original message says 'switched on' or 'the machine is now enabled', we intend to say 'the machine is now allowed to work'. Other conditions are required before we could say 'the machine is now actually working'.",
     "warpdrive.machine.is_enabled.set.disabled": "Eteint!",
+    "warpdrive.machine.is_enabled.set.enabled": "Allumé!",
     "warpdrive.machine.is_enabled.get.disabled": "Le système est allumé.",
     "warpdrive.machine.is_enabled.get.enabled": "Le système est éteint.",
     
@@ -836,6 +837,7 @@
     "warpdrive.builder.guide.no_ship_token": "Merci de revenir quand tu auras un Jeton de vaisseau.",
     "warpdrive.builder.guide.ship_token_detected": "Jeton de vaisseau '%1$s' détecté!",
     "warpdrive.builder.guide.ship_materialization_countdown": "Tenez-vous prêt pour matérialisation du vaisseau dans %2$d...",
+    "warpdrive.builder.guide.ship_is_higher_tier": "Le vaisseau est trop gros pour cette zone de déploiement, cherche un constructer plus avancé.",
     "warpdrive.builder.guide.ship_deployed": "Vaisseau déployé. Téléportation du capitaine au pont principal...",
     "warpdrive.builder.guide.welcome_aboard": "Bienvenu à bord capitaine! Utilises l'ordinateur pour commencer les maneuvres...",
     
@@ -910,6 +912,9 @@
     "warpdrive.mining_laser.status_line._insufficient_energy": "- Out of energy",
     
     "warpdrive.monitor.viewing_camera": "Affichage de la caméra à %2$d, %3$d, %4$d sur le canal vidéo %1$d",
+    
+    "warpdrive.optical_sensor.status_line.no_result": "Aucune entitée en vue.",
+    "warpdrive.optical_sensor.status_line.result_count": "%1$d entitées en vue.",
     
     "warpdrive.particle.ion": "ion",
     "warpdrive.particle.ion.tooltip": "Produit par collision d'un bunch de particules dans un accélérateur élémentaire",

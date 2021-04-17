@@ -74,10 +74,16 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 	}
 	
 	public void setReactorFace(@Nonnull final ReactorFace reactorFace, final TileEntityEnanReactorCore reactorCore) {
+		final TileEntityEnanReactorCore reactorCoreActual = getReactorCore();
+		
 		// skip if it's already set to another valid reactor core
 		if ( this.reactorFace != reactorFace
 		  && this.reactorFace != ReactorFace.UNKNOWN ) {
-			if (getReactorCore() != null) {
+			if (reactorCoreActual != null) {
+				WarpDrive.logger.warn(String.format("%s Ignoring new reactor %s on %s due to existing reactor %s on %s.",
+				                                    this,
+				                                    reactorCore, reactorFace.name,
+				                                    reactorCoreActual, this.reactorFace.name ));
 				return;
 			}
 		}
@@ -86,7 +92,7 @@ public class TileEntityEnanReactorLaser extends TileEntityAbstractLaser implemen
 		reactorSignatureName = reactorCore != null ? reactorCore.getSignatureName() : "";
 		
 		// skip if it's already set to save resources
-		if (this.reactorFace == reactorFace) {
+		if (reactorCoreActual == reactorCore) {
 			return;
 		}
 		

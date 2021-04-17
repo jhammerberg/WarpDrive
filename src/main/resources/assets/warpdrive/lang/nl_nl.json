@@ -701,8 +701,9 @@
     "warpdrive.control_channel.status_line.invalid": "Controlekanaal %1$d is incorrect.",
     "warpdrive.control_channel.status_line.undefined": "Niet gedefinieerde controlekanaal.\\n§bGebruik een Afstemmingsvork§r om deze te zetten.",
     
-    "warpdrive.machine.is_enabled.set.enabled": "Switched ON!",
+    "_comment": "When the original message says 'switched on' or 'the machine is now enabled', we intend to say 'the machine is now allowed to work'. Other conditions are required before we could say 'the machine is now actually working'.",
     "warpdrive.machine.is_enabled.set.disabled": "Switched off!",
+    "warpdrive.machine.is_enabled.set.enabled": "Switched ON!",
     "warpdrive.machine.is_enabled.get.disabled": "System is off.",
     "warpdrive.machine.is_enabled.get.enabled": "System is ON.",
     
@@ -836,6 +837,7 @@
     "warpdrive.builder.guide.no_ship_token": "Please come back once you've a Ship token.",
     "warpdrive.builder.guide.ship_token_detected": "Ship token '%1$s' detected!",
     "warpdrive.builder.guide.ship_materialization_countdown": "Stand by for ship materialization in %2$d...",
+    "warpdrive.builder.guide.ship_is_higher_tier": "Ship is too big for this deployment area, look for a more advanced builder.",
     "warpdrive.builder.guide.ship_deployed": "Ship deployed. Teleporting captain to the main deck...",
     "warpdrive.builder.guide.welcome_aboard": "Welcome aboard captain! Use the computer to get moving...",
     
@@ -909,6 +911,9 @@
     "warpdrive.mining_laser.status_line._insufficient_energy": "- Out of energy",
     
     "warpdrive.monitor.viewing_camera": "Camera op %2$d, %3$d, %4$d met videokanaal %1$d aan het bekijken...",
+    
+    "warpdrive.optical_sensor.status_line.no_result": "No entity in sight.",
+    "warpdrive.optical_sensor.status_line.result_count": "%1$d entities in sight.",
     
     "warpdrive.particle.ion": "ioon",
     "warpdrive.particle.ion.tooltip": "Geproduceerd door de botsing van een aantal deeltjes in de Normale Versneller",
