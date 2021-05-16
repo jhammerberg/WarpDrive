@@ -1,8 +1,8 @@
 package cr0s.warpdrive.render;
 
 import cr0s.warpdrive.WarpDrive;
+import cr0s.warpdrive.block.detection.TileEntityCamouflage.NullableDirection;
 import cr0s.warpdrive.config.Dictionary;
-import cr0s.warpdrive.data.ModelProperties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -37,8 +37,11 @@ public class BakedModelCamouflage extends BakedModelAbstractBase {
 		assert modelResourceLocation != null;
 		assert bakedModelOriginal != null;
 		
-		final BlockState blockStateReference = modelData.getData(ModelProperties.CAMOUFLAGE);
-		if (blockStateReference != null) {
+		// get applicable blockstate for that side
+		final BlockState blockStateReference = modelData.getData(NullableDirection.from(side).modelProperty);
+		if ( blockStateReference != null
+		  && ( blockState == null
+		    || !blockState.getBlock().equals(blockStateReference.getBlock())) ) {
 			try {
 				// Retrieve the IBakedModel of the copied block and return it.
 				final BlockModelShapes blockModelShapes = Minecraft.getInstance().getBlockRendererDispatcher().getBlockModelShapes();

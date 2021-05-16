@@ -27,9 +27,9 @@ public class MessageClientSync implements IMessage {
 		// required on receiving side
 	}
 	
-	public MessageClientSync(final ServerPlayerEntity entityServerPlayer, final CelestialObject celestialObject) {
+	public MessageClientSync(final CelestialObject celestialObject) {
 		tagCompound = new CompoundNBT();
-		tagCompound.put("celestialObjects"     , CelestialObjectManager.writeClientSync(entityServerPlayer, celestialObject));
+		tagCompound.put("celestialObjects"     , CelestialObjectManager.writeClientSync(celestialObject));
 		tagCompound.put("items_breathingHelmet", Dictionary.writeItemsToNBT(Dictionary.ITEMS_BREATHING_HELMET));
 		tagCompound.put("items_flyInSpace"     , Dictionary.writeItemsToNBT(Dictionary.ITEMS_FLYINSPACE));
 		tagCompound.put("items_noFallDamage"   , Dictionary.writeItemsToNBT(Dictionary.ITEMS_NOFALLDAMAGE));

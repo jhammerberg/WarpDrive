@@ -15,17 +15,19 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.StairsBlock;
 import net.minecraft.block.material.PushReaction;
+import net.minecraft.entity.EntityType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Rarity;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
 public class BlockHullStairs extends StairsBlock implements IBlockBase, IDamageReceiver {
 	
-	protected final EnumTier enumTier;
-	final EnumHullPlainType  hullPlainType;
-	private final int        indexColor;
+	private final EnumTier          enumTier;
+	private final EnumHullPlainType hullPlainType;
+	private final int               indexColor;
 	
 	public BlockHullStairs(@Nonnull final String registryName, @Nonnull final BlockState blockStateHull) {
 		super(() -> blockStateHull, Block.Properties.from(blockStateHull.getBlock()));
@@ -60,6 +62,13 @@ public class BlockHullStairs extends StairsBlock implements IBlockBase, IDamageR
 	@Override
 	public BlockItem createItemBlock() {
 		return new ItemBlockHull(this);
+	}
+	
+	@SuppressWarnings("deprecation")
+	@Override
+	public boolean canEntitySpawn(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader,
+	                              @Nonnull final BlockPos blockPos, @Nonnull final EntityType<?> entityType) {
+		return false;
 	}
 	
 	@Override

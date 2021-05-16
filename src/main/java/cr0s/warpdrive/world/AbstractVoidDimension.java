@@ -34,13 +34,15 @@ public abstract class AbstractVoidDimension extends Dimension {
 	protected final CelestialObject celestialObject;
 	
 	AbstractVoidDimension(@Nonnull final World world, @Nonnull final DimensionType dimensionType) {
-		super(world, dimensionType, getAmbientBrightness(world));
-		celestialObject = CelestialObjectManager.get(world, 0, 0);
+		super(world, dimensionType, getCelestialObjectInConstructor(dimensionType).ambientBrightness);
+		celestialObject = getCelestialObjectInConstructor(dimensionType);
 	}
 	
-	private static float getAmbientBrightness(@Nonnull final World world) {
-		final CelestialObject celestialObject = CelestialObjectManager.get(world, 0, 0);
-		return celestialObject.ambientBrightness;
+	private static CelestialObject getCelestialObjectInConstructor(@Nonnull final DimensionType dimensionType) {
+		// note: world is being constructed at that time, isRemote isn't set yet, so we try client first, then server
+		final CelestialObject celestialObjectServer = CelestialObjectManager.get(false, dimensionType);
+		final CelestialObject celestialObjectClient = CelestialObjectManager.get(true, dimensionType);
+		return celestialObjectClient != null ? celestialObjectClient : celestialObjectServer;
 	}
 	
 	@Override
@@ -124,7 +126,12 @@ public abstract class AbstractVoidDimension extends Dimension {
 	@OnlyIn(Dist.CLIENT)
 	@Override
 	public boolean doesXZShowFog(int x, int z) {
-		return true;
+		return false; // disable distance based fog
+	}
+	
+	@OnlyIn(Dist.CLIENT)
+	public double getVoidFogYFactor() {
+		return 0.0D; // disable Vanilla's void fog
 	}
 	
 	@OnlyIn(Dist.CLIENT)

@@ -175,7 +175,7 @@ public class StateAir {
 			// check if sky is visible, which means we're in the void
 			// note: on 1.7.10, getHeightValue() is for seeing the sky (it goes through transparent blocks)
 			// getPrecipitationHeight() returns the altitude of the highest block that stops movement or is a liquid
-			final int highestBlock = chunk.getHeightmap(Type.MOTION_BLOCKING).getHeight(blockPos.getX() >> 4, blockPos.getZ() >> 4);
+			final int highestBlock = chunk.getHeightmap(Type.MOTION_BLOCKING).getHeight(blockPos.getX() & 15, blockPos.getZ() & 15);
 			final boolean isVoid = highestBlock < blockPos.getY();
 			if (isVoid) {
 				setVoid((short) VOID_PRESSURE_MAX, Direction.UP);

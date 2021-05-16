@@ -24,6 +24,7 @@ import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.BlockPos;
@@ -41,6 +42,9 @@ import net.minecraft.world.dimension.DimensionType;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+
 public class BlockForceField extends BlockAbstractForceField implements IDamageReceiver {
 	
 	private static final float BOUNDING_TOLERANCE = 0.05F;
@@ -48,15 +52,30 @@ public class BlockForceField extends BlockAbstractForceField implements IDamageR
 			    BOUNDING_TOLERANCE,     BOUNDING_TOLERANCE,     BOUNDING_TOLERANCE,
 		    1 - BOUNDING_TOLERANCE, 1 - BOUNDING_TOLERANCE, 1 - BOUNDING_TOLERANCE );
 	
-	final int frequency;
+	private final int frequency;
 	
 	public BlockForceField(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, final int frequency) {
 		super(getDefaultProperties(Material.GLASS)
 				      .hardnessAndResistance(-1, WarpDriveConfig.HULL_BLAST_RESISTANCE[enumTier.getIndex()])
-				      .sound(SoundType.CLOTH),
+				      .sound(SoundType.CLOTH)
+				      .notSolid(),
 		      registryName, enumTier);
 		
 		this.frequency = frequency;
+	}
+	
+	@Override
+	public boolean propagatesSkylightDown(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader,
+	                                      @Nonnull final BlockPos blockPos) {
+		return true;
+	}
+	
+	@SuppressWarnings("deprecation")
+	@OnlyIn(Dist.CLIENT)
+	@Override
+	public boolean isSideInvisible(@Nonnull final BlockState blockState, @Nonnull final BlockState blockStateAdjacent, @Nonnull final Direction side) {
+		return blockStateAdjacent.getBlock() == this
+		    || super.isSideInvisible(blockState, blockStateAdjacent, side);
 	}
 	
 	/* TODO MC1.15 force field camouflage

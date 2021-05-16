@@ -13,6 +13,7 @@ import java.awt.Color;
 import java.util.Random;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.Matrix4f;
 import net.minecraft.client.renderer.vertex.VertexBuffer;
 import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.client.world.ClientWorld;
@@ -40,7 +41,7 @@ public class RenderSpaceSky implements SkyRenderHandler {
 	private static final double PLANET_ORBIT = 128.0D;
 	
 	// render distance for objects
-	private static final double BOX_RENDER_RANGE = 100.0D;
+	private static final float  BOX_RENDER_RANGE = 100.0F;
 	
 	// call lists
 	private static VertexBuffer vboStars;
@@ -68,24 +69,24 @@ public class RenderSpaceSky implements SkyRenderHandler {
 				vertexBuffer.pos(x + stepSize, y, z           ).color(0.0F, 0.0F, 0.0F, 1.0F).endVertex();
 				vertexBuffer.pos(x + stepSize, y, z + stepSize).color(0.0F, 0.0F, 0.0F, 1.0F).endVertex();
 				vertexBuffer.pos(x           , y, z + stepSize).color(0.0F, 0.0F, 0.0F, 1.0F).endVertex();
+				vertexBuffer.finishDrawing();
 			}
 		}
-		vertexBuffer.finishDrawing();
 		vboUpperPlane.upload(vertexBuffer);
 		
 		vboLowerPlane = new VertexBuffer(vertexFormatPlanes);
 		y = -16.0F;
-		vertexBuffer.begin(GL11.GL_QUADS, vertexFormatPlanes);
 		for (int x = -stepSize * nbSteps; x <= stepSize * nbSteps; x += stepSize) {
 			for (int z = -stepSize * nbSteps; z <= stepSize * nbSteps; z += stepSize) {
+				vertexBuffer.begin(GL11.GL_QUADS, vertexFormatPlanes);
 				vertexBuffer.pos(x + stepSize, y, z           ).color(0.30F, 0.30F, 0.30F, 1.00F).endVertex();
 				vertexBuffer.pos(x           , y, z           ).color(0.30F, 0.30F, 0.30F, 1.00F).endVertex();
 				vertexBuffer.pos(x           , y, z + stepSize).color(0.30F, 0.30F, 0.30F, 1.00F).endVertex();
 				vertexBuffer.pos(x + stepSize, y, z + stepSize).color(0.30F, 0.30F, 0.30F, 1.00F).endVertex();
+				vertexBuffer.finishDrawing();
 			}
 		}
-		vertexBuffer.finishDrawing();
-		vboUpperPlane.upload(vertexBuffer);
+		vboLowerPlane.upload(vertexBuffer);
 	}
 	
 	// private final ResourceLocation textureStar = new ResourceLocation("warpdrive:textures/celestial/star_yellow.png");
@@ -103,19 +104,20 @@ public class RenderSpaceSky implements SkyRenderHandler {
 	                   @Nonnull final ClientWorld world, @Nonnull final Minecraft mc) {
 		assert mc.player != null;
 		final Vec3d vec3Player = mc.player.getEyePosition(partialTicks);
-		final CelestialObject celestialObject = CelestialObjectManager.get(world, (int) vec3Player.x, (int) vec3Player.z);
+		final CelestialObject celestialObject = CelestialObjectManager.get(world);
 		
 		final Tessellator tessellator = Tessellator.getInstance();
 		
-		RenderSystem.disableTexture();
 		RenderSystem.depthMask(false);
 		
 		// draw sky box
 		if ( celestialObject != null
 		  && celestialObject.boxTextures != null
 		  && celestialObject.boxTextures.length > 0 ) {
-			renderSkyBox(tessellator, celestialObject.boxTextures, celestialObject.boxBrightness, celestialObject.boxRepeat);
+			renderSkyBox(tessellator, matrixStack, celestialObject.boxTextures, celestialObject.boxBrightness, celestialObject.boxRepeat);
 		}
+		
+		RenderSystem.disableTexture();
 		
 		// draw upper sky plane
 		/*
@@ -270,9 +272,9 @@ public class RenderSpaceSky implements SkyRenderHandler {
 		RenderSystem.depthMask(true);
 	}
 	
-	// renderSkyBox is loosely inspired by vanilla sky rendering in The End dimension (RenderGlobal::renderSkyEnd)
-	private static void renderSkyBox(@Nonnull final Tessellator tessellator, @Nonnull final ResourceLocation[] textureSkyBox, final float brightness,
-	                                 final int countTextureRepeat) {
+	// renderSkyBox is loosely inspired by vanilla sky rendering in The End dimension (WorldRenderer::renderSkyEnd)
+	private static void renderSkyBox(@Nonnull final Tessellator tessellator, @Nonnull final MatrixStack matrixStack,
+	                                 @Nonnull final ResourceLocation[] textureSkyBox, final float brightness, final int countTextureRepeat) {
 		final BufferBuilder bufferbuilder = tessellator.getBuffer();
 		final float maxUV = countTextureRepeat * 1.0F;
 		
@@ -282,13 +284,15 @@ public class RenderSpaceSky implements SkyRenderHandler {
 		RenderSystem.enableBlend();
 		RenderSystem.blendFuncSeparate(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA, SourceFactor.ONE, DestFactor.ZERO);
 		
+		final Matrix4f matrix4f = matrixStack.getLast().getMatrix();
+		
 		// bottom
 		Minecraft.getInstance().getTextureManager().bindTexture(textureSkyBox[0]);
 		bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
-		bufferbuilder.pos(-BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex( 0.0F,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos(-BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex( 0.0F, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos( BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex(maxUV, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos( BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex(maxUV,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F,  0.0F).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV,  0.0F).endVertex();
 		tessellator.draw();
 		
 		// front
@@ -296,10 +300,10 @@ public class RenderSpaceSky implements SkyRenderHandler {
 			Minecraft.getInstance().getTextureManager().bindTexture(textureSkyBox[1]);
 		}
 		bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
-		bufferbuilder.pos(-BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex( 0.0F,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos(-BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex( 0.0F, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos( BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex(maxUV, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos( BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex(maxUV,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F,  0.0F).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV,  0.0F).endVertex();
 		tessellator.draw();
 		
 		// back
@@ -307,10 +311,10 @@ public class RenderSpaceSky implements SkyRenderHandler {
 			Minecraft.getInstance().getTextureManager().bindTexture(textureSkyBox[2]);
 		}
 		bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
-		bufferbuilder.pos( BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex( 0.0F,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos( BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex( 0.0F, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos(-BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex(maxUV, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos(-BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex(maxUV,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F,  0.0F).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV,  0.0F).endVertex();
 		tessellator.draw();
 		
 		// top
@@ -318,10 +322,10 @@ public class RenderSpaceSky implements SkyRenderHandler {
 			Minecraft.getInstance().getTextureManager().bindTexture(textureSkyBox[3]);
 		}
 		bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
-		bufferbuilder.pos(-BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex( 0.0F, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos( BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex(maxUV, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos( BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex(maxUV,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos(-BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex( 0.0F,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV,  0.0F).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F,  0.0F).endVertex();
 		tessellator.draw();
 		
 		// right
@@ -329,10 +333,10 @@ public class RenderSpaceSky implements SkyRenderHandler {
 			Minecraft.getInstance().getTextureManager().bindTexture(textureSkyBox[4]);
 		}
 		bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
-		bufferbuilder.pos( BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex( 0.0F,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos( BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex( 0.0F, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos( BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex(maxUV, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos( BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex(maxUV,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F,  0.0F).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV,  0.0F).endVertex();
 		tessellator.draw();
 		
 		// left
@@ -340,13 +344,12 @@ public class RenderSpaceSky implements SkyRenderHandler {
 			Minecraft.getInstance().getTextureManager().bindTexture(textureSkyBox[5]);
 		}
 		bufferbuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
-		bufferbuilder.pos(-BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex( 0.0F,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos(-BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).tex( 0.0F, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos(-BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex(maxUV, maxUV).color(brightness, brightness, brightness, 1.0F).endVertex();
-		bufferbuilder.pos(-BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).tex(maxUV,  0.0F).color(brightness, brightness, brightness, 1.0F).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F,  0.0F).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex( 0.0F, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV, maxUV).endVertex();
+		bufferbuilder.pos(matrix4f, -BOX_RENDER_RANGE,  BOX_RENDER_RANGE, -BOX_RENDER_RANGE).color(brightness, brightness, brightness, 1.0F).tex(maxUV,  0.0F).endVertex();
 		tessellator.draw();
 		
-		RenderSystem.enableTexture();
 		RenderSystem.enableAlphaTest();
 	}
 	
@@ -408,10 +411,10 @@ public class RenderSpaceSky implements SkyRenderHandler {
 		Minecraft.getInstance().getTextureManager().bindTexture(texture);
 		
 		vertexBuffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
-		vertexBuffer.pos(-starScale, starRange, -starScale).tex(0.0F, 0.0F).color(redActual, greenActual, blueActual, alpha).endVertex();
-		vertexBuffer.pos( starScale, starRange, -starScale).tex(1.0F, 0.0F).color(redActual, greenActual, blueActual, alpha).endVertex();
-		vertexBuffer.pos( starScale, starRange,  starScale).tex(1.0F, 1.0F).color(redActual, greenActual, blueActual, alpha).endVertex();
-		vertexBuffer.pos(-starScale, starRange,  starScale).tex(0.0F, 1.0F).color(redActual, greenActual, blueActual, alpha).endVertex();
+		vertexBuffer.pos(-starScale, starRange, -starScale).color(redActual, greenActual, blueActual, alpha).tex(0.0F, 0.0F).endVertex();
+		vertexBuffer.pos( starScale, starRange, -starScale).color(redActual, greenActual, blueActual, alpha).tex(1.0F, 0.0F).endVertex();
+		vertexBuffer.pos( starScale, starRange,  starScale).color(redActual, greenActual, blueActual, alpha).tex(1.0F, 1.0F).endVertex();
+		vertexBuffer.pos(-starScale, starRange,  starScale).color(redActual, greenActual, blueActual, alpha).tex(0.0F, 1.0F).endVertex();
 		tessellator.draw();
 		
 		RenderSystem.popMatrix();
@@ -550,11 +553,12 @@ public class RenderSpaceSky implements SkyRenderHandler {
 				final double valD = renderRange * sinV - valV * cosV;
 				final double x = valD * sinH - valH * cosH + renderSize * offsetX;
 				final double z = valH * sinH + valD * cosH + renderSize * offsetZ;
-				vertexBuffer.pos(x, y, z);
+				vertexBuffer.pos(x, y, z)
+				            .color(renderData.red, renderData.green, renderData.blue, renderData.alpha * alphaSky);
 				if (renderData.texture != null) {
 					vertexBuffer.tex((indexVertex & 2) / 2 + offsetU, (indexVertex + 1 & 2) / 2 + offsetV);
 				}
-				vertexBuffer.color(renderData.red, renderData.green, renderData.blue, renderData.alpha * alphaSky).endVertex();
+				vertexBuffer.endVertex();
 			}
 			tessellator.draw();
 			
@@ -569,11 +573,10 @@ public class RenderSpaceSky implements SkyRenderHandler {
 		RenderSystem.popMatrix();
 	}
 	
-	private void renderStars_direct(final float brightness) {
+	private void renderStars_direct(@Nonnull final BufferBuilder bufferBuilder, final float brightness) {
 		final Random rand = new Random(10842L);
 		final boolean hasMoreStars = rand.nextBoolean() || rand.nextBoolean();
-		final Tessellator tessellator = Tessellator.getInstance();
-		final BufferBuilder vertexBuffer = tessellator.getBuffer();
+		bufferBuilder.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
 		
 		final double renderRangeMax = 10.0D;
 		for (int indexStars = 0; indexStars < (hasMoreStars ? 20000 : 2000); indexStars++) {
@@ -621,7 +624,6 @@ public class RenderSpaceSky implements SkyRenderHandler {
 			final double sinS = Math.sin(angleS);
 			final double cosS = Math.cos(angleS);
 			
-			vertexBuffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
 			for (int indexVertex = 0; indexVertex < 4; indexVertex++) {
 				final double valZero = 0.0D;
 				final double offset1 = ((indexVertex     & 2) - 1) * renderSize;
@@ -632,10 +634,10 @@ public class RenderSpaceSky implements SkyRenderHandler {
 				final double valD = valZero * sinV - valV * cosV;
 				final double x1 = valD * sinH - valH * cosH;
 				final double z1 = valH * sinH + valD * cosH;
-				vertexBuffer.pos(x0 + x1, y0 + y1, z0 + z1).color(fRed, fGreen, fBlue, fAlpha).endVertex();
+				bufferBuilder.pos(x0 + x1, y0 + y1, z0 + z1).color(fRed, fGreen, fBlue, fAlpha).endVertex();
 			}
-			tessellator.draw();
 		}
+		bufferBuilder.finishDrawing();
 		
 	}
 	
@@ -643,19 +645,27 @@ public class RenderSpaceSky implements SkyRenderHandler {
 		if (Math.abs(starBrightness - brightness) > ALPHA_TOLERANCE) {
 			starBrightness = brightness;
 			RenderSystem.pushMatrix();
+			
 			final Tessellator tessellator = Tessellator.getInstance();
-			final BufferBuilder vertexBuffer = tessellator.getBuffer();
+			final BufferBuilder bufferBuilder = tessellator.getBuffer();
 			vboStars = new VertexBuffer(DefaultVertexFormats.POSITION_COLOR);
-			renderStars_direct(brightness);
-			vertexBuffer.finishDrawing();
-			vboStars.upload(vertexBuffer);
+			renderStars_direct(bufferBuilder, brightness);
+			vboStars.upload(bufferBuilder);
+			
 			RenderSystem.popMatrix();
 		}
+		
+		RenderSystem.enableFog();
+		matrixStack.push();
+		
+		matrixStack.translate(0.0D, 128.0D, 0.0D);
 		vboStars.bindBuffer();
 		vertexFormatStars.setupBufferState(0L);
 		vboStars.draw(matrixStack.getLast().getMatrix(), 7);
 		VertexBuffer.unbindBuffer();
 		vertexFormatStars.clearBufferState();
+		
+		matrixStack.pop();
 	}
 	
 	// colorization loosely inspired from Hertzsprung-Russell diagram

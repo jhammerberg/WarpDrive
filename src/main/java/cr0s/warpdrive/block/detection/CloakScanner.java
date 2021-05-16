@@ -77,7 +77,7 @@ class CloakScanner {
 		mutableBlockPos = new BlockPos.Mutable(x, y, z);
 	}
 	
-	boolean tick() {
+	public boolean tick() {
 		int countBlocks = 0;
 		
 		try {

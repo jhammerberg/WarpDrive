@@ -11,6 +11,7 @@ import cr0s.warpdrive.config.Dictionary;
 import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.CelestialObject;
 import cr0s.warpdrive.data.EnumTier;
+import cr0s.warpdrive.data.GravityManager;
 import cr0s.warpdrive.data.OfflineAvatarManager;
 import cr0s.warpdrive.data.StateAir;
 import cr0s.warpdrive.data.Vector3;
@@ -25,6 +26,8 @@ import java.util.UUID;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.attributes.IAttribute;
+import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
@@ -110,7 +113,7 @@ public class LivingHandler {
 		
 		// *** world border handling
 		// Instant kill if entity exceeds world's limit
-		final CelestialObject celestialObject = CelestialObjectManager.get(entityLivingBase.world, x, z);
+		final CelestialObject celestialObject = CelestialObjectManager.get(entityLivingBase.world);
 		if (celestialObject == null) {
 			// unregistered dimension => exit
 			return;
@@ -192,6 +195,12 @@ public class LivingHandler {
 			if (WarpDriveConfig.OFFLINE_AVATAR_ENABLE) {
 				OfflineAvatarManager.onTick((PlayerEntity) entityLivingBase);
 			}
+		}
+		
+		// gravity handling
+		if (entityLivingBase.ticksExisted % 20 == 0) {
+			final IAttributeInstance gravity = entityLivingBase.getAttribute(LivingEntity.ENTITY_GRAVITY);
+			gravity.setBaseValue(GravityManager.getGravityForEntity(entityLivingBase));
 		}
 		
 		// skip dead or invulnerable entities

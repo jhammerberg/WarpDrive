@@ -10,6 +10,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.client.Minecraft;
@@ -140,11 +141,12 @@ public class CloakManager {
 		}
 	}
 	
-	@SuppressWarnings("unused") // Core mod
 	@OnlyIn(Dist.CLIENT)
-	public static boolean WorldClient_invalidateRegionAndSetBlock_setBlockState(final BlockPos blockPos, final BlockState blockState, final int flags) {
+	public static void WorldClient_invalidateRegionAndSetBlock_setBlockState(@Nonnull final BlockPos blockPos, @Nonnull final BlockState blockState, final int flags) {
 		final World world = Minecraft.getInstance().world;
 		assert world != null;
+		final PlayerEntity playerEntity = Minecraft.getInstance().player;
+		assert playerEntity != null;
 		
 		if (blockState.getBlock() != Blocks.AIR) {
 			for (final CloakedArea area : cloaks) {
@@ -152,21 +154,23 @@ public class CloakManager {
 					if (WarpDrive.isDev && WarpDriveConfig.LOGGING_CLOAKING) {
 						WarpDrive.logger.info("CloakManager block is inside");
 					}
-					if (!area.isEntityWithinArea(Minecraft.getInstance().player)) {
+					if (!area.isEntityWithinArea(playerEntity)) {
 						if (WarpDrive.isDev && WarpDriveConfig.LOGGING_CLOAKING) {
 							WarpDrive.logger.info("CloakManager player is outside");
 						}
-						return world.setBlockState(blockPos, area.blockStateFog, flags);
+						world.setBlockState(blockPos, area.blockStateFog, flags);
+						return;
 					}
 				}
 			}
 		}
-		return world.setBlockState(blockPos, blockState, flags);
+		world.setBlockState(blockPos, blockState, flags);
 	}
 	
-	@SuppressWarnings("unused") // Core mod
 	@OnlyIn(Dist.CLIENT)
-	public static void Chunk_read(final Chunk chunk) {
+	public static void Chunk_read(@Nonnull final Chunk chunk) {
+		final PlayerEntity playerEntity = Minecraft.getInstance().player;
+		assert playerEntity != null;
 		final int chunkX_min = chunk.getPos().x * 16;
 		final int chunkX_max = chunk.getPos().x * 16 + 15;
 		final int chunkZ_min = chunk.getPos().z * 16;
@@ -183,7 +187,7 @@ public class CloakManager {
 				if (WarpDrive.isDev && WarpDriveConfig.LOGGING_CLOAKING) {
 					WarpDrive.logger.info("CloakManager chunk is inside");
 				}
-				if (!area.isEntityWithinArea(Minecraft.getInstance().player)) {
+				if (!area.isEntityWithinArea(playerEntity)) {
 					if (WarpDrive.isDev && WarpDriveConfig.LOGGING_CLOAKING) {
 						WarpDrive.logger.info("CloakManager player is outside");
 					}

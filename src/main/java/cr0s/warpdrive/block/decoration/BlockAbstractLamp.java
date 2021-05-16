@@ -121,10 +121,10 @@ public class BlockAbstractLamp extends BlockAbstractBase {
 	                                         @Nonnull final PlayerEntity entityPlayer, @Nonnull final Hand enumHand,
 	                                         @Nonnull final BlockRayTraceResult blockRaytraceResult) {
 		if (enumHand != Hand.MAIN_HAND) {
-			return ActionResultType.PASS;
+			return super.onBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
 		}
 		if (world.isRemote()) {
-			return ActionResultType.PASS;
+			return super.onBlockActivated(blockState, world, blockPos, entityPlayer, enumHand, blockRaytraceResult);
 		}
 		
 		// non-sneaking to toggle lamp on/state

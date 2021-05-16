@@ -17,6 +17,7 @@ import net.minecraft.block.Blocks;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntityType;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.NBTUtil;
 import net.minecraft.network.IPacket;
 import net.minecraft.network.play.server.SSpawnObjectPacket;
 import net.minecraft.util.math.BlockPos;
@@ -64,7 +65,7 @@ public final class EntitySphereGen extends Entity {
 	public int zCoord;
 	
 	private int radius;
-	private int gasColor;
+	private BlockState blockStateGas;
 	
 	private static final int BLOCKS_PER_TICK = 5000;
 	
@@ -106,7 +107,7 @@ public final class EntitySphereGen extends Entity {
 		this.zCoord = z;
 		this.setPosition(x, y, z);
 		this.orbInstance = orbInstance;
-		this.gasColor = world.rand.nextInt(12);
+		this.blockStateGas = WarpDrive.blockGas[world.rand.nextInt(12)].getDefaultState();
 		this.replace = replace;
 		
 		constructionFinalizer();
@@ -265,7 +266,7 @@ public final class EntitySphereGen extends Entity {
 		// Replace water with random gas (ship in moon)
 		if (world.getBlockState(new BlockPos(jumpBlock.x, jumpBlock.y, jumpBlock.z)).getBlock() == Blocks.WATER) {
 			if (world.rand.nextInt(50) != 1) {
-				jumpBlock.blockState = WarpDrive.blockGas[gasColor].getDefaultState();
+				jumpBlock.blockState = blockStateGas;
 			}
 			blocks.add(jumpBlock);
 			isSurfaces.add(isSurface);
@@ -300,7 +301,7 @@ public final class EntitySphereGen extends Entity {
 		yCoord = tagCompound.getInt("warpdrive:yCoord");
 		zCoord = tagCompound.getInt("warpdrive:zCoord");
 		orbInstance = new OrbInstance(tagCompound.getCompound("warpdrive:orbInstance"));
-		gasColor = tagCompound.getInt("warpdrive:gasColor");
+		blockStateGas = NBTUtil.readBlockState(tagCompound.getCompound("warpdrive:blockStateGas"));
 		replace = tagCompound.getBoolean("warpdrive:replace");
 		
 		constructionFinalizer();
@@ -314,7 +315,7 @@ public final class EntitySphereGen extends Entity {
 		tagCompound.putInt("warpdrive:yCoord", yCoord);
 		tagCompound.putInt("warpdrive:zCoord", zCoord);
 		tagCompound.put("warpdrive:orbInstance", orbInstance.write(new CompoundNBT()));
-		tagCompound.putInt("warpdrive:gasColor", gasColor);
+		tagCompound.put("warpdrive:blockStateGas", NBTUtil.writeBlockState(blockStateGas));
 		tagCompound.putBoolean("warpdrive:replace", replace);
 	}
 	

@@ -186,22 +186,20 @@ public class RandomCollection<E extends IStringSerializable> {
 	}
 	
 	/**
-	 * Get a string listing all object names
+	 * Get a string array listing all object names
 	 * 
 	 * @return Formatted string list separated by commas
 	 **/
-	public String getNames() {
+	public String[] getNames() {
 		if (list.isEmpty()) {
-			return "-none defined-";
+			return new String[0];
 		}
-		final StringBuilder names = new StringBuilder();
+		final String[] names = new String[list.size()];
+		int index = 0;
 		for (final E object : list) {
-			if (names.length() > 0) {
-				names.append(", ");
-			}
-			names.append(object.getName());
+			names[index++] = object.getName();
 		}
-		return names.toString();
+		return names;
 	}
 	
 	/**

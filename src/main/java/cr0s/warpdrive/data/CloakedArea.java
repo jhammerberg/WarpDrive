@@ -23,7 +23,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.network.IPacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -92,13 +91,13 @@ public class CloakedArea {
 		playersInArea.add(uuidPlayer);
 	}
 	
-	public boolean isEntityWithinArea(final LivingEntity entity) {
+	public boolean isEntityWithinArea(@Nonnull final LivingEntity entity) {
 		return (minX <= entity.getPosX() && (maxX + 1) > entity.getPosX()
 			 && minY <= (entity.getPosY() + entity.getHeight()) && (maxY + 1) > entity.getPosY()
 			 && minZ <= entity.getPosZ() && (maxZ + 1) > entity.getPosZ());
 	}
 	
-	public boolean isBlockWithinArea(final BlockPos blockPos) {
+	public boolean isBlockWithinArea(@Nonnull final BlockPos blockPos) {
 		return (minX <= blockPos.getX() && (maxX + 1) > blockPos.getX()
 			 && minY <= blockPos.getY() && (maxY + 1) > blockPos.getY()
 			 && minZ <= blockPos.getZ() && (maxZ + 1) > blockPos.getZ());

@@ -276,7 +276,7 @@ public class Dictionary {
 			config.get("block_tags", "minecraft:grass"                                 , "NoMass Expandable").getString();
 			config.get("block_tags", "minecraft:snow_layer"                            , "NoMass Expandable").getString();
 			config.get("block_tags", "minecraft:tall_grass"                            , "NoMass Expandable").getString();
-			config.get("block_tags", "warpdrive:gas"                                   , "LeftBehind Expandable").getString();
+			config.get("block_tags", "warpdrive:decoration.gas.*"                      , "LeftBehind Expandable").getString();
 			config.get("block_tags", "warpdrive:air_flow"                              , "NoMass Expandable PlaceLatest").getString();
 			config.get("block_tags", "warpdrive:air_source"                            , "NoMass Expandable PlaceLatest").getString();
 			

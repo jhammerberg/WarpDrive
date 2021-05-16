@@ -8,6 +8,7 @@ import javax.annotation.Nonnull;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Objects;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.command.CommandSource;
@@ -76,10 +77,10 @@ public class CommandDebug {
 				        
 				        .then(Commands.literal("help")
 				                      .executes((commandContext) -> help(commandContext.getSource(),
-				                                                         commandContext.getRootNode().getName() ))
+				                                                         commandContext.getNodes().get(0).getNode().getName() ))
 				             )
 				        .executes((commandContext) -> help(commandContext.getSource(),
-				                                           commandContext.getRootNode().getName() )
+				                                           commandContext.getNodes().get(0).getNode().getName() )
 				                 )
 		                   );
 	}
@@ -100,7 +101,7 @@ public class CommandDebug {
 		
 		final DimensionType dimensionType;
 		try {
-			dimensionType = CelestialObjectManager.getDimensionType(dimensionName, commandSource.asPlayer());
+			dimensionType = DimensionType.byName(Objects.requireNonNull(CelestialObjectManager.getDimensionName(dimensionName, commandSource.asPlayer())));
 		} catch (final Exception exception) {
 			exception.printStackTrace(WarpDrive.printStreamError);
 			commandSource.sendErrorMessage(new TranslationTextComponent("warpdrive.command.undefined_dimension",

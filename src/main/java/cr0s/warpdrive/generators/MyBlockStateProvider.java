@@ -81,6 +81,7 @@ public class MyBlockStateProvider extends BlockStateProvider {
 			"decoration.gas.violet",
 			"decoration.gas.white",
 			"decoration.gas.yellow",
+			"detection.camouflage",
 			"detection.warp_isolation",
 			"force_field.block.<tier>.0",
 			"force_field.block.<tier>.1",

@@ -94,10 +94,10 @@ public class CommandNPC {
 				        
 				        .then(Commands.literal("help")
 				                      .executes((commandContext) -> help(commandContext.getSource(),
-				                                                         commandContext.getRootNode().getName() ))
+				                                                         commandContext.getNodes().get(0).getNode().getName() ))
 				             )
 				        .executes((commandContext) -> help(commandContext.getSource(),
-				                                           commandContext.getRootNode().getName() )
+				                                           commandContext.getNodes().get(0).getNode().getName() )
 				                 )
 		                   );
 	}

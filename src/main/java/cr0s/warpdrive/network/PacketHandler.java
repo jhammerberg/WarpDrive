@@ -261,7 +261,7 @@ public class PacketHandler {
 			WarpDrive.logger.info(String.format("PacketHandler.sendClientSync %s",
 			                                    entityServerPlayer));
 		}
-		final MessageClientSync messageClientSync = new MessageClientSync(entityServerPlayer, celestialObject);
+		final MessageClientSync messageClientSync = new MessageClientSync(celestialObject);
 		sendToPlayer(messageClientSync, entityServerPlayer);
 	}
 	

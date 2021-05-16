@@ -712,7 +712,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		}
 		
 		// compute local universal coordinates
-		final CelestialObject celestialObjectLocal = CelestialObjectManager.get(world, pos.getX(), pos.getZ());
+		final CelestialObject celestialObjectLocal = CelestialObjectManager.get(world);
 		final Vector3 v3Local_universal = GlobalRegionManager.getUniversalCoordinates(celestialObjectLocal, globalPositionLocal.x, globalPositionLocal.y, globalPositionLocal.z);
 		
 		// validate context
@@ -925,7 +925,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 		}
 	}
 	
-	boolean updateBeacon(final TileEntity tileEntity, final UUID uuidTransporterCore) {
+	public boolean updateBeacon(final TileEntity tileEntity, final UUID uuidTransporterCore) {
 		if ( tileEntity == null
 		  || !this.uuid.equals(uuidTransporterCore) ) {
 			WarpDrive.logger.error(String.format("%s Invalid parameters in beacon call to transporter as %s, %s",
@@ -1481,7 +1481,7 @@ public class TileEntityTransporterCore extends TileEntityAbstractEnergyCoreOrCon
 	
 	private void refreshEnergyParameters() {
 		final int energyUpgrades = getUpgradeCount(upgradeSlotEnergyStorage);
-		energy_setParameters(WarpDriveConfig.TRANSPORTER_MAX_ENERGY_STORED + energyUpgrades * WarpDriveConfig.TRANSPORTER_ENERGY_STORED_UPGRADE_BONUS,
+		energy_setParameters(WarpDriveConfig.TRANSPORTER_MAX_ENERGY_STORED + (long) energyUpgrades * WarpDriveConfig.TRANSPORTER_ENERGY_STORED_UPGRADE_BONUS,
 		                     4096, 0,
 		                     "HV", 2, "HV", 0);
 	}

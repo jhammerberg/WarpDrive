@@ -1083,17 +1083,17 @@ public class TileEntityLaserTreeFarm extends TileEntityAbstractMiner {
 						                                     this, blockPosSoils.size(), blockStatePosValuables.size() ));
 					}
 				}
+			} catch (final ExceptionChunkNotLoaded exception) {
+				blockPosSoils = null;
+				blockStatePosValuables = null;
+				WarpDrive.logger.warn(String.format("%s Calculation aborted to prevent chunk loading for %s",
+				                                    this, stringTileEntity ));
 			} catch (final Exception exception) {
 				blockPosSoils = null;
 				blockStatePosValuables = null;
-				if (!(exception instanceof ExceptionChunkNotLoaded)) {
-					exception.printStackTrace(WarpDrive.printStreamError);
-					WarpDrive.logger.error(String.format("%s Calculation failed for %s",
-					                                     this, stringTileEntity ));
-				} else {
-					WarpDrive.logger.warn(String.format("%s Calculation aborted to prevent chunkloading for %s",
-					                                    this, stringTileEntity ));
-				}
+				exception.printStackTrace(WarpDrive.printStreamError);
+				WarpDrive.logger.error(String.format("%s Calculation failed for %s",
+				                                     this, stringTileEntity ));
 			}
 			
 			final TileEntity tileEntity = weakTileEntity.get();

@@ -110,13 +110,16 @@ import java.util.List;
 
 public class WarpDriveConfig {
 	
+	WarpDriveConfig() {
+		throw new UnsupportedOperationException("Instantiation is not supported.");
+	}
+	
 	private static final boolean unused = false; // TODO
 	
-	private static final ForgeConfigSpec CLIENT_CONFIG = buildClientConfig();
-	private static final ForgeConfigSpec COMMON_CONFIG = buildCommonConfig();
-	private static final ForgeConfigSpec SERVER_CONFIG = buildServerConfig();
+	private static final ForgeConfigSpec CLIENT_CONFIG;
+	private static final ForgeConfigSpec COMMON_CONFIG;
+	private static final ForgeConfigSpec SERVER_CONFIG;
 	
-	private static String          stringConfigDirectory;
 	private static File            fileConfigDirectory;
 	private static DocumentBuilder xmlDocumentBuilder;
 	private static final String[]  defaultXML_fillerSets = {
@@ -150,9 +153,7 @@ public class WarpDriveConfig {
 	/*
 	 * The variables which store whether or not individual mods are loaded
 	 */
-	public static boolean              isAdvancedRepulsionSystemLoaded = false;
 	public static boolean              isComputerCraftLoaded = false;
-	public static boolean              isCCTweakedLoaded = false;
 	public static boolean              isEnderIOLoaded = false;
 	public static boolean              isForgeMultipartLoaded = false;
 	public static boolean              isGregtechLoaded = false;
@@ -878,6 +879,13 @@ public class WarpDriveConfig {
 	// Plasma torch
 	public static int[]            PLASMA_TORCH_CAPACITY_BY_TIER = { 16000, 200, 400, 800 };
 	
+	// note: we use an explicit static constructor so it override default values eventually set before
+	static {
+		CLIENT_CONFIG = buildClientConfig();
+		COMMON_CONFIG = buildCommonConfig();
+		SERVER_CONFIG = buildServerConfig();
+	}
+	
 	@Nonnull
 	public static Block getBlockOrFire(@Nonnull final String registryName) {
 		final ResourceLocation resourceLocation = new ResourceLocation(registryName);
@@ -1004,20 +1012,19 @@ public class WarpDriveConfig {
 	public static void reload(@Nonnull final MinecraftServer server) {
 		CelestialObjectManager.clearForReload(false);
 		onConstructionOrReloading();
+		onFMLCommonSetup();
 		
 		final List<ServerPlayerEntity> entityPlayers = server.getPlayerList().getPlayers();
 		for (final ServerPlayerEntity entityServerPlayer : entityPlayers) {
 			if ( !(entityServerPlayer instanceof FakePlayer) ) {
-				final CelestialObject celestialObject = CelestialObjectManager.get(entityServerPlayer.world,
-				                                                                   MathHelper.floor(entityServerPlayer.getPosX()),
-				                                                                   MathHelper.floor(entityServerPlayer.getPosZ()));
+				final CelestialObject celestialObject = CelestialObjectManager.get(entityServerPlayer.world);
 				PacketHandler.sendClientSync(entityServerPlayer, celestialObject);
 			}
 		}
 	}
 	
 	public static void onModConstruction(final String stringConfigDirectory) {
-		WarpDriveConfig.stringConfigDirectory = stringConfigDirectory;
+		fileConfigDirectory = new File(stringConfigDirectory, WarpDrive.MODID);
 		
 		// register configuration files
 		ModLoadingContext.get().registerConfig(Type.CLIENT, CLIENT_CONFIG);
@@ -1026,14 +1033,12 @@ public class WarpDriveConfig {
 		
 		// read mod dependencies at runtime and for recipes
 		isComputerCraftLoaded = ModList.get().isLoaded("computercraft");
-		isCCTweakedLoaded = ModList.get().isLoaded("cctweaked");
 		isEnderIOLoaded = ModList.get().isLoaded("enderio");
 		isGregtechLoaded = ModList.get().isLoaded("gregtech");
 		isIndustrialCraft2Loaded = ModList.get().isLoaded("ic2");
 		isOpenComputersLoaded = ModList.get().isLoaded("opencomputers");
 		
 		// read mod dependencies for recipes
-		isAdvancedRepulsionSystemLoaded = ModList.get().isLoaded("AdvancedRepulsionSystems");
 		isForgeMultipartLoaded = ModList.get().isLoaded("forgemultipartcbe");
 		isICBMClassicLoaded = ModList.get().isLoaded("icbmclassic");
 		isMatterOverdriveLoaded = ModList.get().isLoaded("matteroverdrive");
@@ -1046,7 +1051,6 @@ public class WarpDriveConfig {
 	
 	public static void onConstructionOrReloading() {
 		// create mod folder
-		fileConfigDirectory = new File(stringConfigDirectory, WarpDrive.MODID);
 		//noinspection ResultOfMethodCallIgnored
 		fileConfigDirectory.mkdir();
 		if (!fileConfigDirectory.isDirectory()) {
@@ -1065,10 +1069,6 @@ public class WarpDriveConfig {
 		unpackResourceToFolder("WarpDrive.xsd", "config", fileConfigDirectory);
 		
 		// read configuration files
-		// loadClientConfig();
-		// loadCommonConfig();
-		// loadServerConfig();
-		
 		loadDictionary(new File(fileConfigDirectory, "dictionary.yml"));
 		loadDataFixer(new File(fileConfigDirectory, "dataFixer.yml"));
 		CelestialObjectManager.load(fileConfigDirectory);
@@ -2241,15 +2241,6 @@ public class WarpDriveConfig {
 	}
 	
 	public static void loadClientConfig() {
-		final CommentedFileConfig configClient = CommentedFileConfig
-		        .builder(fileConfigDirectory.toPath().resolve("client.toml"))
-		        .sync()
-		        .autosave()
-		        .writingMode(WritingMode.APPEND)
-		        .build();
-		configClient.load();
-		CLIENT_CONFIG.setConfig(configClient);
-		
 		CLIENT_BREATHING_OVERLAY_FORCED = client_breathing_overlay_forced.get();
 		CLIENT_LOCATION_SCALE = client_location_scale.get().floatValue();
 		CLIENT_LOCATION_NAME_PREFIX = client_location_name_prefix.get();
@@ -2265,15 +2256,6 @@ public class WarpDriveConfig {
 	}
 	
 	public static void loadCommonConfig() {
-		final CommentedFileConfig configCommon = CommentedFileConfig
-		        .builder(fileConfigDirectory.toPath().resolve("common.toml"))
-		        .sync()
-		        .autosave()
-		        .writingMode(WritingMode.APPEND)
-		        .build();
-		configCommon.load();
-		COMMON_CONFIG.setConfig(configCommon);
-		
 		// General
 		G_SPACE_PROVIDER_ID = general_space_provider_id.get();
 		G_HYPERSPACE_PROVIDER_ID = general_hyperspace_provider_id.get();
@@ -2324,7 +2306,7 @@ public class WarpDriveConfig {
 		CAPACITOR_MAX_ENERGY_STORED_BY_TIER = Ints.toArray(capacitor_max_energy_stored_by_tier.get());
 		clampByTier(0, Integer.MAX_VALUE, CAPACITOR_MAX_ENERGY_STORED_BY_TIER);
 		
-		CAPACITOR_IC2_SINK_TIER_NAME_BY_TIER = (String[]) capacitor_ic2_sink_tier_name_by_tier.get().toArray();
+		CAPACITOR_IC2_SINK_TIER_NAME_BY_TIER = capacitor_ic2_sink_tier_name_by_tier.get().toArray(new String[0]);
 		clampByEnergyTierName("ULV", "MaxV", CAPACITOR_IC2_SINK_TIER_NAME_BY_TIER);
 		
 		CAPACITOR_IC2_SOURCE_TIER_NAME_BY_TIER = capacitor_ic2_source_tier_name_by_tier.get().toArray(new String[0]);
@@ -2495,15 +2477,6 @@ public class WarpDriveConfig {
 	}
 	
 	public static void loadServerConfig() {
-		final CommentedFileConfig configServer = CommentedFileConfig
-				.builder(fileConfigDirectory.toPath().resolve("server.toml"))
-				.sync()
-				.autosave()
-				.writingMode(WritingMode.APPEND)
-				.build();
-		configServer.load();
-		SERVER_CONFIG.setConfig(configServer);
-		
 		// Breathing (server)
 		BREATHING_AIR_GENERATION_TICKS = breathing_air_generation_interval_ticks.get();
 		BREATHING_VOLUME_UPDATE_DEPTH_BLOCKS = breathing_volume_update_depth_blocks.get();
@@ -2732,7 +2705,7 @@ public class WarpDriveConfig {
 		}
 		
 		if (isComputerCraftLoaded) {
-			CompatComputerCraft.register(isCCTweakedLoaded);
+			CompatComputerCraft.register();
 		}
 		
 		if (isEnderIOLoaded) {
@@ -3053,6 +3026,7 @@ public class WarpDriveConfig {
 			final InputStream inputStream = WarpDrive.class.getClassLoader().getResourceAsStream(resourceName);
 			final BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(destination));
 			
+			assert inputStream != null;
 			final byte[] byteBuffer = new byte[Math.max(8192, inputStream.available())];
 			int bytesRead;
 			while ((bytesRead = inputStream.read(byteBuffer)) >= 0) {

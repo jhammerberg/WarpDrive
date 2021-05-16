@@ -106,7 +106,7 @@ public class TileEntityForceFieldProjector extends TileEntityAbstractForceField 
 	private final Set<VectorI> vForceFields = new HashSet<>();
 	
 	// schedule removal/destruction in main thread
-	final CopyOnWriteArraySet<VectorI> vForceFields_forRemoval = new CopyOnWriteArraySet<>();
+	private final CopyOnWriteArraySet<VectorI> vForceFields_forRemoval = new CopyOnWriteArraySet<>();
 	
 	public TileEntityForceFieldProjector(@Nonnull final IBlockBase blockBase) {
 		super(blockBase);

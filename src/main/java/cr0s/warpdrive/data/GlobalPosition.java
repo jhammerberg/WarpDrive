@@ -65,11 +65,11 @@ public class GlobalPosition {
 	}
 	
 	public CelestialObject getCelestialObject(final boolean isRemote) {
-		return CelestialObjectManager.get(isRemote, dimensionId, x, z);
+		return CelestialObjectManager.get(isRemote, dimensionId);
 	}
 	
 	public Vector3 getUniversalCoordinates(final boolean isRemote) {
-		final CelestialObject celestialObject = CelestialObjectManager.get(isRemote, dimensionId, x, z);
+		final CelestialObject celestialObject = CelestialObjectManager.get(isRemote, dimensionId);
 		return GlobalRegionManager.getUniversalCoordinates(celestialObject, x, y, z);
 	}
 	

@@ -46,14 +46,21 @@ public class CommandRender {
 		                                                      Commons.format(world, blockPos) ), true);
 		final Block block = blockState.getBlock();
 		
+		// client only:
+		// - getAmbientOcclusionLightValue
+		// - RenderTypeLookup.getRenderLayer
+		
 		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "Blockstate is %s",
 		                                                      Commons.getChatValue(blockState.toString()) ), true);
-		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "Light opacity is %s",
-		                                                      Commons.getChatValue(blockState.getOpacity(world, blockPos)) ), true);
-		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "isAir is %s",
-		                                                      Commons.getChatValue(block.isAir(blockState, world, blockPos)) ), true);
-		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "isNormalCube is %s",
-		                                                      Commons.getChatValue(block.isNormalCube(blockState, world, blockPos)) ), true);
+		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "Light opacity is %s / isVariableOpacity is %s",
+		                                                      Commons.getChatValue(blockState.getOpacity(world, blockPos)),
+		                                                      Commons.getChatValue(blockState.getBlock().isVariableOpacity()) ), true);
+		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "isAir is %s / isTransparent is %s",
+		                                                      Commons.getChatValue(block.isAir(blockState, world, blockPos)),
+		                                                      Commons.getChatValue(block.isTransparent(blockState)) ), true);
+		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "isNormalCube is %s / propagatesSkylightDown is %s",
+		                                                      Commons.getChatValue(block.isNormalCube(blockState, world, blockPos)),
+		                                                      Commons.getChatValue(block.propagatesSkylightDown(blockState, world, blockPos)) ), true);
 		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "isSolid is %s / causesSuffocation is %s",
 		                                                      Commons.getChatValue(block.isSolid(blockState)),
 		                                                      Commons.getChatValue(block.causesSuffocation(blockState, world, blockPos)) ), true);
@@ -63,7 +70,7 @@ public class CommandRender {
 		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "Material isLiquid %s / Material isSolid %s",
 		                                                      Commons.getChatValue(blockState.getMaterial().isLiquid()),
 		                                                      Commons.getChatValue(blockState.getMaterial().isSolid()) ), true);
-		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "isOpaqueCube is %s  / renderType is %s",
+		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "isOpaqueCube is %s / renderType is %s",
 		                                                      Commons.getChatValue(blockState.isOpaqueCube(world, blockPos)),
 		                                                      Commons.getChatValue(block.getRenderType(blockState).toString()) ), true);
 		commandSource.sendFeedback(new WarpDriveText().append(Commons.getStyleNormal(), "isSideSolid D %s, U %s, N %s, S %s, W %s, E %s",

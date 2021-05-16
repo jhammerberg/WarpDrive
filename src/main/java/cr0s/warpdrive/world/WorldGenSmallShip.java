@@ -104,11 +104,11 @@ public class WorldGenSmallShip extends Feature<NoFeatureConfig> {
 		genStructure.setHullPlain(world, x + 4, y + 1, z + 9);
 		genStructure.setHullPlain(world, x + 4, y + 1, z + 10);
 		genStructure.setHullPlain(world, x + 4, y + 2, z + 4);
-		world.setBlockState(new BlockPos(x + 4, y + 2, z + 5), Blocks.GLOWSTONE.getDefaultState());
+		genStructure.setFullBlockLight(world, x + 4, y + 2, z + 5);
 		genStructure.setHullPlain(world, x + 4, y + 2, z + 6);
 		genStructure.setHullPlain(world, x + 4, y + 2, z + 7);
 		genStructure.setHullPlain(world, x + 4, y + 2, z + 8);
-		world.setBlockState(new BlockPos(x + 4, y + 2, z + 9), Blocks.GLOWSTONE.getDefaultState());
+		genStructure.setFullBlockLight(world, x + 4, y + 2, z + 9);
 		genStructure.setHullPlain(world, x + 4, y + 2, z + 10);
 		genStructure.setHullPlain(world, x + 4, y + 3, z + 4);
 		genStructure.setHullPlain(world, x + 4, y + 3, z + 10);
@@ -129,13 +129,13 @@ public class WorldGenSmallShip extends Feature<NoFeatureConfig> {
 		genStructure.setHullPlain(world, x + 5, y + 1, z + 9);
 		genStructure.setHullPlain(world, x + 5, y + 1, z + 10);
 		genStructure.setHullPlain(world, x + 5, y + 2, z + 3);
-		world.setBlockState(new BlockPos(x + 5, y + 2, z + 4), Blocks.GLOWSTONE.getDefaultState());
+		genStructure.setFullBlockLight(world, x + 5, y + 2, z + 4);
 		genStructure.setHullPlain(world, x + 5, y + 2, z + 5);
 		genStructure.setHullPlain(world, x + 5, y + 2, z + 6);
 		world.setBlockState(new BlockPos(x + 5, y + 2, z + 7), Blocks.RED_WOOL.getDefaultState(), 2);
 		world.setBlockState(new BlockPos(x + 5, y + 2, z + 8), Blocks.LIGHT_GRAY_WOOL.getDefaultState(), 2);
 		genStructure.setHullPlain(world, x + 5, y + 2, z + 9);
-		world.setBlockState(new BlockPos(x + 5, y + 2, z + 10), Blocks.GLOWSTONE.getDefaultState());
+		genStructure.setFullBlockLight(world, x + 5, y + 2, z + 10);
 		genStructure.setHullPlain(world, x + 5, y + 2, z + 11);
 		genStructure.setHullPlain(world, x + 5, y + 3, z + 3);
 		genStructure.setHullPlain(world, x + 5, y + 3, z + 11);
@@ -428,10 +428,11 @@ public class WorldGenSmallShip extends Feature<NoFeatureConfig> {
 		genStructure.setHullPlain(world, x + 12, y + 4, z + 8);
 		genStructure.setHullGlass(world, x + 12, y + 4, z + 12);
 		genStructure.setHullGlass(world, x + 12, y + 5, z + 2);
+		genStructure.setWallLight(world, x + 12, y + 5, z + 4);
 		genStructure.setHullGlass(world, x + 12, y + 5, z + 6);
 		if (!isCorrupted || rand.nextBoolean()) {
 			world.setBlockState(new BlockPos(x + 12, y + 5, z + 7),
-			                    WarpDrive.blockShipCores[1].getDefaultState().with(BlockProperties.FACING, Direction.WEST));
+			                    WarpDrive.blockShipCores[1].getDefaultState().with(BlockProperties.FACING_HORIZONTAL, Direction.WEST));
 			if (isCreative) {// fill with energy
 				final TileEntity tileEntity = world.getTileEntity(new BlockPos(x + 12, y + 5, z + 7));
 				if (tileEntity instanceof TileEntityAbstractEnergy) {
@@ -440,6 +441,7 @@ public class WorldGenSmallShip extends Feature<NoFeatureConfig> {
 			}
 		}
 		genStructure.setHullGlass(world, x + 12, y + 5, z + 8);
+		genStructure.setWallLight(world, x + 12, y + 5, z + 10);
 		genStructure.setHullGlass(world, x + 12, y + 5, z + 12);
 		genStructure.setHullPlain(world, x + 12, y + 6, z + 3);
 		genStructure.setHullPlain(world, x + 12, y + 6, z + 4);
@@ -474,8 +476,8 @@ public class WorldGenSmallShip extends Feature<NoFeatureConfig> {
 			genStructure.setHullPlain(world, x + 13, y + 3, z + 3);
 			genStructure.setHullGlass(world, x + 13, y + 4, z + 3);
 		} else if (!isCorrupted || rand.nextBoolean()) {
-			world.setBlockState(new BlockPos(x + 13, y + 3, z + 3), WarpDrive.blockAirShields[0].getDefaultState());
-			world.setBlockState(new BlockPos(x + 13, y + 4, z + 3), WarpDrive.blockAirShields[0].getDefaultState());
+//			world.setBlockState(new BlockPos(x + 13, y + 3, z + 3), WarpDrive.blockAirShields[0].getDefaultState());
+//			world.setBlockState(new BlockPos(x + 13, y + 4, z + 3), WarpDrive.blockAirShields[0].getDefaultState());
 		}
 		genStructure.setHullPlain(world, x + 13, y + 3, z + 4);
 		genStructure.setHullPlain(world, x + 13, y + 3, z + 5);
@@ -488,8 +490,8 @@ public class WorldGenSmallShip extends Feature<NoFeatureConfig> {
 			genStructure.setHullPlain(world, x + 13, y + 3, z + 11);
 			genStructure.setHullGlass(world, x + 13, y + 4, z + 11);
 		} else if (!isCorrupted || rand.nextBoolean()) {
-			world.setBlockState(new BlockPos(x + 13, y + 3, z + 11), WarpDrive.blockAirShields[0].getDefaultState());
-			world.setBlockState(new BlockPos(x + 13, y + 4, z + 11), WarpDrive.blockAirShields[0].getDefaultState());
+//			world.setBlockState(new BlockPos(x + 13, y + 3, z + 11), WarpDrive.blockAirShields[0].getDefaultState());
+//			world.setBlockState(new BlockPos(x + 13, y + 4, z + 11), WarpDrive.blockAirShields[0].getDefaultState());
 		}
 		genStructure.setHullPlain(world, x + 13, y + 3, z + 12);
 		genStructure.setHullPlain(world, x + 13, y + 4, z + 2);
@@ -503,13 +505,13 @@ public class WorldGenSmallShip extends Feature<NoFeatureConfig> {
 		genStructure.setHullPlain(world, x + 13, y + 4, z + 12);
 		genStructure.setHullPlain(world, x + 13, y + 5, z + 2);
 		genStructure.setHullPlain(world, x + 13, y + 5, z + 3);
-		world.setBlockState(new BlockPos(x + 13, y + 5, z + 4), Blocks.GLOWSTONE.getDefaultState());
+		genStructure.setHullPlain(world, x + 13, y + 5, z + 4);
 		genStructure.setHullPlain(world, x + 13, y + 5, z + 5);
 		genStructure.setHullPlain(world, x + 13, y + 5, z + 6);
 		genStructure.setWiring(world, x + 13, y + 5, z + 7);
 		genStructure.setHullPlain(world, x + 13, y + 5, z + 8);
 		genStructure.setHullPlain(world, x + 13, y + 5, z + 9);
-		world.setBlockState(new BlockPos(x + 13, y + 5, z + 10), Blocks.GLOWSTONE.getDefaultState());
+		genStructure.setHullPlain(world, x + 13, y + 5, z + 10);
 		genStructure.setHullPlain(world, x + 13, y + 5, z + 11);
 		genStructure.setHullPlain(world, x + 13, y + 5, z + 12);
 		genStructure.setHullPlain(world, x + 13, y + 6, z + 3);

@@ -35,7 +35,7 @@ public class BlockChiller extends BlockAbstractAccelerator {
 	                                                                             1.0D - BOUNDING_TOLERANCE, 1.0D, 1.0D - BOUNDING_TOLERANCE );
 	
 	public BlockChiller(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
-		super(registryName, enumTier, null);
+		super(getDefaultProperties(null), registryName, enumTier);
 		
 		setDefaultState(getStateContainer().getBaseState()
 				                .with(BlockProperties.ACTIVE, false)

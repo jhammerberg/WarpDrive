@@ -35,7 +35,7 @@ public class InventoryWrapper {
 		}
 		
 		if (tileEntity != null) {
-			return tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, facing);
+			return tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, facing).orElse(null);
 		}
 		
 		return null;
@@ -52,29 +52,12 @@ public class InventoryWrapper {
 			                       blockPos.getZ() + side.getZOffset() );
 			final TileEntity tileEntity = world.getTileEntity(mutableBlockPos);
 			
-			if (tileEntity instanceof IInventory) {
-				result.add(tileEntity);
-				
-				/* @TODO MC1.15 check support for double chests
-				if (tileEntity instanceof ChestTileEntity) {
-					final ChestTileEntity tileEntityChest = (ChestTileEntity) tileEntity;
-					tileEntityChest.getSizeInventory()
-					tileEntityChest.checkForAdjacentChests();
-					if (tileEntityChest.adjacentChestXNeg != null) {
-						result.add(tileEntityChest.adjacentChestXNeg);
-					} else if (tileEntityChest.adjacentChestXPos != null) {
-						result.add(tileEntityChest.adjacentChestXPos);
-					} else if (tileEntityChest.adjacentChestZNeg != null) {
-						result.add(tileEntityChest.adjacentChestZNeg);
-					} else if (tileEntityChest.adjacentChestZPos != null) {
-						result.add(tileEntityChest.adjacentChestZPos);
-					}
-				}
-				 */
-			} else if (tileEntity != null) {
+			if (tileEntity != null) {
 				final IItemHandler itemHandler = tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, side).orElse(EmptyHandler.INSTANCE);
 				if (itemHandler.getSlots() > 0) {
 					resultCapabilities.add(itemHandler);
+				} else if (tileEntity instanceof IInventory) {
+					result.add(tileEntity);
 				}
 			}
 		}

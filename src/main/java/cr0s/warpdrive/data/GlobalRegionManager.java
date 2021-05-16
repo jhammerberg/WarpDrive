@@ -349,7 +349,7 @@ public class GlobalRegionManager {
 		final ArrayList<RadarEcho> arrayListRadarEchos = new ArrayList<>(registry.size());
 		cleanup();
 		
-		final CelestialObject celestialObject = CelestialObjectManager.get(tileEntity.getWorld(), tileEntity.getPos().getX(), tileEntity.getPos().getZ());
+		final CelestialObject celestialObject = CelestialObjectManager.get(tileEntity.getWorld());
 		final Vector3 vectorRadar = getUniversalCoordinates(
 			celestialObject,
 			tileEntity.getPos().getX(), tileEntity.getPos().getY(), tileEntity.getPos().getZ());

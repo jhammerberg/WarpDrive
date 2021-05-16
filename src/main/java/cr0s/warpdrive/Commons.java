@@ -19,8 +19,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.command.CommandException;
-import net.minecraft.command.CommandSource;
 import net.minecraft.command.ICommandSource;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -32,12 +30,16 @@ import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.NBTDynamicOps;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.state.IProperty;
+import net.minecraft.state.IStateHolder;
+import net.minecraft.state.StateContainer;
 import net.minecraft.tileentity.SkullTileEntity;
 import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.concurrent.ThreadTaskExecutor;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.Style;
@@ -958,7 +960,7 @@ public class Commons {
 	
 	public static boolean isSafeThread() {
 		final String name = Thread.currentThread().getName();
-		return name.equals("Server thread") || name.equals("Client thread") || name.equals("Render thread");
+		return name.equals("Server thread") || name.equals("Client thread") || name.equals("Render thread") || name.startsWith("modloading-worker-");
 	}
 	
 	public static boolean isClientThread() {
@@ -1089,12 +1091,45 @@ public class Commons {
 	}
 	
 	@Nonnull
-	public static BlockState readBlockStateFromString(@Nullable final String string) {
-		if ( string == null
-		  || string.isEmpty() ) {
+	public static BlockState readBlockStateFromString(@Nullable final String stringInput) {
+		if ( stringInput == null
+		  || stringInput.isEmpty()
+		  || stringInput.equals("minecraft:air") ) {
 			return Blocks.AIR.getDefaultState();
 		}
-		return BlockState.deserialize(new Dynamic<>(JsonOps.INSTANCE, new JsonPrimitive(string)));
+		if (stringInput.trim().startsWith("{")) {
+			return BlockState.deserialize(new Dynamic<>(JsonOps.INSTANCE, new JsonPrimitive(stringInput)));
+		}
+		
+		final String[] tokens = stringInput.split("[\\[@\\]]");
+		final String name = tokens[0];
+		BlockState blockState = Registry.BLOCK.getOrDefault(new ResourceLocation(name)).getDefaultState();
+		if (blockState.getBlock() == Blocks.AIR) {
+			WarpDrive.logger.warn("Missing block {} for input {}.", name, stringInput);
+			return blockState;
+		}
+		if ( tokens.length == 1
+		  || tokens[1].isEmpty() ) {
+			return blockState;
+		}
+		final String[] properties = tokens[1].split(",");
+		final StateContainer<Block, BlockState> stateContainer = blockState.getBlock().getStateContainer();
+		for(String stringProperty : properties) {
+			String[] keyValue = stringProperty.split("=");
+			if (keyValue.length != 2) {
+				WarpDrive.logger.warn("Unable to parse property {} for input {}.", stringProperty, stringInput);
+				continue;
+			}
+			final String key = keyValue[0];
+			final IProperty<?> property = stateContainer.getProperty(key);
+			if (property == null) {
+				WarpDrive.logger.warn("Unknown property {} for input {}.", key, stringInput);
+				continue;
+			}
+			blockState = IStateHolder.withString(blockState, property, key, stringInput, keyValue[1]);
+		}
+		
+		return blockState;
 	}
 	
 	@Nonnull

@@ -1,7 +1,7 @@
 {
-    "language.code": "fr_fr",
-    "language.name": "Fran\u00e7ais",
+    "language.name": "Français",
     "language.region": "France",
+    "language.code": "fr_fr",
     
     "death.attack.warpdrive.asphyxia": "%1$s est mort asphyxié",
     "death.attack.warpdrive.asphyxia.player": "%1$s est mort asphyxié grace à %2$s",
@@ -668,10 +668,10 @@
     "warpdrive.command.found_line": "- %1$s",
     "warpdrive.command.no_matching_entity": "Aucune entité correspondante trouvée dans les %1$d blocs",
     "warpdrive.command.x_matching_entities": "%1$d entités correspondantes trouvées dans les %2$d blocs:",
-    "warpdrive.command.only_in_space": "Cette structure est autorisée uniquement dans l'espace!",
+    "warpdrive.command.only_in_space": "Cette structure est autorisée uniquement dans l'espace.",
     "warpdrive.command.configuration_reloaded": "La configuration de WarpDrive a été rechargée.",
     "warpdrive.command.liability_warning": "Utilisez à vos propre risques!",
-    "warpdrive.command.player_required": "Utilises un joueur ou fourni un nom de joueur!",
+    "warpdrive.command.player_required": "Utilises un joueur ou fourni un nom de joueur.",
     "warpdrive.command.player_not_found": "Joueur introuvable '%1$s'",
     "warpdrive.command.too_many_arguments": "Trop d'arguments %1$d",
     "warpdrive.command.player_in_unknown_dimension": "Le joueur %1$s est dans une dimension inconnue %2$d.",

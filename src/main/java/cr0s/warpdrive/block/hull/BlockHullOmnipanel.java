@@ -14,10 +14,12 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.material.PushReaction;
+import net.minecraft.entity.EntityType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.DyeColor;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
 import net.minecraftforge.common.ToolType;
@@ -49,6 +51,13 @@ public class BlockHullOmnipanel extends BlockAbstractOmnipanel implements IDamag
 	@Override
 	public PushReaction getPushReaction(@Nonnull final BlockState blockState) {
 		return PushReaction.BLOCK;
+	}
+	
+	@SuppressWarnings("deprecation")
+	@Override
+	public boolean canEntitySpawn(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader,
+	                              @Nonnull final BlockPos blockPos, @Nonnull final EntityType<?> entityType) {
+		return false;
 	}
 	
 	@Override

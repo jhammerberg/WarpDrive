@@ -18,6 +18,7 @@ import li.cil.oc.api.machine.Callback;
 import li.cil.oc.api.machine.Context;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -142,7 +143,7 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 		}
 		
 		// check for registered celestial object
-		final CelestialObject celestialObject = CelestialObjectManager.get(world, pos.getX(), pos.getZ());
+		final CelestialObject celestialObject = CelestialObjectManager.get(world);
 		if (celestialObject == null) {
 			return new Object[] { false, GlobalRegionManager.GALAXY_UNDEFINED, pos.getX(), pos.getY(), pos.getZ(), Commons.format(world) };
 		}
@@ -174,10 +175,12 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 				EnergyWrapper.convert(calculateEnergyRequired(radius), units) };
 	}
 	
+	@Nonnull
 	private Object[] getScanDuration() {
 		return new Object[] { 0.050D * calculateScanDuration(radius) };
 	}
 	
+	@Nonnull
 	private Object[] start() {
 		if (isScanning) {
 			return new Object[] { false, String.format("Already scanning, %.3f seconds to go", scanning_countdown_ticks / 20.0F) };
@@ -209,6 +212,7 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 		return new Object[] { true, String.format("Scanning started, %.3f seconds to go", scanning_countdown_ticks / 20.0F) };
 	}
 	
+	@Nullable
 	private Object[] getResults() {
 		if (results == null) {
 			return null;
@@ -225,6 +229,7 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 		return objectResults;
 	}
 	
+	@Nonnull
 	private Object[] getResultsCount() {
 		if (results != null) {
 			return new Integer[] { results.size() };
@@ -232,6 +237,7 @@ public class TileEntityRadar extends TileEntityAbstractEnergyConsumer {
 		return new Integer[] { -1 };
 	}
 	
+	@Nonnull
 	private Object[] getResult(@Nonnull final Object[] arguments) {
 		if (arguments.length == 1 && (results != null)) {
 			final int index;

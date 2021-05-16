@@ -1,10 +1,6 @@
 package cr0s.warpdrive;
 
 import cr0s.warpdrive.config.WarpDriveConfig;
-import cr0s.warpdrive.event.EMPReceiver;
-import cr0s.warpdrive.event.ItemHandler;
-import cr0s.warpdrive.event.LivingHandler;
-import cr0s.warpdrive.event.PlayerHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -112,13 +108,10 @@ public class CommonProxy {
 	}
 	
 	public void onModConstruction() {
-	
+		// placeholder for client-only mod construction
 	}
 	
 	public void onModelInitialisation(final Object object) {
-	
-	}
-	
-	public void onFMLCommonSetup() {
+		// placeholder for client-only model initialization	
 	}
 }

@@ -72,19 +72,31 @@ public class XmlPreprocessor {
 				final Element elementChild = (Element) child;
 				final String result = checkModRequirements(elementChild);
 				if (!result.isEmpty()) {
-					final String block = elementChild.getAttribute("block");
-					if (block == null || block.isEmpty()) {
-						WarpDrive.logger.info(String.format("Skipping %s/%s %s:%s due to %s",
-						                                    base.getNodeName(), elementChild.getNodeName(),
-						                                    elementChild.getAttribute("group"), elementChild.getAttribute("name"),
-						                                    result));
-					} else {
-						WarpDrive.logger.info(String.format("Skipping %s/%s %s:%s %s due to %s",
-						                                    base.getNodeName(), elementChild.getNodeName(),
-						                                    elementChild.getAttribute("group"), elementChild.getAttribute("name"),
-						                                    block,
-						                                    result));
+					// log the removal with a pseudo-path
+					String path = base.getNodeName();
+					if (base instanceof Element) {
+						if (((Element) base).hasAttribute("group")){
+							path += String.format("[%s:%s]",
+							                      ((Element) base).getAttribute("group"), ((Element) base).getAttribute("name") );
+						} else if (((Element) base).hasAttribute("name")) {
+							path += String.format("[%s]",
+							                      ((Element) base).getAttribute("name") );
+						}
 					}
+					path += "/" + elementChild.getNodeName();
+					if (elementChild.hasAttribute("group")) {
+						path += String.format("[%s:%s]",
+						                      elementChild.getAttribute("group"), elementChild.getAttribute("name") );
+					} else if (elementChild.hasAttribute("name")) {
+						path += String.format("[%s]",
+						                      elementChild.getAttribute("name") );
+					}
+					final String blockState = elementChild.getAttribute("blockState");
+					if (blockState != null && !blockState.isEmpty()) {
+						path += " " + blockState;
+					}
+					WarpDrive.logger.info(String.format("Skipping %s due to %s",
+					                                    path, result ));
 					base.removeChild(child);
 				} else {
 					doModReqSanitation(child);
@@ -262,18 +274,23 @@ public class XmlPreprocessor {
 		
 		@Override
 		public String toString() {
-			String string = (modResults.size() > 1 ? "{" : "");
+			if (modResults.isEmpty()) {
+				return "";
+			}
+			final StringBuilder string = new StringBuilder("{");
 			boolean isFirst = true;
 			for (final Entry<String, String> entry : modResults.entrySet()) {
 				if (isFirst) {
 					isFirst = false;
 				} else {
-					string += ", ";
+					string.append(", ");
 				}
-				string += entry.getKey() + ": " + entry.getValue();
+				string.append(entry.getKey())
+				      .append(" is ")
+				      .append(entry.getValue());
 			}
 			
-			return string + (modResults.size() > 1 ? "}" : "");
+			return string.append("}.").toString();
 		}
 	}
 }

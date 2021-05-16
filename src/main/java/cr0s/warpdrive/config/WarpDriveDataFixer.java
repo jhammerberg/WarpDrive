@@ -86,7 +86,7 @@ public class WarpDriveDataFixer {
 			config.get("blocks", "warpdrive:force_field.advanced"               , "WarpDrive:blockForceField2").getString();
 			config.get("blocks", "warpdrive:force_field.basic"                  , "WarpDrive:blockForceField1").getString();
 			config.get("blocks", "warpdrive:force_field.superior"               , "WarpDrive:blockForceField3").getString();
-			config.get("blocks", "warpdrive:gas"                                , "WarpDrive:blockGas WarpDrive:gasBlock").getString();
+			config.get("blocks", "warpdrive:decoration.gas.*"                   , "warpdrive:gas WarpDrive:blockGas WarpDrive:gasBlock").getString();
 			config.get("blocks", "warpdrive:highly_advanced_machine"            , "WarpDrive:blockHighlyAdvancedMachine WarpDrive:blockHAMachine").getString();
 			config.get("blocks", "warpdrive:hull.advanced.glass"                , "WarpDrive:blockHull2_glass").getString();
 			config.get("blocks", "warpdrive:hull.advanced.omnipanel"            , "WarpDrive:blockHull2_omnipanel").getString();
@@ -304,6 +304,7 @@ public class WarpDriveDataFixer {
 			}
 		}
 		/**/
+		rawBlocks = new HashMap<>(0);
 	}
 	
 	public static void apply() {

@@ -1,7 +1,6 @@
 package cr0s.warpdrive.block.hull;
 
 import cr0s.warpdrive.WarpDrive;
-import cr0s.warpdrive.api.IBlockBase;
 import cr0s.warpdrive.api.IDamageReceiver;
 import cr0s.warpdrive.block.BlockAbstractBase;
 import cr0s.warpdrive.config.WarpDriveConfig;
@@ -30,7 +29,7 @@ import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
-public class BlockHullSlab extends BlockAbstractBase implements IBlockBase, IDamageReceiver {
+public class BlockHullSlab extends BlockAbstractBase implements IDamageReceiver {
 	
 	// Metadata values are
 	// 0-5 for plain slabs orientations
@@ -48,8 +47,8 @@ public class BlockHullSlab extends BlockAbstractBase implements IBlockBase, IDam
 	
 	public static final EnumProperty<EnumType> TYPE = EnumProperty.create("type", EnumType.class);
 	
-	final EnumHullPlainType hullPlainType;
-	final int               indexColor;
+	private final EnumHullPlainType hullPlainType;
+	private final int               indexColor;
 	
 	public BlockHullSlab(@Nonnull final String registryName,
 	                     @Nonnull final BlockState blockStateHull) {

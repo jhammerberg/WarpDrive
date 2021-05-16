@@ -18,7 +18,6 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.shapes.VoxelShape;
 
-@SuppressWarnings("unused") // Core mod
 public class GravityManager {
 	
 	private static final double OVERWORLD_ENTITY_GRAVITY = 0.080000000000000002D;	// Default value from Vanilla
@@ -37,7 +36,7 @@ public class GravityManager {
 	private static Class<?> classGravityHandler;
 	private static Method methodIPlanetaryProvider_applyGravity;
 	
-	@SuppressWarnings("unused") // Core mod
+	// TODO MC1.15 AdvancedRocketry gravity integration
 	public static void applyEntityItemGravity(@Nonnull final ItemEntity entityItem) {
 		final double gravity = CelestialObjectManager.getGravity(entityItem);
 		if (gravity == CelestialObject.GRAVITY_NORMAL) {// reroute to AdvancedRocketry if we're set to normal, they'll reroute to Galacticraft on their own
@@ -71,7 +70,6 @@ public class GravityManager {
 				vMotion.z );
 	}
 	
-	@SuppressWarnings("unused") // Core mod
 	public static double getGravityForEntity(final Entity entity) {
 		final double gravity = CelestialObjectManager.getGravity(entity);
 		if (gravity == CelestialObject.GRAVITY_NONE) {
@@ -118,12 +116,6 @@ public class GravityManager {
 		return gravity * OVERWORLD_ENTITY_GRAVITY;
 	}
 	
-	@SuppressWarnings("unused") // Core mod
-	public static double getNegGravityForEntity(final Entity entity) {
-		return -getGravityForEntity(entity);
-	}
-	
-	@SuppressWarnings("unused") // Core mod
 	public static double getItemGravity(final ItemEntity entity) {
 		final double gravity = CelestialObjectManager.getGravity(entity);
 		if (gravity == CelestialObject.GRAVITY_NONE) {
@@ -134,7 +126,8 @@ public class GravityManager {
 			return OVERWORLD_ITEM_GRAVITY;
 		}
 		
-		if (gravity == CelestialObject.GRAVITY_LEGACY_SPACE || gravity == CelestialObject.GRAVITY_LEGACY_HYPERSPACE) {
+		if ( gravity == CelestialObject.GRAVITY_LEGACY_SPACE
+		  || gravity == CelestialObject.GRAVITY_LEGACY_HYPERSPACE ) {
 			if (isEntityInGraviField(entity)) {
 				return SPACE_FIELD_ITEM_GRAVITY;
 			} else {
@@ -145,7 +138,6 @@ public class GravityManager {
 		return gravity * OVERWORLD_ITEM_GRAVITY;
 	}
 	
-	@SuppressWarnings("unused") // Core mod
 	public static double getItemGravity2(final ItemEntity entity) {
 		final double gravity = CelestialObjectManager.getGravity(entity);
 		if (gravity == CelestialObject.GRAVITY_NONE) {

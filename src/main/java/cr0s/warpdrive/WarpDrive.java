@@ -1,8 +1,6 @@
 package cr0s.warpdrive;
 
 import cr0s.warpdrive.api.IBlockBase;
-import cr0s.warpdrive.api.Particle;
-import cr0s.warpdrive.api.ParticleRegistry;
 import cr0s.warpdrive.block.BlockChunkLoader;
 import cr0s.warpdrive.block.BlockHighlyAdvancedMachine;
 import cr0s.warpdrive.block.BlockLaserMedium;
@@ -42,6 +40,7 @@ import cr0s.warpdrive.block.decoration.BlockLamp_flat;
 import cr0s.warpdrive.block.decoration.BlockLamp_long;
 import cr0s.warpdrive.block.detection.BlockBiometricScanner;
 import cr0s.warpdrive.block.detection.BlockCamera;
+import cr0s.warpdrive.block.detection.BlockCamouflage;
 import cr0s.warpdrive.block.detection.BlockCloakingCoil;
 import cr0s.warpdrive.block.detection.BlockCloakingCore;
 import cr0s.warpdrive.block.detection.BlockEnvironmentalSensor;
@@ -53,6 +52,7 @@ import cr0s.warpdrive.block.detection.BlockVirtualAssistant;
 import cr0s.warpdrive.block.detection.BlockWarpIsolation;
 import cr0s.warpdrive.block.detection.TileEntityBiometricScanner;
 import cr0s.warpdrive.block.detection.TileEntityCamera;
+import cr0s.warpdrive.block.detection.TileEntityCamouflage;
 import cr0s.warpdrive.block.detection.TileEntityCloakingCore;
 import cr0s.warpdrive.block.detection.TileEntityEnvironmentalSensor;
 import cr0s.warpdrive.block.detection.TileEntityMonitor;
@@ -161,11 +161,15 @@ import cr0s.warpdrive.item.ItemWarpArmor;
 import cr0s.warpdrive.item.ItemWrench;
 import cr0s.warpdrive.network.PacketHandler;
 import cr0s.warpdrive.render.EntityCamera;
+import cr0s.warpdrive.world.BiomeSpace;
 import cr0s.warpdrive.world.EntitySphereGen;
 import cr0s.warpdrive.world.EntityStarCore;
+import cr0s.warpdrive.world.HyperSpaceDimension;
+import cr0s.warpdrive.world.SpaceDimension;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.RenderTypeLookup;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.merchant.villager.VillagerProfession;
 import net.minecraft.inventory.EquipmentSlotType;
@@ -189,13 +193,16 @@ import net.minecraft.world.biome.Biome;
 import net.minecraftforge.client.model.generators.ExistingFileHelper;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.ModDimension;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.world.RegisterDimensionsEvent;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.GatherDataEvent;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
@@ -206,6 +213,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.collect.Sets;
@@ -214,6 +222,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.mojang.authlib.GameProfile;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -275,6 +284,7 @@ public class WarpDrive {
 	// detection blocks
 	public static Block blockBiometricScanner;
 	public static Block blockCamera;
+	public static Block blockCamouflage;
 	public static Block blockCloakingCoil;
 	public static Block blockCloakingCore;
 	public static Block blockEnvironmentalSensor;
@@ -342,6 +352,8 @@ public class WarpDrive {
 	public static DamageWarm damageWarm;
 	
 	// world generation
+	public static ModDimension modDimensionHyperspace;
+	public static ModDimension modDimensionSpace;
 	public static Biome biomeSpace;
 	@SuppressWarnings("FieldCanBeLocal")
 	private CommonWorldGenerator commonWorldGenerator;
@@ -422,21 +434,20 @@ public class WarpDrive {
 		
 		// atomic blocks and items
 		blockAcceleratorCore = new BlockAcceleratorCore("atomic.accelerator_core", EnumTier.BASIC);
-		blockAcceleratorControlPoint = new BlockAcceleratorControlPoint("atomic.accelerator_control_point", EnumTier.BASIC, false);
+		blockAcceleratorControlPoint = new BlockAcceleratorControlPoint("atomic.accelerator_control_point", EnumTier.BASIC);
 		blockParticlesCollider = new BlockParticlesCollider("atomic.particles_collider", EnumTier.BASIC);
 		blockParticlesInjector = new BlockParticlesInjector("atomic.particles_injector", EnumTier.BASIC);
-		blockVoidShellPlain = new BlockVoidShellPlain("atomic.void_shell.plain", EnumTier.BASIC, Material.ROCK);
+		blockVoidShellPlain = new BlockVoidShellPlain("atomic.void_shell.plain", EnumTier.BASIC);
 		blockVoidShellGlass = new BlockVoidShellGlass("atomic.void_shell.glass", EnumTier.BASIC);
 		
 		blockElectromagnets_plain = new Block[EnumTier.length];
 		blockElectromagnets_glass = new Block[EnumTier.length];
 		blockChillers = new Block[EnumTier.length];
-		final Map<String, Particle> particles = ParticleRegistry.getRegisteredParticles();
 		itemElectromagneticCell = new ItemElectromagneticCell[EnumTier.length];
 		itemPlasmaTorch = new ItemPlasmaTorch[EnumTier.length];
 		for(final EnumTier enumTier : EnumTier.nonCreative()) {
 			final int indexTier = enumTier.getIndex();
-			blockElectromagnets_plain[indexTier] = new BlockElectromagnetPlain("atomic.electromagnet." + enumTier.getName() + ".plain", enumTier, Material.IRON);
+			blockElectromagnets_plain[indexTier] = new BlockElectromagnetPlain("atomic.electromagnet." + enumTier.getName() + ".plain", enumTier);
 			blockElectromagnets_glass[indexTier] = new BlockElectromagnetGlass("atomic.electromagnet." + enumTier.getName() + ".glass", enumTier);
 			blockChillers[indexTier] = new BlockChiller("atomic.chiller." + enumTier.getName(), enumTier);
 			
@@ -485,7 +496,7 @@ public class WarpDrive {
 		blockDecoratives = new Block[EnumDecorativeType.values().length];
 		for (final EnumDecorativeType enumDecorativeType : EnumDecorativeType.values()) {
 			final int indexType = enumDecorativeType.ordinal();
-			blockDecoratives[indexType] = new BlockDecorative("decoration.decorative." + enumDecorativeType.getName(), EnumTier.BASIC);
+			blockDecoratives[indexType] = new BlockDecorative("decoration.decorative." + enumDecorativeType.getName(), EnumTier.BASIC, enumDecorativeType);
 		}
 		
 		blockGas = new Block[EnumGasColor.length];
@@ -501,6 +512,7 @@ public class WarpDrive {
 		// detection blocks
 		blockBiometricScanner = new BlockBiometricScanner("detection.biometric_scanner", EnumTier.BASIC);
 		blockCamera = new BlockCamera("detection.camera", EnumTier.BASIC);
+		blockCamouflage = new BlockCamouflage("detection.camouflage", EnumTier.BASIC);
 		blockCloakingCoil = new BlockCloakingCoil("detection.cloaking_coil", EnumTier.BASIC);
 		blockCloakingCore = new BlockCloakingCore("detection.cloaking_core", EnumTier.BASIC);
 		blockEnvironmentalSensor = new BlockEnvironmentalSensor("detection.environmental_sensor", EnumTier.BASIC);
@@ -654,11 +666,11 @@ public class WarpDrive {
 		// (done in the event handler)
 		
 		// world generation
-		/* TODO MC1.15 World generation
-		final Biome.BiomeProperties biomeProperties = new Biome.BiomeProperties("space").setRainDisabled().setWaterColor(0);
-		biomeSpace = new BiomeSpace(biomeProperties);
+		modDimensionHyperspace = ModDimension.withFactory(HyperSpaceDimension::new).setRegistryName("warpdrive:mod_dimension.hyperspace");
+		modDimensionSpace      = ModDimension.withFactory(SpaceDimension::new).setRegistryName("warpdrive:mod_dimension.space");
+		biomeSpace = new BiomeSpace("warpdrive:space");
 		register(biomeSpace);
-		
+		/* TODO MC1.15 world generation
 		commonWorldGenerator = new CommonWorldGenerator();
 		GameRegistry.registerWorldGenerator(commonWorldGenerator, 0);
 		*/
@@ -681,8 +693,6 @@ public class WarpDrive {
 		// Internal registries
 		cloaks = new CloakManager();
 		cameras = new CamerasRegistry();
-		
-		CelestialObjectManager.onModConstruction();
 		
 		proxy.onModConstruction();
 	}
@@ -712,11 +722,9 @@ public class WarpDrive {
 		}
 	}
 	
-	@SuppressWarnings("unused") // FML event
-	public void onCommonSetup(@Nonnull final FMLCommonSetupEvent event) {
+	@SubscribeEvent
+	public static void onCommonSetup(@Nonnull final FMLCommonSetupEvent event) {
 		WarpDriveConfig.onFMLCommonSetup();
-		
-		proxy.onFMLCommonSetup();
 		
 		if (WarpDriveConfig.isComputerCraftLoaded) {
 			final WarpDrivePeripheralHandler peripheralHandler = new WarpDrivePeripheralHandler();
@@ -724,8 +732,10 @@ public class WarpDrive {
 		}
 	}
 	
-	@SuppressWarnings("unused") // FML event
+	@SubscribeEvent
 	public void onFMLServerStarting(@Nonnull final FMLServerStartingEvent event) {
+		Configurator.setLevel("net.minecraft.command", Level.DEBUG); // For printing command errors to console
+		
 		CommandBed.register(event.getCommandDispatcher());
 		CommandDebug.register(event.getCommandDispatcher());
 		CommandDump.register(event.getCommandDispatcher());
@@ -737,6 +747,36 @@ public class WarpDrive {
 		CommandReload.register(event.getCommandDispatcher());
 		CommandRender.register(event.getCommandDispatcher());
 		CommandSpace.register(event.getCommandDispatcher());
+	}
+	
+	@SubscribeEvent
+	public static void onClientSetup(@Nonnull final FMLClientSetupEvent event) {
+		
+		// block rendering layers
+		RenderTypeLookup.setRenderLayer(WarpDrive.blockAirSource, RenderType.getTranslucent());
+		RenderTypeLookup.setRenderLayer(WarpDrive.blockAirFlow, RenderType.getTranslucent());
+		RenderTypeLookup.setRenderLayer(WarpDrive.blockCamouflage, RenderType.getTranslucent());
+		RenderTypeLookup.setRenderLayer(WarpDrive.blockLamp_bubble, RenderType.getTranslucent());
+		RenderTypeLookup.setRenderLayer(WarpDrive.blockDecoratives[EnumDecorativeType.GLASS.ordinal()], RenderType.getTranslucent());
+		RenderTypeLookup.setRenderLayer(WarpDrive.blockTransporterBeacon, RenderType.getCutout());
+		RenderTypeLookup.setRenderLayer(WarpDrive.blockVoidShellGlass, RenderType.getTranslucent());
+		
+		for (final EnumGasColor gasColor : EnumGasColor.values()) {
+			final int indexColor = gasColor.ordinal();
+			RenderTypeLookup.setRenderLayer(WarpDrive.blockGas[indexColor], RenderType.getTranslucent());
+		}
+		
+		for(final EnumTier enumTier : EnumTier.nonCreative()) {
+			final int indexTier = enumTier.getIndex();
+			RenderTypeLookup.setRenderLayer(WarpDrive.blockElectromagnets_glass[indexTier], RenderType.getTranslucent());
+			
+			for (final DyeColor dyeColor : DyeColor.values()) {
+				final int indexColor = dyeColor.getId();
+				RenderTypeLookup.setRenderLayer(WarpDrive.blockForceFields[indexTier][indexColor], RenderType.getTranslucent());
+				RenderTypeLookup.setRenderLayer(WarpDrive.blockHulls_glass[indexTier][indexColor], RenderType.getTranslucent());
+//				RenderTypeLookup.setRenderLayer(WarpDrive.blockHulls_omnipanel[indexTier][indexColor], RenderType.getTranslucent());
+			}
+		}
 	}
 	
 	final public static ArrayList<Biome> biomes = new ArrayList<>(10);
@@ -851,6 +891,123 @@ public class WarpDrive {
 		}
 	}
 	
+	@SubscribeEvent
+	public static void onRegisterEnchantments(@Nonnull final RegistryEvent.Register<Enchantment> event) {
+		LocalProfiler.start(String.format("Registering %s", event.getName()));
+		
+		for (final Enchantment enchantment : enchantments) {
+			event.getRegistry().register(enchantment);
+		}
+		
+		LocalProfiler.stop(1000);
+	}
+	
+	@SubscribeEvent
+	public static void onRegisterEntities(@Nonnull final RegistryEvent.Register<EntityType<?>> event) {
+		LocalProfiler.start(String.format("Registering %s", event.getName()));
+		
+		event.getRegistry().register(EntitySphereGen.TYPE);
+		event.getRegistry().register(EntityStarCore.TYPE);
+		event.getRegistry().register(EntityCamera.TYPE);
+		event.getRegistry().register(EntityParticleBunch.TYPE);
+		event.getRegistry().register(EntityLaserExploder.TYPE);
+		event.getRegistry().register(EntityNPC.TYPE);
+		event.getRegistry().register(EntityOfflineAvatar.TYPE);
+		event.getRegistry().register(EntitySeat.TYPE);
+		
+		LocalProfiler.stop(1000);
+	}
+	
+	@SubscribeEvent
+	public static void onRegisterItems(@Nonnull final RegistryEvent.Register<Item> event) {
+		LocalProfiler.start(String.format("Registering %s", event.getName()));
+		
+		for (final Item item : items) {
+			event.getRegistry().register(item);
+			proxy.onModelInitialisation(item);
+		}
+		for (final Block block : blocks) {
+			proxy.onModelInitialisation(block);
+		}
+		
+		LocalProfiler.stop(1000);
+	}
+	
+	@SubscribeEvent
+	public static void onRegisterModDimensions(@Nonnull final RegistryEvent.Register<ModDimension> event) {
+		LocalProfiler.start(String.format("Registering %s", event.getName()));
+		
+		event.getRegistry().register(modDimensionHyperspace);
+		event.getRegistry().register(modDimensionSpace);
+		
+		LocalProfiler.stop(1000);
+	}
+	
+	@SubscribeEvent
+	public void onRegisterDimensions(@Nonnull final RegisterDimensionsEvent event) {
+		LocalProfiler.start("RegisterDimensionsEvent");
+		
+		final Set<ResourceLocation> missings = event.getMissingNames();
+		for (final ResourceLocation resourceLocation : missings) {
+			WarpDrive.logger.info(String.format("Missing dimension %s", resourceLocation));
+		}
+		CelestialObjectManager.onRegisterDimensions();
+		
+		LocalProfiler.stop(1000);
+	}
+	
+	@SubscribeEvent
+	public static void onRegisterPotions(@Nonnull final RegistryEvent.Register<Effect> event) {
+		LocalProfiler.start(String.format("Registering %s", event.getName()));
+		
+		for (final Effect potion : potions) {
+			event.getRegistry().register(potion);
+		}
+		
+		LocalProfiler.stop(1000);
+	}
+	
+	@SubscribeEvent
+	public static void onRegisterPotionTypes(@Nonnull final RegistryEvent.Register<Potion> event) {
+		LocalProfiler.start(String.format("Registering %s", event.getName()));
+		
+		for (final Potion potionType : potionTypes) {
+			event.getRegistry().register(potionType);
+		}
+		
+		LocalProfiler.stop(1000);
+	}
+	
+	@SubscribeEvent
+	public static void onRegisterRecipes(@Nonnull final RegistryEvent.Register<IRecipeSerializer<?>> event) {
+		LocalProfiler.start(String.format("Registering %s step 1", event.getName()));
+		
+		Recipes.initDynamic();
+		
+		LocalProfiler.stop(1000);
+		
+		LocalProfiler.start(String.format("Registering %s step 2", event.getName()));
+		
+		for (final IRecipe<?> recipe : recipes.values()) {
+			// TODO MC1.15 Recipe registration
+			// event.getRegistry().register(recipe);
+		}
+		
+		LocalProfiler.stop(1000);
+	}
+	
+	@SubscribeEvent
+	public static void onRegisterSoundEvents(@Nonnull final RegistryEvent.Register<SoundEvent> event) {
+		LocalProfiler.start(String.format("Registering %s", event.getName()));
+		
+		cr0s.warpdrive.data.SoundEvents.registerSounds();
+		for (final SoundEvent soundEvent : soundEvents) {
+			event.getRegistry().register(soundEvent);
+		}
+		
+		LocalProfiler.stop(1000);
+	}
+	
 	// Note: tier information is stored in the block itself since 1.13 (previously, it was the block attribute/state).
 	// On 1.12, onLoad() wasn't always called, several workarounds were required to get the tier.
 	// On 1.15, we can't access the world during the onLoad() event while reloading a save.
@@ -905,6 +1062,7 @@ public class WarpDrive {
 		doRegisterTileEntity(event, TileEntityAirGeneratorTiered.class, blockAirGeneratorTiered);
 		doRegisterTileEntity(event, TileEntityBiometricScanner.class, blockBiometricScanner);
 		doRegisterTileEntity(event, TileEntityCamera.class, blockCamera);
+		doRegisterTileEntity(event, TileEntityCamouflage.class, blockCamouflage);
 		doRegisterTileEntity(event, TileEntityCapacitor.class, blockCapacitors);
 		doRegisterTileEntity(event, TileEntityChunkLoader.class, blockChunkLoaders);
 		doRegisterTileEntity(event, TileEntityCloakingCore.class, blockCloakingCore);
@@ -935,101 +1093,6 @@ public class WarpDrive {
 		doRegisterTileEntity(event, TileEntityTransporterCore.class, blockTransporterCore);
 		doRegisterTileEntity(event, TileEntityVirtualAssistant.class, blockVirtualAssistants);
 		doRegisterTileEntity(event, TileEntityWeaponController.class, blockWeaponController);
-		
-		LocalProfiler.stop(1000);
-	}
-	
-	@SubscribeEvent
-	public static void onRegisterEnchantments(@Nonnull final RegistryEvent.Register<Enchantment> event) {
-		LocalProfiler.start(String.format("Registering %s", event.getName()));
-		
-		for (final Enchantment enchantment : enchantments) {
-			event.getRegistry().register(enchantment);
-		}
-		
-		LocalProfiler.stop(1000);
-	}
-	
-	@SubscribeEvent
-	public static void onRegisterEntities(@Nonnull final RegistryEvent.Register<EntityType<?>> event) {
-		LocalProfiler.start(String.format("Registering %s", event.getName()));
-		
-		event.getRegistry().register(EntitySphereGen.TYPE);
-		event.getRegistry().register(EntityStarCore.TYPE);
-		event.getRegistry().register(EntityCamera.TYPE);
-		event.getRegistry().register(EntityParticleBunch.TYPE);
-		event.getRegistry().register(EntityLaserExploder.TYPE);
-		event.getRegistry().register(EntityNPC.TYPE);
-		event.getRegistry().register(EntityOfflineAvatar.TYPE);
-		event.getRegistry().register(EntitySeat.TYPE);
-		
-		LocalProfiler.stop(1000);
-	}
-	
-	@SubscribeEvent
-	public static void onRegisterItems(@Nonnull final RegistryEvent.Register<Item> event) {
-		LocalProfiler.start(String.format("Registering %s", event.getName()));
-		
-		for (final Item item : items) {
-			event.getRegistry().register(item);
-			proxy.onModelInitialisation(item);
-		}
-		for (final Block block : blocks) {
-			proxy.onModelInitialisation(block);
-		}
-		
-		LocalProfiler.stop(1000);
-	}
-	
-	@SubscribeEvent
-	public static void onRegisterPotions(@Nonnull final RegistryEvent.Register<Effect> event) {
-		LocalProfiler.start(String.format("Registering %s", event.getName()));
-		
-		for (final Effect potion : potions) {
-			event.getRegistry().register(potion);
-		}
-		
-		LocalProfiler.stop(1000);
-	}
-	
-	@SubscribeEvent
-	public static void onRegisterPotionTypes(@Nonnull final RegistryEvent.Register<Potion> event) {
-		LocalProfiler.start(String.format("Registering %s", event.getName()));
-		
-		for (final Potion potionType : potionTypes) {
-			event.getRegistry().register(potionType);
-		}
-		
-		LocalProfiler.stop(1000);
-	}
-	
-	
-	@SubscribeEvent
-	public static void onRegisterRecipes(@Nonnull final RegistryEvent.Register<IRecipeSerializer<?>> event) {
-		LocalProfiler.start(String.format("Registering %s step 1", event.getName()));
-		
-		Recipes.initDynamic();
-		
-		LocalProfiler.stop(1000);
-		
-		LocalProfiler.start(String.format("Registering %s step 2", event.getName()));
-		
-		for (final IRecipe<?> recipe : recipes.values()) {
-			// TODO MC1.15 Recipe registration
-			// event.getRegistry().register(recipe);
-		}
-		
-		LocalProfiler.stop(1000);
-	}
-	
-	@SubscribeEvent
-	public static void onRegisterSoundEvents(@Nonnull final RegistryEvent.Register<SoundEvent> event) {
-		LocalProfiler.start(String.format("Registering %s", event.getName()));
-		
-		cr0s.warpdrive.data.SoundEvents.registerSounds();
-		for (final SoundEvent soundEvent : soundEvents) {
-			event.getRegistry().register(soundEvent);
-		}
 		
 		LocalProfiler.stop(1000);
 	}

@@ -56,17 +56,17 @@ public class Filler implements IXmlRepresentableUnit {
 	public boolean loadFromXmlElement(final Element element) throws InvalidXmlException {
 		
 		// Check there is a block name
-		if (!element.hasAttribute("block")) {
-			throw new InvalidXmlException(String.format("Filler %s is missing a block attribute!",
+		if (!element.hasAttribute("blockState")) {
+			throw new InvalidXmlException(String.format("Filler %s is missing a blockState attribute!",
 			                                            element));
 		}
 		
 		final String stringBlockState = element.getAttribute("blockState");
 		
 		blockState = Commons.readBlockStateFromString(stringBlockState);
-		if (blockState.getBlock() == Blocks.AIR) {
-			WarpDrive.logger.warn(String.format("Skipping missing block %s",
-			                                    stringBlockState ));
+		if ( blockState.getBlock() == Blocks.AIR
+		  && !stringBlockState.equals("minecraft:air") ) {// (only skip unintended air blocks)
+			// note: log is already done by Commons.readBlockStateFromString
 			return false;
 		}
 		

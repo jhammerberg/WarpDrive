@@ -1,7 +1,7 @@
 {
-    "language": "Chinese",
-    "language.code": "zh_cn",
+    "language.name": "Chinese",
     "language.region": "China",
+    "language.code": "zh_cn",
     
     "death.attack.warpdrive.asphyxia": "%1$s窒息了",
     "death.attack.warpdrive.asphyxia.player": "%1$s因%2$s窒息",
@@ -668,10 +668,10 @@
     "warpdrive.command.found_line": "- %1$s",
     "warpdrive.command.no_matching_entity": "在 %1$d 格内未找到匹配实体",
     "warpdrive.command.x_matching_entities": "%2$d 格内有 %1$d 个匹配实体：",
-    "warpdrive.command.only_in_space": "此结构仅允许在太空中使用！",
+    "warpdrive.command.only_in_space": "此结构仅允许在太空中使用。",
     "warpdrive.command.configuration_reloaded": "曲率驱动配置文件已被重载。",
     "warpdrive.command.liability_warning": "使用时风险自负！",
-    "warpdrive.command.player_required": "请由玩家使用或提供玩家名！",
+    "warpdrive.command.player_required": "请由玩家使用或提供玩家名。",
     "warpdrive.command.player_not_found": "找不到玩家 “%1$s”",
     "warpdrive.command.too_many_arguments": "参数过多 %1$d",
     "warpdrive.command.player_in_unknown_dimension": "玩家 %1$s 处于未知维度 %2$d。",

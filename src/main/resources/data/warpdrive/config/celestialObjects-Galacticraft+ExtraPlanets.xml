@@ -83,7 +83,7 @@
 				<dimension registryName="extraplanets:mercury" isBreathable="false" gravity="normal">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/mercury_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/mercury_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 
@@ -95,7 +95,7 @@
 				<dimension registryName="boss_tools:mercury" isBreathable="false" gravity="normal">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/mercury_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/mercury_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 
@@ -107,7 +107,7 @@
 				<dimension registryName="galacticraftplanets:-31" isBreathable="false" gravity="normal">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="galacticraftplanets:textures/blocks/venus_rock_0.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="galacticraftplanets:textures/block/venus_rock_0.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -218,7 +218,7 @@
 				<dimension registryName="extraplanets:asteroid_belt" isBreathable="false" gravity="normal">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/ash_rock.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/ash_rock.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -242,7 +242,7 @@
 				<dimension registryName="extraplanets:jupiter" isBreathable="false" gravity="normal">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/jupiter_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/jupiter_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -254,7 +254,7 @@
 				<dimension registryName="extraplanets:io" isBreathable="false" gravity="0.43">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/io_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/io_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -266,7 +266,7 @@
 				<dimension registryName="extraplanets:europa" isBreathable="false" gravity="0.4">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/europa_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/europa_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -278,7 +278,7 @@
 				<dimension registryName="extraplanets:ganymede" isBreathable="false" gravity="0.4">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/ganymede_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/ganymede_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -290,7 +290,7 @@
 				<dimension registryName="extraplanets:callisto" isBreathable="false" gravity="0.4">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/callisto_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/callisto_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 
@@ -302,7 +302,7 @@
 				<dimension registryName="extraplanets:saturn" isBreathable="false" gravity="normal">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/saturn_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/saturn_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -314,7 +314,7 @@
 				<dimension registryName="extraplanets:rhea" isBreathable="false" gravity="0.3">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/rhea_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/rhea_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -326,7 +326,7 @@
 				<dimension registryName="extraplanets:titan" isBreathable="false" gravity="0.4">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/titan_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/titan_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -338,7 +338,7 @@
 				<dimension registryName="extraplanets:iapetus" isBreathable="false" gravity="0.24">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/iapetus_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/iapetus_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -350,7 +350,7 @@
 				<dimension registryName="extraplanets:uranus" isBreathable="false" gravity="normal">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/uranus_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/uranus_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -362,7 +362,7 @@
 				<dimension registryName="extraplanets:titania" isBreathable="false" gravity="0.6">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/titania_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/titania_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 
@@ -374,7 +374,7 @@
 				<dimension registryName="extraplanets:oberon" isBreathable="false" gravity="0.6">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/oberon_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/oberon_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -386,7 +386,7 @@
 				<dimension registryName="extraplanets:neptune" isBreathable="false" gravity="normal">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/neptune_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/neptune_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -398,7 +398,7 @@
 				<dimension registryName="extraplanets:triton" isBreathable="false" gravity="0.3">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/blocks/triton_surface.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="extraplanets:textures/block/triton_surface.png" periodU="150" />
 				<render red="0.80" green="0.90" blue="0.90" alpha="0.30" />
 			</celestialObject>
 			
@@ -411,7 +411,7 @@
 				<dimension registryName="minecraft:the_end" isBreathable="true" gravity="normal">
 					<center x="0" z="0" />
 				</dimension>
-				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="minecraft:textures/blocks/end_stone.png" periodU="150" />
+				<render red="1.00" green="1.00" blue="1.00" alpha="1.00" texture="minecraft:textures/block/end_stone.png" periodU="150" />
 				<render red="0.50" green="0.50" blue="0.40" alpha="0.30" />
 			</celestialObject>
 			

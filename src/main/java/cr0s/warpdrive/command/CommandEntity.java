@@ -108,7 +108,7 @@ public class CommandEntity {
 				        
 				        .then(Commands.literal("help")
 				                      .executes((commandContext) -> help(commandContext.getSource(),
-				                                                         commandContext.getRootNode().getName() ))
+				                                                         commandContext.getNodes().get(0).getNode().getName() ))
 				             )
 				        .executes((commandContext) -> execute(commandContext.getSource(),
 				                                              20,
@@ -172,7 +172,9 @@ public class CommandEntity {
 					continue;
 				}
 			}
-			if (filter.isEmpty() || name.contains(filter)) {
+			if ( filter.isEmpty()
+			  || filter.equals("*")
+			  || name.contains(filter) ) {
 				// update statistics
 				count++;
 				if (!counts.containsKey(name)) {

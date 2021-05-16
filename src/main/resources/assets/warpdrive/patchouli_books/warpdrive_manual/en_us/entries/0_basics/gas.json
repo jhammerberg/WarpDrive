@@ -1,6 +1,6 @@
 {
 	"name": "Gas",
-	"icon": "warpdrive:gas:2",
+	"icon": "warpdrive:decoration.gas:green",
 	"category": "0_basics",
 	"pages": [
 		{
@@ -9,7 +9,7 @@
 		},
 		{
 			"type": "spotlight",
-			"item": "warpdrive:gas:0",
+			"item": "warpdrive:decoration.gas:blue",
 			"link_recipe": "true",
 			"text": "Hint: gas will quickly dissipate in most atmospheres."
 		}

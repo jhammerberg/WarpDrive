@@ -22,7 +22,8 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 public class BlockWarpIsolation extends BlockAbstractBase {
 	
 	public BlockWarpIsolation(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
-		super(getDefaultProperties(null).hardnessAndResistance(3.5F), registryName, enumTier);
+		super(getDefaultProperties(null)
+				      .hardnessAndResistance(3.5F), registryName, enumTier);
 	}
 	
 	@Override

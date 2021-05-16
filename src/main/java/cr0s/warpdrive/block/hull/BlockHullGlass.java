@@ -2,60 +2,46 @@ package cr0s.warpdrive.block.hull;
 
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IDamageReceiver;
-import cr0s.warpdrive.block.BlockAbstractBase;
-import cr0s.warpdrive.config.WarpDriveConfig;
 import cr0s.warpdrive.data.EnumTier;
 import cr0s.warpdrive.data.Vector3;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.SoundType;
-import net.minecraft.block.material.PushReaction;
 import net.minecraft.block.material.Material;
-import net.minecraft.item.BlockItem;
 import net.minecraft.item.DyeColor;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 
-import net.minecraftforge.common.ToolType;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-public class BlockHullGlass extends BlockAbstractBase implements IDamageReceiver {
-	
-	final int   indexColor;
+public class BlockHullGlass extends BlockAbstractHull implements IDamageReceiver {
 	
 	public BlockHullGlass(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, @Nonnull final DyeColor dyeColor) {
 		super(getDefaultProperties(Material.GLASS, dyeColor.getMapColor())
-				.hardnessAndResistance(WarpDriveConfig.HULL_HARDNESS[enumTier.getIndex()], WarpDriveConfig.HULL_BLAST_RESISTANCE[enumTier.getIndex()])
-				.harvestTool(ToolType.PICKAXE)
-				.harvestLevel(WarpDriveConfig.HULL_HARVEST_LEVEL[enumTier.getIndex()])
 				.sound(SoundType.GLASS)
-				.lightValue(10),
-		      registryName, enumTier);
-		
-		this.indexColor = dyeColor.getId();
+				.lightValue(10)
+				.notSolid(),
+		      registryName, enumTier, dyeColor);
+	}
+	
+	@Override
+	public boolean propagatesSkylightDown(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader,
+	                                      @Nonnull final BlockPos blockPos) {
+		return true;
 	}
 	
 	@SuppressWarnings("deprecation")
-	@Nonnull
+	@OnlyIn(Dist.CLIENT)
 	@Override
-	public PushReaction getPushReaction(@Nonnull final BlockState blockState) {
-		return PushReaction.BLOCK;
-	}
-	
-	@Nullable
-	@Override
-	public BlockItem createItemBlock() {
-		return new ItemBlockHull(this);
-	}
-	
-	@Override
-	public float getBlockHardness(@Nonnull final BlockState blockState, @Nonnull final World world, @Nonnull final BlockPos blockPos,
-	                              @Nonnull final DamageSource damageSource, final int damageParameter, @Nonnull final Vector3 damageDirection, final int damageLevel) {
-		// TODO: adjust hardness to damage type/color
-		return WarpDriveConfig.HULL_HARDNESS[enumTier.getIndex()];
+	public boolean isSideInvisible(@Nonnull final BlockState blockState, @Nonnull final BlockState blockStateAdjacent, @Nonnull final Direction side) {
+		return blockStateAdjacent.getBlock() == this
+		    || super.isSideInvisible(blockState, blockStateAdjacent, side);
 	}
 	
 	@Override

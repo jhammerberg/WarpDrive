@@ -141,16 +141,15 @@ public class TileEntityCloakingCore extends TileEntityAbstractEnergyCoreOrContro
 			    }
 			}
 		}
-		if (cloakScanner != null) {
-			if (cloakScanner.tick()) {// scan is done
-				for (final Entry<Long, Integer> entryChunkIndexVolume : cloakScanner.chunkIndexVolume.long2IntEntrySet()) {
-					chunkIndexVolume.put((long) entryChunkIndexVolume.getKey(), (int) entryChunkIndexVolume.getValue());
-				}
-				cloakScanner = null;
-				if (WarpDriveConfig.LOGGING_CLOAKING) {
-					WarpDrive.logger.info(String.format("%s scanning done",
-					                                    this ));
-				}
+		if ( cloakScanner != null
+		  && cloakScanner.tick() ) {// scan is done
+			for (final Entry<Long, Integer> entryChunkIndexVolume : cloakScanner.chunkIndexVolume.long2IntEntrySet()) {
+				chunkIndexVolume.put((long) entryChunkIndexVolume.getKey(), (int) entryChunkIndexVolume.getValue());
+			}
+			cloakScanner = null;
+			if (WarpDriveConfig.LOGGING_CLOAKING) {
+				WarpDrive.logger.info(String.format("%s scanning done",
+				                                    this ));
 			}
 		}
 		

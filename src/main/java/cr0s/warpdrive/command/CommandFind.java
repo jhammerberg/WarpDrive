@@ -30,7 +30,7 @@ public class CommandFind {
 				        
 				        .then(Commands.literal("help")
 				                      .executes((commandContext) -> help(commandContext.getSource(),
-				                                                         commandContext.getRootNode().getName() ))
+				                                                         commandContext.getNodes().get(0).getNode().getName() ))
 				             )
 				        .executes((commandContext) -> execute(commandContext.getSource(),
 				                                              null ))

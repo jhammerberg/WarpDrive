@@ -11,12 +11,13 @@ import javax.annotation.Nonnull;
 
 public class BlockAcceleratorControlPoint extends BlockAbstractAccelerator {
 	
-	public BlockAcceleratorControlPoint(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, final boolean isSubBlock) {
-		super(registryName, enumTier, null);
-		
-		if (isSubBlock) {
-			return;
-		}
+	protected BlockAcceleratorControlPoint(@Nonnull final Block.Properties blockProperties,
+	                                    @Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		super(blockProperties, registryName, enumTier);
+	}
+	
+	public BlockAcceleratorControlPoint(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
+		this(getDefaultProperties(null), registryName, enumTier);
 		
 		setDefaultState(getStateContainer().getBaseState()
 				                .with(BlockProperties.ACTIVE, false)

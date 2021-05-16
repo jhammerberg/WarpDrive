@@ -161,15 +161,10 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			                                     getUp()    + 1 + getDown(),
 			                                     getRight() + 1 + getLeft());
 			final int maxDistance = 256;
-			if (Math.abs(movement.x) - shipSize.x > maxDistance) {
-				movement.x = (int) Math.signum(movement.x) * (shipSize.x + maxDistance);
-			}
-			if (Math.abs(movement.y) - shipSize.y > maxDistance) {
-				movement.y = (int) Math.signum(movement.y) * (shipSize.y + maxDistance);
-			}
-			if (Math.abs(movement.z) - shipSize.z > maxDistance) {
-				movement.z = (int) Math.signum(movement.z) * (shipSize.z + maxDistance);
-			}
+			movement.x = (int) Math.signum(movement.x) * Math.min(Math.abs(movement.x), shipSize.x + maxDistance);
+			movement.y = (int) Math.signum(movement.y) * Math.min(Math.abs(movement.y), shipSize.y + maxDistance);
+			movement.z = (int) Math.signum(movement.z) * Math.min(Math.abs(movement.z), shipSize.z + maxDistance);
+			
 			final BlockState blockState = world.getBlockState(pos);
 			if (!(blockState.getBlock() instanceof BlockShipCore)) {
 				if (Commons.throttleMe("InvalidBlockToRenderBondingBox")) {
@@ -328,7 +323,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			}
 			if (!isUnlimited) {
 				if ( shipMass > WarpDriveConfig.SHIP_MASS_MAX_ON_PLANET_SURFACE
-				  && CelestialObjectManager.isPlanet(world, pos.getX(), pos.getZ()) ) {
+				  && CelestialObjectManager.isPlanet(world) ) {
 					textShipScanIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.too_much_mass_for_planet",
 					                                       WarpDriveConfig.SHIP_MASS_MAX_ON_PLANET_SURFACE, shipMass );
 					isShipScanValid = false;
@@ -338,7 +333,7 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 					return;
 				}
 				if ( shipMass < WarpDriveConfig.SHIP_MASS_MIN_FOR_HYPERSPACE
-				  && CelestialObjectManager.isInHyperspace(world, pos.getX(), pos.getZ()) ) {
+				  && CelestialObjectManager.isInHyperspace(world) ) {
 					textShipScanIssues = new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.insufficient_mass_for_hyperspace",
 					                                       WarpDriveConfig.SHIP_MASS_MIN_FOR_HYPERSPACE, shipMass );
 					isShipScanValid = false;
@@ -1176,15 +1171,9 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 			                                     getUp()    + 1 + getDown(),
 			                                     getRight() + 1 + getLeft());
 			final int maxDistance = shipMovementCosts.maximumDistance_blocks;
-			if (Math.abs(movement.x) - shipSize.x > maxDistance) {
-				movement.x = (int) Math.signum(movement.x) * (shipSize.x + maxDistance);
-			}
-			if (Math.abs(movement.y) - shipSize.y > maxDistance) {
-				movement.y = (int) Math.signum(movement.y) * (shipSize.y + maxDistance);
-			}
-			if (Math.abs(movement.z) - shipSize.z > maxDistance) {
-				movement.z = (int) Math.signum(movement.z) * (shipSize.z + maxDistance);
-			}
+			movement.x = (int) Math.signum(movement.x) * Math.min(Math.abs(movement.x), shipSize.x + maxDistance);
+			movement.y = (int) Math.signum(movement.y) * Math.min(Math.abs(movement.y), shipSize.y + maxDistance);
+			movement.z = (int) Math.signum(movement.z) * Math.min(Math.abs(movement.z), shipSize.z + maxDistance);
 			moveX = facing.getXOffset() * movement.x - facing.getZOffset() * movement.z;
 			moveY = movement.y;
 			moveZ = facing.getZOffset() * movement.x + facing.getXOffset() * movement.z;
@@ -1350,12 +1339,12 @@ public class TileEntityShipCore extends TileEntityAbstractShipController impleme
 	
 	@Override
 	public Object[] isInSpace() {
-		return new Boolean[] { CelestialObjectManager.isInSpace(world, pos.getX(), pos.getZ()) };
+		return new Boolean[] { CelestialObjectManager.isInSpace(world) };
 	}
 	
 	@Override
 	public Object[] isInHyperspace() {
-		return new Boolean[] { CelestialObjectManager.isInHyperspace(world, pos.getX(), pos.getZ()) };
+		return new Boolean[] { CelestialObjectManager.isInHyperspace(world) };
 	}
 	
 	// public Object[] shipName(@Nonnull final Object[] arguments);

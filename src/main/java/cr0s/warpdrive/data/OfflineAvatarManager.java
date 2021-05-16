@@ -174,7 +174,6 @@ public class OfflineAvatarManager {
 			if (WarpDriveConfig.LOGGING_OFFLINE_AVATAR) {
 				WarpDrive.logger.info(String.format("Skipping offline avatar for dead player %s",
 				                                    entityPlayer ));
-				
 			}
 			return;
 		}

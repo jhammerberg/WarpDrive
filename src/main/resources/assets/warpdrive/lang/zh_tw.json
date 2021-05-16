@@ -1,7 +1,7 @@
 {
-    "language": "Traditional Chinese",
-    "language.code": "zh_tw",
+    "language.name": "Traditional Chinese",
     "language.region": "Taiwan",
+    "language.code": "zh_tw",
     
     "death.attack.warpdrive.asphyxia": "%1$s 不能呼吸了",
     "death.attack.warpdrive.asphyxia.player": "%1$s 被 %2$s 親吻導致不能呼吸了",
@@ -666,10 +666,10 @@
     "warpdrive.command.found_line": "- %1$s",
     "warpdrive.command.no_matching_entity": "No matching entity found within %1$d blocks",
     "warpdrive.command.x_matching_entities": "%1$d matching entities within %2$d blocks:",
-    "warpdrive.command.only_in_space": "This structure is only allowed in space!",
+    "warpdrive.command.only_in_space": "This structure is only allowed in space.",
     "warpdrive.command.configuration_reloaded": "WarpDrive configuration has been reloaded.",
     "warpdrive.command.liability_warning": "Use at your own risk!",
-    "warpdrive.command.player_required": "Use as a player or provide a player name!",
+    "warpdrive.command.player_required": "Use as a player or provide a player name.",
     "warpdrive.command.player_not_found": "Player not found '%1$s'",
     "warpdrive.command.too_many_arguments": "Too many arguments %1$d",
     "warpdrive.command.player_in_unknown_dimension": "Player %1$s is in unknown dimension %2$d.",

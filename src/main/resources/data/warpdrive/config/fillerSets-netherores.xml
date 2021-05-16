@@ -41,11 +41,11 @@
     Magnesium(  4,     5,     2,    8, "crushed");
      -->
     <fillerSet group="nether" name="netherores_nether">
-        <filler block="netherores:ore" metadata="0" weight="50" />
-        <filler block="netherores:ore" metadata="0" weight="40" />
-        <filler block="netherores:ore" metadata="0" weight="30" />
-        <filler block="netherores:ore" metadata="0" weight="15" />
-        <filler block="netherores:ore" metadata="0" weight="5" />
+        <filler blockState="netherores:ore" weight="50" />
+        <filler blockState="netherores:ore" weight="40" />
+        <filler blockState="netherores:ore" weight="30" />
+        <filler blockState="netherores:ore" weight="15" />
+        <filler blockState="netherores:ore" weight="5" />
     </fillerSet>
 	
 </worldGeneration>

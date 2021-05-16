@@ -25,33 +25,16 @@ public class CompatComputerCraft implements IBlockTransformer {
 	private static Class<?> classBlockTurtle;
 	private static Class<?> classBlockWiredModemFull;
 	
-	public static void register(final boolean isCCTweakedLoaded) {
+	public static void register() {
 		try {
-			// several changes are introduced in the CC-Tweaked fork, notably:
-			// - non-ticking tile entities are separated
-			// - BlockCable changed location
-			if (!isCCTweakedLoaded) {// original mod
-				WarpDrive.logger.info("Loading ComputerCraft compatibility with its original flavor...");
-				classBlockGeneric        = Class.forName("dan200.computercraft.shared.common.BlockGeneric");
-				
-				classBlockAdvancedModem  = Class.forName("dan200.computercraft.shared.peripheral.modem.BlockAdvancedModem");
-				classBlockComputerBase   = Class.forName("dan200.computercraft.shared.computer.blocks.BlockComputerBase");
-				classBlockCable          = Class.forName("dan200.computercraft.shared.peripheral.common.BlockCable");
-				classBlockPeripheral     = Class.forName("dan200.computercraft.shared.peripheral.common.BlockPeripheral");
-				classBlockTurtle         = Class.forName("dan200.computercraft.shared.turtle.blocks.BlockTurtle");
-				classBlockWiredModemFull = null;
-				
-			} else {// CC-Tweaked fork
-				WarpDrive.logger.info("Loading ComputerCraft compatibility with its CC-Tweaked fork...");
-				classBlockGeneric        = Class.forName("dan200.computercraft.shared.common.BlockGeneric");
-				
-				classBlockAdvancedModem  = Class.forName("dan200.computercraft.shared.peripheral.modem.wireless.BlockAdvancedModem");
-				classBlockComputerBase   = Class.forName("dan200.computercraft.shared.computer.blocks.BlockComputerBase");
-				classBlockCable          = Class.forName("dan200.computercraft.shared.peripheral.modem.wired.BlockCable");
-				classBlockPeripheral     = Class.forName("dan200.computercraft.shared.peripheral.common.BlockPeripheral");
-				classBlockTurtle         = Class.forName("dan200.computercraft.shared.turtle.blocks.BlockTurtle");
-				classBlockWiredModemFull = Class.forName("dan200.computercraft.shared.peripheral.modem.wired.BlockWiredModemFull");
-			}
+			classBlockGeneric        = Class.forName("dan200.computercraft.shared.common.BlockGeneric");
+			
+			classBlockAdvancedModem  = Class.forName("dan200.computercraft.shared.peripheral.modem.wireless.BlockAdvancedModem");
+			classBlockComputerBase   = Class.forName("dan200.computercraft.shared.computer.blocks.BlockComputerBase");
+			classBlockCable          = Class.forName("dan200.computercraft.shared.peripheral.modem.wired.BlockCable");
+			classBlockPeripheral     = Class.forName("dan200.computercraft.shared.peripheral.common.BlockPeripheral");
+			classBlockTurtle         = Class.forName("dan200.computercraft.shared.turtle.blocks.BlockTurtle");
+			classBlockWiredModemFull = Class.forName("dan200.computercraft.shared.peripheral.modem.wired.BlockWiredModemFull");
 			
 			WarpDriveConfig.registerBlockTransformer("computercraft", new CompatComputerCraft());
 		} catch(final ClassNotFoundException exception) {

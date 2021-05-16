@@ -44,8 +44,7 @@
 	</xs:complexType>
 	
 	<xs:complexType name="elementFiller">
-		<xs:attribute name="block" type="xs:string" use="required" />
-		<xs:attribute name="metadata" type="xs:string" use="optional" />
+		<xs:attribute name="blockState" type="xs:string" use="required" />
 		<xs:attribute name="nbt" type="xs:string" use="optional" />
 		<xs:attribute name="weight" type="xs:string" use="optional" />
 		<xs:attribute name="ratio" type="xs:string" use="optional" />
@@ -134,8 +133,7 @@
 	</xs:complexType>
 	
 	<xs:complexType name="elementMetaShell">
-		<xs:attribute name="block" type="xs:string" use="optional" />
-		<xs:attribute name="metadata" type="xs:string" use="optional" />
+		<xs:attribute name="blockState" type="xs:string" use="optional" />
 		<xs:attribute name="minCount" type="xs:string" use="required" />
 		<xs:attribute name="maxCount" type="xs:string" use="required" />
 		<xs:attribute name="minRadius" type="xs:string" use="required" />

@@ -1,11 +1,12 @@
 package cr0s.warpdrive.config.structures;
 
-import cr0s.warpdrive.Commons;
 import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.config.InvalidXmlException;
 import cr0s.warpdrive.config.XmlRandomCollection;
 import cr0s.warpdrive.config.XmlFileManager;
 import cr0s.warpdrive.data.EnumStructureGroup;
+
+import javax.annotation.Nonnull;
 
 import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Element;
@@ -103,17 +104,18 @@ public class StructureManager extends XmlFileManager {
 		}
 	}
 	
-	public static String getStructureNames(final String group) {
+	public static String[] getStructureNames(final String group) {
 		if (group != null && !group.isEmpty()) {
 			final XmlRandomCollection<AbstractStructure> xmlRandomCollection = structuresByGroup.get(group);
 			if (xmlRandomCollection != null) {
 				return xmlRandomCollection.getNames();
 			}
 		}
-		return "Error: group '" + group + "' isn't defined. Try one of: " + StringUtils.join(structuresByGroup.keySet(), ", ");
+		return new String[] { "Error: group '" + group + "' isn't defined. Try one of: " + StringUtils.join(structuresByGroup.keySet(), ", ") };
 	}
 	
-	public static String getGroups() {
-		return Commons.format(structuresByGroup.keySet().toArray());
+	@Nonnull
+	public static String[] getGroups() {
+		return structuresByGroup.keySet().toArray(new String[0]);
 	}
 }

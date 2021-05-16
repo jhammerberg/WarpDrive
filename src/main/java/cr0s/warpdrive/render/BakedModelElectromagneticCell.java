@@ -17,17 +17,13 @@ import net.minecraft.world.World;
 
 public class BakedModelElectromagneticCell extends BakedModelAbstractBase {
 	
-	public BakedModelElectromagneticCell() {
-		super();
-	}
+	private final HashMap<String,ModelResourceLocation> particleKeyToModelLocation = new HashMap<>(5);
 	
 	@Nonnull
 	@Override
 	public ItemOverrideList getOverrides() {
 		return itemOverrideList;
 	}
-	
-	private final HashMap<String,ModelResourceLocation> particleKeyToModelLocation = new HashMap<>(5);
 	
 	protected ItemOverrideList itemOverrideList = new ItemOverrideList() {
 		@Override

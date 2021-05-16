@@ -628,7 +628,7 @@ public class TileEntityLaser extends TileEntityAbstractLaser implements IBeamFre
 			return 1.0D;
 		}
 		final double attenuation;
-		if (CelestialObjectManager.hasAtmosphere(world, pos.getX(), pos.getZ())) {
+		if (CelestialObjectManager.hasAtmosphere(world)) {
 			attenuation = WarpDriveConfig.LASER_CANNON_ENERGY_ATTENUATION_PER_AIR_BLOCK;
 		} else {
 			attenuation = WarpDriveConfig.LASER_CANNON_ENERGY_ATTENUATION_PER_VOID_BLOCK;

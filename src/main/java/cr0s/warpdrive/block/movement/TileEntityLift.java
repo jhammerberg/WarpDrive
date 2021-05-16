@@ -157,6 +157,8 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 	
 	private boolean liftEntity() {
 		assert world != null;
+		
+		// get list of potential entities
 		final double xMin = pos.getX() + 0.5 - LIFT_GRAB_RADIUS;
 		final double xMax = pos.getX() + 0.5 + LIFT_GRAB_RADIUS;
 		final double zMin = pos.getZ() + 0.5 - LIFT_GRAB_RADIUS;
@@ -180,23 +182,12 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 			return false;
 		}
 		
-		for (final Entity entity : list) {
-			if ( entity instanceof LivingEntity
-			     && energy_consume(WarpDriveConfig.LIFT_ENERGY_PER_ENTITY, true)) {
-				entity.setPositionAndUpdate(pos.getX() + 0.5D, pos.getY() + 1.0D, pos.getZ() + 0.5D);
-				PacketHandler.sendBeamPacket(world,
-				                             new Vector3(pos.getX() + 0.5D, firstUncoveredY, pos.getZ() + 0.5D),
-				                             new Vector3(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D),
-				                             1F, 1F, 0F, 40, 0, 100);
-				world.playSound(null, pos, SoundEvents.LASER_HIGH, SoundCategory.AMBIENT, 4.0F, 1.0F);
-				energy_consume(WarpDriveConfig.LIFT_ENERGY_PER_ENTITY, false);
-			}
-		}
+		// cache security constrains
 		final ArrayList<GlobalRegion> globalRegions = getUpgradeCount(upgradeSlotSecurity) <= 0
 		                                            ? new ArrayList<>(0)
 		                                            : GlobalRegionManager.getContainers(EnumGlobalRegionType.SHIP, world, pos);
 		final ArrayList<TileEntityShipCore> tileEntityShipCores = new ArrayList<>(globalRegions.size());
-		if (!globalRegions.isEmpty()) {// check security constrains
+		if (!globalRegions.isEmpty()) {
 			for (final GlobalRegion globalRegion : globalRegions) {
 				// abort on invalid ship cores
 				final TileEntity tileEntity = world.getTileEntity(globalRegion.getBlockPos());
@@ -219,12 +210,14 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 			}
 		}
 		
+		// go through each entity
 		boolean isTransferDone = false;
 		for (final Entity entity : list) {
 			if (!(entity instanceof LivingEntity)) {
 				continue;
 			}
-			if (!globalRegions.isEmpty()) {// check security constrains
+			// apply security constrains
+			if (!globalRegions.isEmpty()) {
 				if (!(entity instanceof PlayerEntity)) {// only players are allowed
 					continue;
 				}
@@ -237,6 +230,7 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 				}
 			}
 			
+			// consume power and move
 			if (energy_consume(WarpDriveConfig.LIFT_ENERGY_PER_ENTITY, true)) {
 				if (mode == EnumLiftMode.UP) {// Lift up
 					entity.setPositionAndUpdate(pos.getX() + 0.5D, pos.getY() + 1.0D, pos.getZ() + 0.5D);
@@ -251,7 +245,9 @@ public class TileEntityLift extends TileEntityAbstractEnergyConsumer implements 
 					                             new Vector3(pos.getX() + 0.5D, firstUncoveredY, pos.getZ() + 0.5D),
 					                             1.0F, 1.0F, 0.0F, 40, 0, 100);
 				}
-				world.playSound(null, pos, SoundEvents.LASER_HIGH, SoundCategory.AMBIENT, 4.0F, 1.0F);
+				if (!isTransferDone) {
+					world.playSound(null, pos, SoundEvents.LASER_HIGH, SoundCategory.AMBIENT, 4.0F, 1.0F);
+				}
 				energy_consume(WarpDriveConfig.LIFT_ENERGY_PER_ENTITY, false);
 				isTransferDone = true;
 			}

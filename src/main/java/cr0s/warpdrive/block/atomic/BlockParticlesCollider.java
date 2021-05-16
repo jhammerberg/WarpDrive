@@ -12,7 +12,7 @@ import net.minecraft.state.StateContainer.Builder;
 public class BlockParticlesCollider extends BlockAbstractAccelerator {
 	
 	public BlockParticlesCollider(@Nonnull final String registryName, @Nonnull final EnumTier enumTier) {
-		super(registryName, enumTier, null);
+		super(getDefaultProperties(null), registryName, enumTier);
 		
 		setDefaultState(getStateContainer().getBaseState()
 				                .with(BlockProperties.ACTIVE, false)

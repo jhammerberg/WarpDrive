@@ -46,6 +46,11 @@ public class CommandDump {
 				                                                                          EntityArgument.getPlayers(commandContext, "players") ))
 				                           )
 				             )
+				        .then(Commands.argument("inventoryType", EnumArgument.enumArgument(EnumInventoryType.class))
+				                      .executes((commandContext) -> execute(commandContext.getSource(),
+				                                                            commandContext.getArgument("inventoryType", EnumInventoryType.class),
+				                                                            Collections.singleton(commandContext.getSource().asPlayer()) ))
+				             )
 				        .then(Commands.argument("players", EntityArgument.players())
 				                      .executes((commandContext) -> execute(commandContext.getSource(),
 				                                                            EnumInventoryType.CONTAINER,
@@ -54,7 +59,7 @@ public class CommandDump {
 				        
 				        .then(Commands.literal("help")
 				                      .executes((commandContext) -> help(commandContext.getSource(),
-				                                                         commandContext.getRootNode().getName() ))
+				                                                         commandContext.getNodes().get(0).getNode().getName() ))
 				             )
 				        .executes((commandContext) -> execute(commandContext.getSource(),
 				                                              EnumInventoryType.CONTAINER,
@@ -85,7 +90,10 @@ public class CommandDump {
 			switch (inventoryType) {
 			case CONTAINER:
 				final World world = serverPlayerEntity.getEntityWorld();
-				final BlockPos blockPos = serverPlayerEntity.getPosition();
+				// Vec3i constructor is rounding down, which fails for us when standing on top of a chest
+				final BlockPos blockPos = new BlockPos(Math.floor(serverPlayerEntity.getPosX()),
+				                                       Math.round(serverPlayerEntity.getPosY()),
+				                                       Math.floor(serverPlayerEntity.getPosZ()) );
 				
 				//noinspection ConstantConditions
 				if (world == null || blockPos == null) {
@@ -106,19 +114,19 @@ public class CommandDump {
 			case ENDERCHEST:
 				inventory = serverPlayerEntity.getInventoryEnderChest();
 				commandSource.sendFeedback(new StringTextComponent(String.format("Dumping content from %s enderchest:",
-				                                                                 serverPlayerEntity.getDisplayName() )), true);
+				                                                                 serverPlayerEntity.getDisplayName().getFormattedText() )), true);
 				break;
 				
 			case HAND:
 				inventory = serverPlayerEntity.getHeldItemMainhand();
 				commandSource.sendFeedback(new StringTextComponent(String.format("Dumping content from %s main hand:",
-				                                                                 serverPlayerEntity.getDisplayName() )), true);
+				                                                                 serverPlayerEntity.getDisplayName().getFormattedText() )), true);
 				break;
 				
 			case PLAYER:
 				inventory = serverPlayerEntity.inventory;
 				commandSource.sendFeedback(new StringTextComponent(String.format("Dumping content from %s inventory:",
-				                                                                 serverPlayerEntity.getDisplayName() )), true);
+				                                                                 serverPlayerEntity.getDisplayName().getFormattedText() )), true);
 				break;
 				
 			default:
@@ -146,7 +154,7 @@ public class CommandDump {
 							stringDamage,
 							itemStack.getCount(), itemStack.getCount(),
 							stringNBT,
-							itemStack.getDisplayName() )), true);
+							itemStack.getDisplayName().getFormattedText() )), true);
 				}
 			}
 		}

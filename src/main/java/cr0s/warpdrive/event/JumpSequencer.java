@@ -573,7 +573,7 @@ public class JumpSequencer extends AbstractSequencer {
 		// note: when deploying from scanner shipMovementType is CREATIVE, so betweenWorlds is false
 		
 		{// compute targetWorld and movement vector (moveX, moveY, moveZ)
-			final CelestialObject celestialObjectSource = CelestialObjectManager.get(worldSource, ship.core.getX(), ship.core.getZ());
+			final CelestialObject celestialObjectSource = CelestialObjectManager.get(worldSource);
 			final boolean isTargetWorldFound = computeTargetWorld(celestialObjectSource, shipMovementType, reason);
 			if (!isTargetWorldFound) {
 				LocalProfiler.stop();
@@ -584,8 +584,8 @@ public class JumpSequencer extends AbstractSequencer {
 		
 		// Check mass constrains
 		if ( ( worldSource != null
-		    && CelestialObjectManager.isPlanet(worldSource, ship.core.getX(), ship.core.getZ()) )
-		  || CelestialObjectManager.isPlanet(worldTarget, ship.core.getX() + moveX, ship.core.getZ() + moveZ) ) {
+		    && CelestialObjectManager.isPlanet(worldSource) )
+		  || CelestialObjectManager.isPlanet(worldTarget) ) {
 			if (!ship.isUnlimited() && ship.actualMass > WarpDriveConfig.SHIP_MASS_MAX_ON_PLANET_SURFACE) {
 				LocalProfiler.stop();
 				disableAndMessage(false, new WarpDriveText(Commons.getStyleWarning(), "warpdrive.ship.guide.too_much_mass_for_planet",
@@ -700,7 +700,7 @@ public class JumpSequencer extends AbstractSequencer {
 			}
 			
 			// Check world border
-			final CelestialObject celestialObjectTarget = CelestialObjectManager.get(worldTarget, (int) aabbTarget.minX, (int) aabbTarget.minZ);
+			final CelestialObject celestialObjectTarget = CelestialObjectManager.get(worldTarget);
 			if (celestialObjectTarget == null) {
 				if (WarpDriveConfig.LOGGING_JUMP) {
 					WarpDrive.logger.error(String.format("There's no world border defined for %s",

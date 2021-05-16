@@ -37,6 +37,8 @@ public class WorldGenStructure {
 	private final Filler fillerSolarPanel;
 	private final Filler fillerWiring;
 	private final Filler fillerPropulsion;
+	private final Filler fillerFullBlockLight;
+	private final Filler fillerWallLight;
 	private final Filler fillerComputerCore;
 	private final Filler fillerComputerScreen;
 	private final Filler fillerComputerKeyboard;
@@ -106,6 +108,28 @@ public class WorldGenStructure {
 			fillerPropulsion.blockState = Blocks.OAK_LOG.getDefaultState();
 		} else {
 			fillerPropulsion = fillerSetPropulsion.getRandomUnit(rand);
+		}
+		
+		// full block light is on it's own
+		final GenericSet<Filler> fillerSetFullBlockLight = WarpDriveConfig.FillerManager.getRandomSetFromGroup(rand, "ship_full_block_light");
+		if (fillerSetFullBlockLight == null) {
+			WarpDrive.logger.warn(String.format("No FillerSet found within group %s during world generation: check your configuration",
+			                                    "ship_full_block_light"));
+			fillerFullBlockLight = new Filler();
+			fillerFullBlockLight.blockState = Blocks.GLOWSTONE.getDefaultState();
+		} else {
+			fillerFullBlockLight = fillerSetFullBlockLight.getRandomUnit(rand);
+		}
+		
+		// wall light is on it's own
+		final GenericSet<Filler> fillerSetWallLight = WarpDriveConfig.FillerManager.getRandomSetFromGroup(rand, "ship_wall_light");
+		if (fillerSetWallLight == null) {
+			WarpDrive.logger.warn(String.format("No FillerSet found within group %s during world generation: check your configuration",
+			                                    "ship_wall_light"));
+			fillerWallLight = new Filler();
+			fillerWallLight.blockState = Blocks.REDSTONE_TORCH.getDefaultState();
+		} else {
+			fillerWallLight = fillerSetWallLight.getRandomUnit(rand);
 		}
 	}
 	
@@ -193,6 +217,14 @@ public class WorldGenStructure {
 	
 	public void setPropulsion(final World world, final int x, final int y, final int z) {
 		fillerPropulsion.setBlock(world, new BlockPos(x, y, z));
+	}
+	
+	public void setFullBlockLight(final World world, final int x, final int y, final int z) {
+		fillerFullBlockLight.setBlock(world, new BlockPos(x, y, z));
+	}
+	
+	public void setWallLight(final World world, final int x, final int y, final int z) {
+		fillerWallLight.setBlock(world, new BlockPos(x, y, z));
 	}
 	
 	public void fillInventoryWithLoot(final World world, final Random rand, final int x, final int y, final int z, final String group) {

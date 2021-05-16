@@ -1,6 +1,5 @@
 package cr0s.warpdrive.config;
 
-import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IParticleContainerItem;
 import cr0s.warpdrive.api.ParticleStack;
 
@@ -16,7 +15,6 @@ import net.minecraft.item.crafting.ShapedRecipe;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.PotionUtils;
 import net.minecraft.util.NonNullList;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
 // Adds support for IParticleContainerItem ingredients
@@ -25,7 +23,6 @@ import net.minecraft.world.World;
 public class RecipeParticleShapedOre extends ShapedRecipe {
 	
 	private final NonNullList<Ingredient> ingredients;
-	private final ItemStack itemStackOutput;
 	
 	public RecipeParticleShapedOre(final String group, final String suffix, @Nonnull final ItemStack itemStackOutput, final Object... recipe) {
 		this(group, suffix, null, itemStackOutput);
@@ -34,7 +31,6 @@ public class RecipeParticleShapedOre extends ShapedRecipe {
 		super(Recipes.buildRecipeId(suffix, itemStackOutput), group, 3, 3, ingredients, itemStackOutput);
 		
 		this.ingredients = ingredients;
-		this.itemStackOutput = itemStackOutput;
 	}
 	public boolean matches(@Nonnull final CraftingInventory craftingInventory, @Nonnull final World world) {
 		for(int x = 0; x <= craftingInventory.getWidth() - getRecipeWidth(); ++x) {

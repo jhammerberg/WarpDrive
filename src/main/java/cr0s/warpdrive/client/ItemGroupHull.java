@@ -50,6 +50,7 @@ public class ItemGroupHull extends ItemGroupAbstractBase {
 			break;
 		default:
 			itemStack = new ItemStack(Blocks.OBSIDIAN, 1);
+			break;
 		}
 		return itemStack;
     }

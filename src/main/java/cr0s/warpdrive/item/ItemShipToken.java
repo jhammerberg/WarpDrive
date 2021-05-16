@@ -23,8 +23,10 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 public class ItemShipToken extends ItemAbstractBase {	
 	
-	private static ItemStack[] itemStackCache;
 	public static final int[] TOKEN_IDs = { 0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 34, 35, 40, 41, 42, 43, 44, 45 };
+	private static final ItemStack[] itemStackCache = new ItemStack[TOKEN_IDs.length];
+	
+	private final int tokenId;
 	
 	public ItemShipToken(@Nonnull final String registryName, @Nonnull final EnumTier enumTier, final int tokenId) {
 		super(new Item.Properties()
@@ -32,7 +34,7 @@ public class ItemShipToken extends ItemAbstractBase {
 		      registryName,
 		      enumTier );
 		
-		itemStackCache = new ItemStack[TOKEN_IDs.length];
+		this.tokenId = tokenId;
 	}
 	
 	@Nonnull
@@ -45,7 +47,7 @@ public class ItemShipToken extends ItemAbstractBase {
 		for (int index = 0; index < TOKEN_IDs.length; index++) {
 			if (tokenId == TOKEN_IDs[index]) {
 				if (itemStackCache[index] == null) {
-					itemStackCache[index] = new ItemStack(WarpDrive.mapItemShipTokens.get(index));
+					itemStackCache[index] = new ItemStack(WarpDrive.mapItemShipTokens.get(tokenId));
 				}
 				return itemStackCache[index];
 			}
@@ -65,7 +67,7 @@ public class ItemShipToken extends ItemAbstractBase {
 	
 	@Nonnull
 	public static String getSchematicName(@Nonnull final ItemStack itemStack) {
-		String schematicName = "" + itemStack.getDamage();
+		String schematicName = "" + ((ItemShipToken) itemStack.getItem()).tokenId;
 		final CompoundNBT tagCompound = itemStack.getTag();
 		if (tagCompound != null && tagCompound.contains("shipName")) {
 			schematicName = tagCompound.getString("shipName");

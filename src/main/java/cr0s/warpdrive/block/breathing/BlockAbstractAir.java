@@ -11,12 +11,16 @@ import net.minecraft.block.material.PushReaction;
 import net.minecraft.block.material.Material;
 import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.state.IntegerProperty;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.math.shapes.VoxelShapes;
 import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockReader;
+
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public abstract class BlockAbstractAir extends BlockAbstractBase {
 	
@@ -67,6 +71,20 @@ public abstract class BlockAbstractAir extends BlockAbstractBase {
 	@Override
 	public PushReaction getPushReaction(@Nonnull final BlockState blockState) {
 		return PushReaction.DESTROY;
+	}
+	
+	@Override
+	public boolean propagatesSkylightDown(@Nonnull final BlockState blockState, @Nonnull final IBlockReader blockReader,
+	                                      @Nonnull final BlockPos blockPos) {
+		return true;
+	}
+	
+	@SuppressWarnings("deprecation")
+	@OnlyIn(Dist.CLIENT)
+	@Override
+	public boolean isSideInvisible(@Nonnull final BlockState blockState, @Nonnull final BlockState blockStateAdjacent, @Nonnull final Direction side) {
+		return blockStateAdjacent.getBlock() == this
+		    || super.isSideInvisible(blockState, blockStateAdjacent, side);
 	}
 	
 	/* TODO MC1.15 breathing debug rendering
