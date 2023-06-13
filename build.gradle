@@ -1,5 +1,3 @@
-
-
 buildscript {
     repositories {
         jcenter()
@@ -112,11 +110,14 @@ repositories {
         name = "CurseForge"
         url = "https://minecraft.curseforge.com/api/maven/"
     }
+    maven {
+        url "https://cursemaven.com"
+    }
     ivy {
         name "GalacticraftCore"
-        url "https://micdoodle8.com/new-builds/"
+        url "https://maven.galacticraft.net/repository/legacy/"
         layout 'pattern', {
-            artifact "[organization]/${config.Galacticraft_build}/[module]-[revision].jar"
+            artifact "dev/galacticraft/galacticraft-legacy/[revision]/[module]-[revision].jar"
         }
         metadataSources {
             artifact()
@@ -133,22 +134,25 @@ dependencies {
     // Real examples
     //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
     //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
-    
+
     // For more info...
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
-    
+    implementation 'javax.annotation:javax.annotation-api:1.3.1' //Fixes @Nonnull error thing
     // Using deobfCompile will include in run environment
     provided "blusunrize:ImmersiveEngineering:${config.ImmersiveEngineering_version}:deobf"
     provided "cofh:CoFHCore:${config.CoFHCore_version}:universal"
     provided "cofh:RedstoneFlux:${config.RedstoneFlux_version}:universal"
     provided "codechicken:CodeChickenLib:${config.CodeChickenLib_version}:universal"
-	provided "GC-1.12-dev:GalacticraftCore-Dev:${config.Galacticraft_version}.${config.Galacticraft_build}"
+	// provided "GC-1.12-dev:GalacticraftCore-Dev:${config.Galacticraft_version}.${config.Galacticraft_build}"
+    provided "dev.galacticraft:galacticraft-legacy:${config.Galacticraft_version}"
+    provided "curse.maven:icbm-classic-244451:4524395"
     // provided "com.builtbroken.icbm-classic:ICBM-classic:${config.ICBMclassic_version}"
-    provided curse.resolve("icbm-classic", "${config.ICBMclassic_fileid}")
+    // provided curse.resolve("icbm-classic", "${config.ICBMclassic_fileid}")
     provided "li.cil.oc:OpenComputers:${config.OpenComputers_version}"
     provided "vazkii.patchouli:Patchouli:${config.Patchouli_version}"
-    provided curse.resolve("matteroverdrive", "${config.MatterOverdrive_fileid}") // "${config.MatterOverdrive_version}"
+    provided "curse.maven:matter-overdrive-community-edition-557428:4512991"
+    //provided curse.resolve("matteroverdrive", "${config.MatterOverdrive_fileid}") // "${config.MatterOverdrive_version}"
     
 //  compileOnly "mezz.jei:jei_1.10.2:3.13.+"
 //  compileOnly "mcp.mobius.waila:Waila:1.7.0-B3_1.9.4"

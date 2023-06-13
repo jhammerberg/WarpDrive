@@ -270,6 +270,14 @@ public class Dictionary {
 			config.get("block_tags", "ic2:blockchambers"                               , "PlaceLatest").getString(); // IC2 Classic Reactor chamber
 			config.get("block_tags", "immersiveengineering:connector"                  , "PlaceLatest").getString();
 			config.get("block_tags", "industrialforegoing:black_hole_label"            , "PlaceLatest").getString();
+			config.get("block_tags", "jsg:dhd_block"                                   , "PlaceLatest").getString();
+			config.get("block_tags", "jsg:dhd_pegasus_block"                           , "PlaceLatest").getString();
+			config.get("block_tags", "jsg:stargate_milkyway_base_block"                , "PlaceEarliest").getString();
+			config.get("block_tags", "jsg:stargate_milkyway_member_block"              , "PlaceEarlier").getString();
+			config.get("block_tags", "jsg:stargate_pegasus_base_block"                 , "PlaceEarliest").getString();
+			config.get("block_tags", "jsg:stargate_pegasus_member_block"               , "PlaceEarlier").getString();
+			config.get("block_tags", "jsg:stargate_universe_base_block"                , "PlaceEarliest").getString();
+			config.get("block_tags", "jsg:stargate_universe_member_block"              , "PlaceEarlier").getString();
 			config.get("block_tags", "modularforcefieldsystem:force_field"             , "PlaceEarlier StopMining NoBlink").getString();
 			config.get("block_tags", "opencomputers:case1"                             , "PlaceLatest").getString();
 			config.get("block_tags", "opencomputers:case2"                             , "PlaceLatest").getString();
