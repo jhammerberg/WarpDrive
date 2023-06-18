@@ -1,6 +1,7 @@
 package cr0s.warpdrive.compat;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IBlockTransformer;
 import cr0s.warpdrive.api.ITransformation;
 import cr0s.warpdrive.api.WarpDriveText;
@@ -50,6 +51,7 @@ public class CompatSGCraft implements IBlockTransformer {
 			try {
 				final Object object = methodSGBaseTE_sgStateDescription.invoke(tileEntity);
 				final String state = (String)object;
+				WarpDrive.logger.error(String.format("it's working a little"));
 				if (!state.equalsIgnoreCase("Idle")) {
 					reason.append(Commons.getStyleWarning(), "warpdrive.compat.guide.stargate_is_active", state);
 					return false;

@@ -1,3 +1,4 @@
+/* */
 package cr0s.warpdrive.compat;
 
 import cr0s.warpdrive.Commons;
@@ -28,7 +29,7 @@ public class CompatJSG implements IBlockTransformer {
 	public static void register() {
 		try {
 			classBaseTileEntity = Class.forName("tauri.dev.jsg.tileentity.stargate.StargateAbstractBaseTile");
-			classDHDBlock = Class.forName("tauri.dev.jsg.block.dialhomedevice.DHDAbstractBlock.java");
+			classDHDBlock = Class.forName("tauri.dev.jsg.block.dialhomedevice.DHDAbstractBlock");
 			classSGBaseBlock = Class.forName("tauri.dev.jsg.block.stargate.StargateAbstractBaseBlock");
 			classSGBaseTE = Class.forName("tauri.dev.jsg.tileentity.stargate.StargateClassicBaseTile");
 			methodSGBaseTE_sgStateDescription = classBaseTileEntity.getMethod("getStargateState");
@@ -76,7 +77,7 @@ public class CompatJSG implements IBlockTransformer {
 	//                                                        0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
 	private static final byte[] mrotSGBase               = {  3,  2,  0,  1,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 };
 	private static final int[]  rotFacingDirectionOfBase = {  3,  0,  1,  2,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 };
-	
+
 	@Override
 	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
 		final byte rotationSteps = transformation.getRotationSteps();
