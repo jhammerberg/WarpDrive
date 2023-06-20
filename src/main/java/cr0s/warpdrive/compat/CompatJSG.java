@@ -27,6 +27,7 @@ public class CompatJSG implements IBlockTransformer {
 	private static Class<?> classDHDAbstractBlock;
 	private static Class<?> classStargateClassicBaseTile;
 	private static Class<?> classStargateAbstractBaseBlock;
+	private static Class<?> classStargateAbstractMemberBlock;
 	private static Method methodStargateClassicBaseTile_sgStateDescription;
 	
 	public static void register() {
@@ -37,6 +38,7 @@ public class CompatJSG implements IBlockTransformer {
 			classDHDAbstractBlock = Class.forName("tauri.dev.jsg.block.dialhomedevice.DHDAbstractBlock");
 			classStargateClassicBaseTile = Class.forName("tauri.dev.jsg.tileentity.stargate.StargateClassicBaseTile");
 			classStargateAbstractBaseBlock = Class.forName("tauri.dev.jsg.block.stargate.StargateAbstractBaseBlock");
+			classStargateAbstractMemberBlock = Class.forName("tauri.dev.jsg.block.stargate.StargateAbstractMemberBlock");
 			methodStargateClassicBaseTile_sgStateDescription = classStargateAbstractBaseTile.getMethod("getStargateState");
 			WarpDriveConfig.registerBlockTransformer("jsg", new CompatJSG());
 		} catch(final ClassNotFoundException | NoSuchMethodException | SecurityException exception) {
@@ -101,7 +103,8 @@ public class CompatJSG implements IBlockTransformer {
 
 		// Rotation for base block
 
-		if (classStargateAbstractBaseBlock.isInstance(block)) {
+		if (classStargateAbstractBaseBlock.isInstance(block)
+		 || classStargateAbstractMemberBlock.isInstance(block)) {
 			switch (rotationSteps) {
 			case 1:
 				return BaseRotation[metadata];
