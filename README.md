@@ -31,7 +31,5 @@ To setup you development environment:
 ```
 ./gradlew setupDecompWorkspace
 ```
-5.  Start IdeaJ.
-6.  Import the gradle project.
-7.  Import the code formating & inspection rules from IntelliJ IDEA-Code Style.xml and IntelliJ IDEA-Inspection.xml.
-8.  Create run configuration using gradle, select the gradle project, enter the task `runClient` or `runServer`.
+5.  Start code editor.
+6.  Create run configuration using gradle, select the gradle project, enter the task `runClient` or `runServer`.
