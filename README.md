@@ -1,6 +1,4 @@
 # WarpDrive for 1.12.2
-Fork by DirkDozer to add compatibility for Just Stargate mod.
-
 [![WarpDrive Curse statistics](http://cf.way2muchnoise.eu/warpdrive.svg)](http://minecraft.curseforge.com/projects/warpdrive)
 [![Build Status](https://travis-ci.org/LemADEC/WarpDrive.svg?branch=MC1.7)](https://travis-ci.org/LemADEC/WarpDrive)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/cd8be2ef5d3b4874b2c05aedf1faba7b)](https://www.codacy.com/manual/LemADEC/WarpDrive?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=LemADEC/WarpDrive&amp;utm_campaign=Badge_Grade)
@@ -34,4 +32,6 @@ To setup you development environment:
 ./gradlew setupDecompWorkspace
 ```
 5.  Start code editor.
-6.  Create run configuration using gradle, select the gradle project, enter the task `runClient` or `runServer`.
+6.  Import the Gradle project
+7.  Import the code formating & inspection rules from IntelliJ `IDEA-Code Style.xml` and `IntelliJ IDEA-Inspection.xml`.
+8.  Create run configuration using gradle, select the gradle project, enter the task `runClient` or `runServer`.
