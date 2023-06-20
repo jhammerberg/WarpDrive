@@ -17,7 +17,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.DimensionManager;
 
 public class CompatJSG implements IBlockTransformer {
 	
@@ -119,42 +118,32 @@ public class CompatJSG implements IBlockTransformer {
 		
 		// Rotation for DHD block. The DHD uses a non-standard 16 step rotation system with a custom block property which is why this code is so messy
 
-		// Get block position
-		final BlockPos pos = new BlockPos(nbtTileEntity.getInteger("x"), nbtTileEntity.getInteger("y"), nbtTileEntity.getInteger("z"));
-		//get the world the block is in
-		final World world = DimensionManager.getWorld(nbtTileEntity.getInteger("dimension"));
-		//get the block state
-		final IBlockState blockState = world.getBlockState(pos);
+		//get the rotation property
+		final PropertyInteger propertyRotation = PropertyInteger.create("rotation", 0, 15);
+		//get the blockstate (from metadata so lem doesn't get mad)
+		final IBlockState blockState = block.getStateFromMeta(metadata);
 		//check if the block has the rotation property
-		if (blockState.getProperties().containsKey(PropertyInteger.create("rotation", 0, 15))) {
+		if (blockState.getProperties().containsKey(propertyRotation)) {
 			//get the rotation value
-			final int DHDRotation = blockState.getValue(PropertyInteger.create("rotation", 0, 15));
+			final int DHDRotation = blockState.getValue(propertyRotation);
 			switch (rotationSteps) {
 			case 1: //Wrap around if rotation is greater than 15
 				if (DHDRotation+4 > 15) {
-					//set the new rotation value
-					final IBlockState blockStateNew = blockState.withProperty(PropertyInteger.create("rotation", 0, 15), DHDRotation-12);
-					//return the new meta value
-					return block.getMetaFromState(blockStateNew);
+					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation-12));
 				} else {
-					final IBlockState blockStateNew = blockState.withProperty(PropertyInteger.create("rotation", 0, 15), DHDRotation+4);
-					return block.getMetaFromState(blockStateNew);
+					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation+4));
 				}
 			case 2:
 				if (DHDRotation+8 > 15) {
-					final IBlockState blockStateNew = blockState.withProperty(PropertyInteger.create("rotation", 0, 15), DHDRotation-8);
-					return block.getMetaFromState(blockStateNew);
+					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation-8));
 				} else {
-					final IBlockState blockStateNew = blockState.withProperty(PropertyInteger.create("rotation", 0, 15), DHDRotation+8);
-					return block.getMetaFromState(blockStateNew);
+					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation+8));
 				}
 			case 3:
 				if (DHDRotation+12 > 15) {
-					final IBlockState blockStateNew = blockState.withProperty(PropertyInteger.create("rotation", 0, 15), DHDRotation-4);
-					return block.getMetaFromState(blockStateNew);
+					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation-4));
 				} else {
-					final IBlockState blockStateNew = blockState.withProperty(PropertyInteger.create("rotation", 0, 15), DHDRotation+12);
-					return block.getMetaFromState(blockStateNew);
+					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation+12));
 				}
 			default:
 				break;
