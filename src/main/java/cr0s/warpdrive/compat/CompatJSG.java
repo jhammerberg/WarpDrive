@@ -1,6 +1,7 @@
 package cr0s.warpdrive.compat;
 
 import cr0s.warpdrive.Commons;
+import cr0s.warpdrive.WarpDrive;
 import cr0s.warpdrive.api.IBlockTransformer;
 import cr0s.warpdrive.api.ITransformation;
 import cr0s.warpdrive.api.WarpDriveText;
@@ -10,11 +11,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.properties.PropertyDirection;
+import net.minecraft.block.properties.PropertyEnum;
 import net.minecraft.block.properties.PropertyInteger;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -84,10 +88,6 @@ public class CompatJSG implements IBlockTransformer {
 	                            final Block block, final int blockMeta, final TileEntity tileEntity) {
 		// nothing to do
 	}
-	
-	//                                                          0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
-	private static final byte[] BaseRotation               = {  1,  2,  3,  0,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 };
-	//private static final byte[] DHDRotation 			   = {  3,  0,  1,  2,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 };
 
 	@Override
 	public int rotate(final Block block, final int metadata, final NBTTagCompound nbtTileEntity, final ITransformation transformation) {
@@ -99,29 +99,41 @@ public class CompatJSG implements IBlockTransformer {
 			final BlockPos basePos = transformation.apply(BlockPos.fromLong(nbtTileEntity.getLong("basePos")));
 			nbtTileEntity.setLong("basePos", basePos.toLong());
 		}
+		
+		//get the blockstate (from metadata so lem doesn't get mad)
+		final IBlockState blockState = block.getStateFromMeta(metadata);
 
-		// Rotation for base block
-
-		if (classStargateAbstractBaseBlock.isInstance(block)
-		 || classStargateAbstractMemberBlock.isInstance(block)) {
+		// Rotation for stargate blocks, I don't know why the default rotation system doesn't work for them
+		//get the facing property
+		final PropertyEnum<EnumFacing> propertyFacing = PropertyDirection.create("facing", EnumFacing.Plane.HORIZONTAL);
+		//check if the block has the facing property
+		if (blockState.getProperties().containsKey(propertyFacing)) {
+			//get the facing value
+			final EnumFacing facing = blockState.getValue(propertyFacing);
+			//rotate the facing value
+			final EnumFacing facingRotated;
 			switch (rotationSteps) {
 			case 1:
-				return BaseRotation[metadata];
+				facingRotated = facing.rotateY();
+				break;
 			case 2:
-				return BaseRotation[BaseRotation[metadata]];
+				facingRotated = facing.rotateY().rotateY();
+				break;
 			case 3:
-				return BaseRotation[BaseRotation[BaseRotation[metadata]]];
+				facingRotated = facing.rotateY().rotateY().rotateY();
+				break;
 			default:
-				return metadata;
+				facingRotated = facing;
+				break;
 			}
+			//set the facing value
+			return block.getMetaFromState(blockState.withProperty(propertyFacing, facingRotated));
 		}
-		
+
 		// Rotation for DHD block. The DHD uses a non-standard 16 step rotation system with a custom block property which is why this code is so messy
 
 		//get the rotation property
 		final PropertyInteger propertyRotation = PropertyInteger.create("rotation", 0, 15);
-		//get the blockstate (from metadata so lem doesn't get mad)
-		final IBlockState blockState = block.getStateFromMeta(metadata);
 		//check if the block has the rotation property
 		if (blockState.getProperties().containsKey(propertyRotation)) {
 			//get the rotation value
