@@ -100,7 +100,7 @@ public class CompatJSG implements IBlockTransformer {
 			nbtTileEntity.setLong("basePos", basePos.toLong());
 		}
 		
-		//get the blockstate (from metadata so lem doesn't get mad)
+		//get the blockstate
 		final IBlockState blockState = block.getStateFromMeta(metadata);
 
 		// Rotation for stargate blocks, I don't know why the default rotation system doesn't work for them
@@ -136,30 +136,28 @@ public class CompatJSG implements IBlockTransformer {
 		final PropertyInteger propertyRotation = PropertyInteger.create("rotation", 0, 15);
 		//check if the block has the rotation property
 		if (blockState.getProperties().containsKey(propertyRotation)) {
-			//get the rotation value
-			final int DHDRotation = blockState.getValue(propertyRotation);
-			switch (rotationSteps) {
-			case 1: //Wrap around if rotation is greater than 15
-				if (DHDRotation+4 > 15) {
-					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation-12));
-				} else {
-					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation+4));
-				}
-			case 2:
-				if (DHDRotation+8 > 15) {
-					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation-8));
-				} else {
-					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation+8));
-				}
-			case 3:
-				if (DHDRotation+12 > 15) {
-					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation-4));
-				} else {
-					return block.getMetaFromState(blockState.withProperty(propertyRotation, DHDRotation+12));
-				}
-			default:
-				break;
-			}
+		    //get the rotation value
+		    final int DHDRotation = blockState.getValue(propertyRotation);
+		
+		    int increment;
+		
+		    switch (rotationSteps) {
+		    case 1: 
+		        increment = 4;
+		        break;
+		    case 2:
+		        increment = 8;
+		        break;
+		    case 3:
+		        increment = 12;
+		        break;
+		    default:
+		        increment = 0;
+		        break;
+		    }
+		
+		    int newRotation = (DHDRotation + increment) % 16;
+		    return block.getMetaFromState(blockState.withProperty(propertyRotation, newRotation));
 		}
 		return metadata;
 	}

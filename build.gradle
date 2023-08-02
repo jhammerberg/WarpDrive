@@ -146,12 +146,12 @@ dependencies {
     provided "codechicken:CodeChickenLib:${config.CodeChickenLib_version}:universal"
 	// provided "GC-1.12-dev:GalacticraftCore-Dev:${config.Galacticraft_version}.${config.Galacticraft_build}"
     provided "dev.galacticraft:galacticraft-legacy:${config.Galacticraft_version}"
-    provided "curse.maven:icbm-classic-244451:4524395"
+    provided "curse.maven:icbm-classic-${config.ICBMclassic_fileid}:${config.ICBMclassic_versionid}"
     // provided "com.builtbroken.icbm-classic:ICBM-classic:${config.ICBMclassic_version}"
     // provided curse.resolve("icbm-classic", "${config.ICBMclassic_fileid}")
     provided "li.cil.oc:OpenComputers:${config.OpenComputers_version}"
     provided "vazkii.patchouli:Patchouli:${config.Patchouli_version}"
-    provided "curse.maven:matter-overdrive-community-edition-557428:4512991"
+    provided "curse.maven:matter-overdrive-community-edition-${config.MatterOverdrive_fileid}:${config.MatterOverdrive_versionid}"
     //provided curse.resolve("matteroverdrive", "${config.MatterOverdrive_fileid}") // "${config.MatterOverdrive_version}"
     
 //  compileOnly "mezz.jei:jei_1.10.2:3.13.+"
