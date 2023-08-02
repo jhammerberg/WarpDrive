@@ -251,7 +251,7 @@ public class WarpDriveConfig {
 	public static boolean LOGGING_RADAR = false;
 	public static boolean LOGGING_BREATHING = false;
 	public static boolean LOGGING_WORLD_GENERATION = false;
-	public static boolean LOGGING_PROFILING_CPU_USAGE = false;
+	public static boolean LOGGING_PROFILING_CPU_USAGE = true;
 	public static boolean LOGGING_PROFILING_MEMORY_ALLOCATION = false;
 	public static boolean LOGGING_PROFILING_THREAD_SAFETY = false;
 	public static boolean LOGGING_DICTIONARY = false;
@@ -264,11 +264,11 @@ public class WarpDriveConfig {
 	public static boolean LOGGING_RENDERING = false;
 	public static boolean LOGGING_CHUNK_HANDLER = false;
 	public static boolean LOGGING_CHUNK_RELOADING = false;
-	public static boolean LOGGING_CHUNK_LOADING = false;
+	public static boolean LOGGING_CHUNK_LOADING = true;
 	public static boolean LOGGING_ENTITY_FX = false;
 	public static boolean LOGGING_CLIENT_SYNCHRONIZATION = false;
 	public static boolean LOGGING_GRAVITY = false;
-	public static boolean LOGGING_OFFLINE_AVATAR = false;
+	public static boolean LOGGING_OFFLINE_AVATAR = true;
 	
 	// Energy
 	public static String           ENERGY_DISPLAY_UNITS = "RF";
